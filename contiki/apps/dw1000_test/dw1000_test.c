@@ -407,7 +407,6 @@ int app_dw1000_init () {
         return -1;
     }
 
-
     // Set which role we are (anchor or tag)
     // instancesetrole(DW1000_ROLE_TYPE);
 
@@ -612,6 +611,11 @@ PROCESS_THREAD(dw1000_test, ev, data) {
     PROCESS_BEGIN();
 
     leds_on(LEDS_ALL);
+
+    // Start off DW1000 comms slow
+    REG(SSI0_BASE + SSI_CR1) = 0;
+    REG(SSI0_BASE + SSI_CPSR) = 8;
+    REG(SSI0_BASE + SSI_CR1) |= SSI_CR1_SSE;
 
     dw1000_init();
     printf("Inited the DW1000 driver (setup SPI)\n");
