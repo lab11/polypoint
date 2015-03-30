@@ -140,17 +140,15 @@ void dw1000_choose_antenna (uint8_t antenna_number) {
   dwt_writetodevice(GPIO_CTRL_ID, GPIO_DOUT_OFFSET, 1, &buf[0]);
 }
 
-void dw1000_set_eui (uint8_t lower) {
-  uint8_t eui[8];
-  eui[0] = lower;
-  eui[1] = 0x55;
-  eui[2] = 0x44;
-  eui[3] = 'W';
-  eui[4] = 'D';
-  eui[5] = 0xe5;
-  eui[6] = 0x98;
-  eui[7] = 0xc0;
-  dwt_seteui(eui);
+void dw1000_populate_eui (uint8_t *eui_buf, uint8_t id) {
+  eui_buf[0] = id;
+  eui_buf[1] = 0x55;
+  eui_buf[2] = 0x44;
+  eui_buf[3] = 'N';
+  eui_buf[4] = 'P';
+  eui_buf[5] = 0xe5;
+  eui_buf[6] = 0x98;
+  eui_buf[7] = 0xc0;
 }
 
 void dw1000_reset () {

@@ -10,20 +10,10 @@
 #include <string.h>
 #include <stdio.h>
 
-// typedef struct {
-//  uint8_t  a;
-//  uint8_t  b;
-//  uint16_t c;
-//  uint32_t d;
-// } fram_test_t;
-
 /*---------------------------------------------------------------------------*/
 PROCESS(dw1000_test, "DW1000Test");
 AUTOSTART_PROCESSES(&dw1000_test);
 /*---------------------------------------------------------------------------*/
-
-// fram_test_t fram_data = {10, 50, 45982, 73652091};
-// fram_test_t* fram_data_read;
 
 // uint8_t buf[100] = {144};
 
@@ -39,16 +29,15 @@ static struct etimer periodic_timer;
 #define MSG_TYPE_ANC_RESP  0x50
 #define MSG_TYPE_TAG_FINAL 0x69
 
-#define DW1000_ROLE_TYPE ANCHOR
-// #define DW1000_ROLE_TYPE TAG
+// #define DW1000_ROLE_TYPE ANCHOR
+#define DW1000_ROLE_TYPE TAG
+
+#define TAG_EUI 0
+#define ANCHOR_EUI 1
 
 #define DW1000_PANID 0xD100
 
-// #define NODE_DELAY_US 1000
-// #define NODE_DELAY_US 500
-// #define NODE_DELAY_US 3000
 #define NODE_DELAY_US 5000
-// #define NODE_DELAY_US 4000
 #define DELAY_MASK 0x00FFFFFFFE00
 #define SPEED_OF_LIGHT 299702547.0
 
@@ -77,7 +66,20 @@ struct ieee154_msg  {
     uint8_t fcs[2] ;                                  //  we allow space for the CRC as it is logically part of the message. However ScenSor TX calculates and adds these bytes.
 } __attribute__ ((__packed__));
 
+struct ieee154_bcast_msg  {
+    uint8_t frameCtrl[2];                             //  frame control bytes 00-01
+    uint8_t seqNum;                                   //  sequence_number 02
+    uint8_t panID[2];                                 //  PAN ID 03-04
+    uint8_t destAddr[2];
+    uint8_t sourceAddr[2];
+    uint8_t messageType; //   (application data and any user payload)
+    uint32_t responseMinusPoll; // time differences
+    uint32_t finalMinusResponse;
+    uint8_t fcs[2] ;                                  //  we allow space for the CRC as it is logically part of the message. However ScenSor TX calculates and adds these bytes.
+} __attribute__ ((__packed__));
+
 struct ieee154_msg msg;
+struct ieee154_bcast_msg bcast_msg;
 
 // typedef enum {
 //     TAG_SEND_POLL,
@@ -358,7 +360,6 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
                     distance =
                         distance - dwt_getrangebias(2, (float) distance, DWT_PRF_64M);
 
-
                     // printf("GOT RANGE: %f\n", distance);
                 }
 
@@ -389,14 +390,6 @@ int app_dw1000_init () {
     // Select which of the three antennas on the board to use
     dw1000_choose_antenna(1);
 
-    // Initialize all of the instance code
-    // The instance code is complicated. Hopefully just copying it will work OK
-    // err = instance_init();
-    // if (err < 0) {
-    //  printf("Could not init the instance code\n");
-    //  return -1;
-    // }
-
     // Init the dw1000 hardware
     err = dwt_initialise(DWT_LOADUCODE    |
                          DWT_LOADLDO      |
@@ -406,12 +399,6 @@ int app_dw1000_init () {
     if (err != DWT_SUCCESS) {
         return -1;
     }
-
-    // Set which role we are (anchor or tag)
-    // instancesetrole(DW1000_ROLE_TYPE);
-
-    // Use FAST ranging!!
-    // instance_init_f(DW1000_ROLE_TYPE);
 
     // Setup interrupts
     // Note: using auto rx re-enable so don't need to trigger on error frames
@@ -477,14 +464,8 @@ int app_dw1000_init () {
         printf("tx antenna delay: %u\n", antenna_delay);
     }
 
-    // instance_config(&ranging_config);
-
     // // Set the sleep delay. Not sure what this does actually.
     // instancesettagsleepdelay(POLL_SLEEP_DELAY, BLINK_SLEEP_DELAY);
-
-    // // Still want to use fast ranging
-    // instance_config_f();
-
 
     // Setup the constants in the outgoing packet
     msg.frameCtrl[0] = 0x41; // data frame, ack req, panid comp
@@ -505,32 +486,20 @@ int app_dw1000_init () {
     // Configure as either a tag or anchor
 
     if (DW1000_ROLE_TYPE == ANCHOR) {
+	uint8_t eui_array[8];
 
         // Disable frame filtering
-        dwt_enableframefilter(DWT_FF_NOTYPE_EN);
+        dwt_enableframefilter(DWT_FF_DATA_EN | DWT_FF_ACK_EN);
 
-        dw1000_set_eui(1);
+        dw1000_populate_eui(eui_array, ANCHOR_EUI);
+  	dwt_seteui(eui_array);
         dwt_setpanid(DW1000_PANID);
 
         // Set more packet constants
-        msg.sourceAddr[0] = 0x01;
-        msg.sourceAddr[1] = 0x55;
-        msg.sourceAddr[2] = 0x44;
-        msg.sourceAddr[3] = 'W';
-        msg.sourceAddr[4] = 'D';
-        msg.sourceAddr[5] = 0xe5;
-        msg.sourceAddr[6] = 0x98;
-        msg.sourceAddr[7] = 0xc0;
+        dw1000_populate_eui(msg.sourceAddr, ANCHOR_EUI);
 
         // hard code destination for now....
-        msg.destAddr[0] = 0x02;
-        msg.destAddr[1] = 0x55;
-        msg.destAddr[2] = 0x44;
-        msg.destAddr[3] = 'W';
-        msg.destAddr[4] = 'D';
-        msg.destAddr[5] = 0xe5;
-        msg.destAddr[6] = 0x98;
-        msg.destAddr[7] = 0xc0;
+        dw1000_populate_eui(msg.destAddr, TAG_EUI);
 
         // We do want to enable auto RX
         dwt_setautorxreenable(1);
@@ -548,6 +517,7 @@ int app_dw1000_init () {
         dwt_rxenable(0);
 
     } else if (DW1000_ROLE_TYPE == TAG) {
+	uint8_t eui_array[8];
 
         // First thing we do as a TAG is send the POLL message when the
         // timer fires
@@ -556,27 +526,13 @@ int app_dw1000_init () {
         // Allow data and ack frames
         dwt_enableframefilter(DWT_FF_DATA_EN | DWT_FF_ACK_EN);
 
-        dw1000_set_eui(2);
+        dw1000_populate_eui(eui_array, TAG_EUI);
+  	dwt_seteui(eui_array);
         dwt_setpanid(DW1000_PANID);
 
         // Set more packet constants
-        msg.sourceAddr[0] = 0x02;
-        msg.sourceAddr[1] = 0x55;
-        msg.sourceAddr[2] = 0x44;
-        msg.sourceAddr[3] = 'W';
-        msg.sourceAddr[4] = 'D';
-        msg.sourceAddr[5] = 0xe5;
-        msg.sourceAddr[6] = 0x98;
-        msg.sourceAddr[7] = 0xc0;
-
-        msg.destAddr[0] = 0x01;
-        msg.destAddr[1] = 0x55;
-        msg.destAddr[2] = 0x44;
-        msg.destAddr[3] = 'W';
-        msg.destAddr[4] = 'D';
-        msg.destAddr[5] = 0xe5;
-        msg.destAddr[6] = 0x98;
-        msg.destAddr[7] = 0xc0;
+        dw1000_populate_eui(msg.sourceAddr, TAG_EUI);
+	dw1000_populate_eui(msg.destAddr, ANCHOR_EUI);
 
         // Do this for the tag too
         dwt_setautorxreenable(1);
@@ -647,33 +603,6 @@ PROCESS_THREAD(dw1000_test, ev, data) {
         etimer_set(&periodic_timer, CLOCK_SECOND*3);
     }
 
-    // printf("inited\n");
-
-    // memset(buf, 144, 100);
-
-    // // Read the FRAM starting at 0
-    // fm25l04b_read(0, sizeof(fram_test_t), buf);
-    // //fm25l04b_read(0, 10, buf);
-
-    // // Check if matches
-    // fram_data_read = (fram_test_t*) buf;
-
-    // for (i=0; i<20; i++) {
-    //  printf("buf%i: %u\n", i, buf[i]);
-    // }
-
-    // //if (buf[0] == 10) {
-    //  //leds_on(LEDS_GREEN);
-    // //} else
-    // if (memcmp(buf, &fram_data, sizeof(fram_test_t)) == 0) {
-    //  // Hooray, FRAM works!
-    //  leds_on(LEDS_BLUE);
-    // } else {
-    //  // Didn't match, let's try writing it first
-    //  fm25l04b_write(0, sizeof(fram_test_t), (uint8_t*) &fram_data);
-    //  leds_on(LEDS_RED);
-    // }
-
     while(1) {
         PROCESS_YIELD();
 
@@ -681,13 +610,7 @@ PROCESS_THREAD(dw1000_test, ev, data) {
 
             leds_toggle(LEDS_BLUE);
 
-            // switch (tag_state) {
-
-            //     case TAG_SEND_POLL: {
-
-
             // On timer fire, send a POLL message to an anchor
-
 
             // FCS + SEQ + PANID:  5
             // ADDR:              16
@@ -696,7 +619,6 @@ PROCESS_THREAD(dw1000_test, ev, data) {
             // EXTRA (??):         2
             // total              26
             uint16_t tx_frame_length = 26;
-
 
             msg.seqNum++;
 
@@ -725,45 +647,6 @@ PROCESS_THREAD(dw1000_test, ev, data) {
 
             etimer_restart(&periodic_timer);
 
-            // tag_state = TAG_SEND_FINAL;
-
-
-            //         break;
-            //     }
-
-
-            // }
-
-
-
-
-
-
-            // printf("timer fired\n");
-
-            // while (1) {
-
-            //     instance_run();
-
-
-
-            //     // Check if we got a range. If so we can ask for the result.
-            //     if (instancenewrange()) {
-            //         double range_result = instance_get_idist();
-
-            //         printf("Range Result: %f\n", range_result);
-            //         break;
-
-            //     } else {
-            //         // printf("Did not get range...not sure what this means\n");
-            //     }
-
-            //     watchdog_periodic();
-
-            // }
-
-
-            // etimer_restart(&periodic_timer);
         }
     }
 
