@@ -29,8 +29,8 @@ static struct etimer periodic_timer;
 #define MSG_TYPE_ANC_RESP  0x50
 #define MSG_TYPE_TAG_FINAL 0x69
 
-// #define DW1000_ROLE_TYPE ANCHOR
-#define DW1000_ROLE_TYPE TAG
+#define DW1000_ROLE_TYPE ANCHOR
+// #define DW1000_ROLE_TYPE TAG
 
 #define TAG_EUI 0
 #define ANCHOR_EUI 1
@@ -71,7 +71,7 @@ struct ieee154_bcast_msg  {
     uint8_t seqNum;                                   //  sequence_number 02
     uint8_t panID[2];                                 //  PAN ID 03-04
     uint8_t destAddr[2];
-    uint8_t sourceAddr[2];
+    uint8_t sourceAddr[8];
     uint8_t messageType; //   (application data and any user payload)
     uint32_t responseMinusPoll; // time differences
     uint32_t finalMinusResponse;
@@ -189,11 +189,11 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 
                 // Set the packet length
                 // FCS + SEQ + PANID:  5
-                // ADDR:              16
+                // ADDR:              10
                 // PKT:    1 + 4 + 4 = 9
                 // CRC:                2
                 // total              32
-                uint16_t tx_frame_length = 32;
+                uint16_t tx_frame_length = 26;
                 // Put at beginning of TX fifo
                 dwt_writetxfctrl(tx_frame_length, 0);
 
@@ -213,12 +213,12 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
                         ((uint32_t) global_pkt_delay_upper32 << 8) -
                         (((uint32_t) global_tag_anchor_resp_rx_time) & 0x1FF);
 
-                    msg.messageType = MSG_TYPE_TAG_FINAL;
-                    msg.responseMinusPoll = responseMinusPoll;
-                    msg.finalMinusResponse = finalMinusResponse;
-                    msg.seqNum++;
+                    bcast_msg.messageType = MSG_TYPE_TAG_FINAL;
+                    bcast_msg.responseMinusPoll = responseMinusPoll;
+                    bcast_msg.finalMinusResponse = finalMinusResponse;
+                    bcast_msg.seqNum++;
 
-                    dwt_writetxdata(tx_frame_length, (uint8_t*) &msg, 0);
+                    dwt_writetxdata(tx_frame_length, (uint8_t*) &bcast_msg, 0);
                 }
             }
         }
@@ -249,7 +249,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
                         (((uint64_t) txTimeStamp[4]) << 32);
 
             // Get the packet
-            dwt_readrxdata(&packet_type_byte, 1, 21);
+            dwt_readrxdata(&packet_type_byte, 1, 15);
             // dwt_readrxdata(recv_pkt, rxd->datalength, 0);
             // msg_ptr = (struct ieee154_msg*) recv_pkt;
 
@@ -280,10 +280,6 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
                 uint16_t tx_frame_length = 24;
                 // Put at beginning of TX fifo
                 dwt_writetxfctrl(tx_frame_length, 0);
-
-                // msg.seqNum++;
-                // msg.messageType = MSG_TYPE_ANC_RESP;
-                // dwt_writetxdata(tx_frame_length, (uint8_t*) &msg, 0);
 
                 // Start delayed TX
                 err = dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED);
@@ -474,6 +470,13 @@ int app_dw1000_init () {
     msg.panID[1] = DW1000_PANID >> 8;
     msg.seqNum = 0;
 
+    // Setup the constants in the outgoing packet
+    bcast_msg.frameCtrl[0] = 0x41; // data frame, ack req, panid comp
+    bcast_msg.frameCtrl[1] = 0xC8; // ext addr
+    bcast_msg.panID[0] = DW1000_PANID & 0xff;
+    bcast_msg.panID[1] = DW1000_PANID >> 8;
+    bcast_msg.seqNum = 0;
+
     // Calculate the delay between packet reception and transmission.
     // This applies to the time between POLL and RESPONSE (on the anchor side)
     // and RESPONSE and POLL (on the tag side).
@@ -531,8 +534,8 @@ int app_dw1000_init () {
         dwt_setpanid(DW1000_PANID);
 
         // Set more packet constants
-        dw1000_populate_eui(msg.sourceAddr, TAG_EUI);
-	dw1000_populate_eui(msg.destAddr, ANCHOR_EUI);
+        dw1000_populate_eui(bcast_msg.sourceAddr, TAG_EUI);
+	memset(bcast_msg.destAddr, 0xFF, 2);
 
         // Do this for the tag too
         dwt_setautorxreenable(1);
@@ -613,17 +616,18 @@ PROCESS_THREAD(dw1000_test, ev, data) {
             // On timer fire, send a POLL message to an anchor
 
             // FCS + SEQ + PANID:  5
-            // ADDR:              16
+            // ADDR:              10
             // PKT:                1
             // CRC:                2
             // EXTRA (??):         2
-            // total              26
-            uint16_t tx_frame_length = 26;
+            // total              20
+            uint16_t tx_frame_length = 20;
+	    memset(bcast_msg.destAddr, 0xFF, 2);
 
-            msg.seqNum++;
+            bcast_msg.seqNum++;
 
             // First byte identifies this as a POLL
-            msg.messageType = MSG_TYPE_TAG_POLL;
+            bcast_msg.messageType = MSG_TYPE_TAG_POLL;
 
             // Tell the DW1000 about the packet
             dwt_writetxfctrl(tx_frame_length, 0);
@@ -636,7 +640,7 @@ PROCESS_THREAD(dw1000_test, ev, data) {
             dwt_setrxaftertxdelay(2000); // us
 
             // Write the data
-            dwt_writetxdata(tx_frame_length, (uint8_t*) &msg, 0);
+            dwt_writetxdata(tx_frame_length, (uint8_t*) &bcast_msg, 0);
 
             // Start the transmission
             dwt_starttx(DWT_START_TX_IMMEDIATE | DWT_RESPONSE_EXPECTED);
