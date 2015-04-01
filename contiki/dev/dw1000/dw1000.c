@@ -131,13 +131,17 @@ int writetospi(uint16_t headerLength,
 // 1                 P6                GPIO1
 // 2                 P7                GPIO0
 void dw1000_choose_antenna (uint8_t antenna_number) {
+  //Assign all GPIO pins to act as GPIO
   uint8_t buf[4];
+  memset(buf, 0, 4);
+  dwt_writetodevice(GPIO_CTRL_ID, GPIO_MODE_OFFSET, GPIO_MODE_LEN, buf);
+
   buf[0] = 0x70;  // set GPIO 0,1,2 to output (set mask bits)
-  dwt_writetodevice(GPIO_CTRL_ID, GPIO_DIR_OFFSET, 1, &buf[0]);
+  dwt_writetodevice(GPIO_CTRL_ID, GPIO_DIR_OFFSET, GPIO_DIR_LEN, buf);
 
   // set GPIO1 (antenna P6) active for now
-  buf[0] = ((1 << (2-antenna_number)) << 4) | (1 << (2-antenna_number));
-  dwt_writetodevice(GPIO_CTRL_ID, GPIO_DOUT_OFFSET, 1, &buf[0]);
+  buf[0] = 0x70 | (1 << (2-antenna_number));
+  dwt_writetodevice(GPIO_CTRL_ID, GPIO_DOUT_OFFSET, GPIO_DOUT_LEN, buf);
 }
 
 void dw1000_populate_eui (uint8_t *eui_buf, uint8_t id) {
