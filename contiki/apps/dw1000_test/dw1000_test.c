@@ -3,6 +3,7 @@
 #include "sys/rtimer.h"
 #include "dev/leds.h"
 #include "deca_device_api.h"
+#include "deca_regs.h"
 #include "dw1000.h"
 #include "dev/ssi.h"
 #include "cpu/cc2538/lpm.h"
@@ -32,7 +33,6 @@ static struct rtimer periodic_timer;
 #define MSG_TYPE_TAG_POLL   0x61
 #define MSG_TYPE_ANC_RESP   0x50
 #define MSG_TYPE_TAG_FINAL  0x69
-#define MSG_TYPE_TAG_REQ    0x6A
 #define MSG_TYPE_ANC_FINAL  0x51
 
 #define DW1000_ROLE_TYPE ANCHOR
@@ -155,8 +155,12 @@ void set_subsequence_settings(){
         app_dw1000_init();
 
     //Change the channel depending on what subsequence number we're at
-    global_ranging_config.chan = subseq_num_to_chan(global_subseq_num);
-    dwt_configure(&global_ranging_config, (DWT_LOADANTDLY | DWT_LOADXTALTRIM));
+    uint32_t chan_ctrl = dwt_read32bitreg(CHAN_CTRL_ID);
+    chan_ctrl &= 0xFFFFFF00;
+    uint32_t chan = (uint32_t)(subseq_num_to_chan(global_subseq_num));
+    chan_ctrl |= chan;
+    chan_ctrl |= chan<<4;
+    dwt_write32bitreg(CHAN_CTRL_ID,chan_ctrl);
 
     //Change what antenna we're listening on
     uint8_t ant_sel;
@@ -223,7 +227,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
         // Need to timestamp it and schedule a response.
 
         if (rxd->event == DWT_SIG_RX_OKAY) {
-            uint8_t recv_pkt[128];
+            uint8_t recv_pkt[512];
             struct ieee154_msg* msg_ptr;
 
             // Get the timestamp first
@@ -371,6 +375,8 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
                 double tSF = (double)(((uint64_t)bcast_msg.tSF) << 8);
                 double tRP = (double)global_tRP;
 
+                printf("tRF = %f, tSR = %f, tRR = %f, tSP = %f, tSF = %f, tRP = %f\r\n", tRF, tSR, tRR, tSP, tSF, tRP);
+
                 //tTOF^2 + (-tRF + tSR - tRR + tSP)*tTOF + (tRR*tRF - tSP*tRF - tSR*tRR + tSP*tSR - (tSF-tRR)*(tSR-tRP)) = 0
                 double a = 1.0;
                 double b = -tRF + tSR - tRR + tSP;
@@ -415,15 +421,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 
                 // Get ready to receive next POLL
                 dwt_rxenable(0);
-            } else if(packet_type_byte == MSG_TYPE_TAG_REQ){
-                uint32_t delay_time = timestamp + global_pkt_delay_upper32*(NUM_ANCHORS-ANCHOR_EUI+1);
-                delay_time &= 0xFFFFFFFE;
-                dwt_setdelayedtrxtime(delay_time);
-                dwt_writetxfctrl(sizeof(fin_msg), 0);
-                dwt_writetxdata(sizeof(fin_msg), (uint8_t*) &fin_msg, 0);
-                dwt_starttx(DWT_START_TX_DELAYED);
-                dwt_setrxaftertxdelay(1000);
-           }
+            }
         }
     }
 }
@@ -710,13 +708,25 @@ PROCESS_THREAD(dw1000_test, ev, data) {
    
         set_subsequence_settings();
         if(DW1000_ROLE_TYPE == TAG){
-            if(global_subseq_num < NUM_ANTENNAS*NUM_ANTENNAS*NUM_CHANNELS)
+            if(global_subseq_num < NUM_ANTENNAS*NUM_ANTENNAS*NUM_CHANNELS){
                 send_poll(MSG_TYPE_TAG_POLL);
-            else if(global_subseq_num == NUM_ANTENNAS*NUM_ANTENNAS*NUM_CHANNELS)
-                send_poll(MSG_TYPE_TAG_REQ);
+            } else if(global_subseq_num == NUM_ANTENNAS*NUM_ANTENNAS*NUM_CHANNELS){
+                dwt_rxenable(0);
+                dwt_setrxtimeout(0); // disable timeout
+            }
         } else {
             //If it's after the last ranging operation, queue outgoing range estimates
             if(global_subseq_num == NUM_ANTENNAS*NUM_ANTENNAS*NUM_CHANNELS){
+                //We're likely in RX mode, so we need to exit before transmission
+                dwt_forcetrxoff();
+
+                //Schedule this transmission for our scheduled time slot
+                uint32_t delay_time = dwt_readsystimestamphi32() + global_pkt_delay_upper32*(NUM_ANCHORS-ANCHOR_EUI+1);
+                delay_time &= 0xFFFFFFFE;
+                dwt_setdelayedtrxtime(delay_time);
+                dwt_writetxfctrl(sizeof(fin_msg), 0);
+                dwt_writetxdata(sizeof(fin_msg), (uint8_t*) &fin_msg, 0);
+                dwt_starttx(DWT_START_TX_DELAYED);
             }
         }
        
