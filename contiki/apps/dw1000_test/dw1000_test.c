@@ -47,7 +47,6 @@ static struct rtimer periodic_timer;
 #define NODE_DELAY_US 5000
 #define DELAY_MASK 0x00FFFFFFFE00
 #define SPEED_OF_LIGHT 299702547.0
-#define ANCHOR_EUI_BZ (ANCHOR_EUI-1)
 #define NUM_ANTENNAS 3
 #define NUM_CHANNELS 6
 #define SUBSEQUENCE_PERIOD (RTIMER_SECOND*0.05)
@@ -65,6 +64,7 @@ uint32_t global_tSR = 0;
 uint64_t global_tRF = 0;
 
 uint32_t global_subseq_num = 0xFFFFFFFF;
+uint8_t global_chan = 1;
 
 dwt_config_t   global_ranging_config;
 
@@ -158,6 +158,7 @@ void set_subsequence_settings(){
     uint32_t chan_ctrl = dwt_read32bitreg(CHAN_CTRL_ID);
     chan_ctrl &= 0xFFFFFF00;
     uint32_t chan = (uint32_t)(subseq_num_to_chan(global_subseq_num));
+    global_chan = (uint8_t)chan;
     chan_ctrl |= chan;
     chan_ctrl |= chan<<4;
     dwt_write32bitreg(CHAN_CTRL_ID,chan_ctrl);
@@ -274,8 +275,8 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
                     uint64_t tRR = global_tag_anchor_resp_rx_time;
 
                     bcast_msg.messageType = MSG_TYPE_TAG_FINAL;
-                    bcast_msg.tRR[anchor_id] = tRR;
-                    bcast_msg.tSP = delay_time;
+                    bcast_msg.tRR[anchor_id-1] = tRR;
+                    bcast_msg.tSF = delay_time;
                     bcast_msg.seqNum++;
 
                     dwt_writetxdata(tx_frame_length, (uint8_t*) &bcast_msg, 0);
@@ -375,7 +376,12 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
                 double tSF = (double)(((uint64_t)bcast_msg.tSF) << 8);
                 double tRP = (double)global_tRP;
 
-                printf("tRF = %f, tSR = %f, tRR = %f, tSP = %f, tSF = %f, tRP = %f\r\n", tRF, tSR, tRR, tSP, tSF, tRP);
+                printf("tRF = %llu\r\n", (uint64_t)tRF);
+                printf("tSR = %llu\r\n", (uint64_t)tSR);
+                printf("tRR = %llu\r\n", (uint64_t)tRR);
+                printf("tSP = %llu\r\n", (uint64_t)tSP);
+                printf("tSF = %llu\r\n", (uint64_t)tSF);
+                printf("tRP = %llu\r\n", (uint64_t)tRP);
 
                 //tTOF^2 + (-tRF + tSR - tRR + tSP)*tTOF + (tRR*tRF - tSP*tRF - tSR*tRR + tSP*tSR - (tSF-tRR)*(tSR-tRP)) = 0
                 double a = 1.0;
@@ -383,9 +389,12 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
                 double c = tRR*tRF - tSP*tRF - tSR*tRR + tSP*tSR - (tSF-tRR)*(tSR-tRP);
 
                 //Perform quadratic equation
-                double tTOF = (-b+sqrt(pow(b,2)-4*a*c))/(2*a);
-                double dist = (tTOF * (double) DWT_TIME_UNITS) * 0.25;
+                double tTOF = (-b-sqrt(pow(b,2)-4*a*c))/(2*a);
+                double dist = (tTOF * (double) DWT_TIME_UNITS) * 0.5;
                 dist *= SPEED_OF_LIGHT;
+                double range_bias = dwt_getrangebias(global_chan, (float) dist, DWT_PRF_64M);
+                printf("dist*100 = %d\r\n", (int)(dist*100));
+                printf("range_bias*100 = %d\r\n", (int)(range_bias*100));
                 //dist -= dwt_getrangebias(2, (float) dist, DWT_PRF_64M);
                 fin_msg.distanceHist[global_subseq_num] = (float)dist;
 
@@ -511,17 +520,24 @@ int app_dw1000_init () {
     {
         uint16_t antenna_delay;
 
-        // Shift this over a bit for some reason. Who knows.
-        // instance_common.c:508
-        antenna_delay = dwt_readantennadelay(global_ranging_config.prf) >> 1;
-        if (antenna_delay == 0) {
-            // If it's not in the OTP, use a magic value from instance_calib.c
-            antenna_delay = ((DWT_PRF_64M_RFDLY/ 2.0) * 1e-9 / DWT_TIME_UNITS);
-            dwt_setrxantennadelay(antenna_delay);
-            dwt_settxantennadelay(antenna_delay);
-        }
+        //Antenna delay not really necessary if we're doing an end-to-end calibration
+        antenna_delay = 0;
+        dwt_setrxantennadelay(antenna_delay);
+        dwt_settxantennadelay(antenna_delay);
         global_tx_antenna_delay = antenna_delay;
-        printf("tx antenna delay: %u\r\n", antenna_delay);
+
+        //// Shift this over a bit for some reason. Who knows.
+        //// instance_common.c:508
+        //antenna_delay = dwt_readantennadelay(global_ranging_config.prf) >> 1;
+        //if (antenna_delay == 0) {
+        //    printf("resetting antenna delay\r\n");
+        //    // If it's not in the OTP, use a magic value from instance_calib.c
+        //    antenna_delay = ((DWT_PRF_64M_RFDLY/ 2.0) * 1e-9 / DWT_TIME_UNITS);
+        //    dwt_setrxantennadelay(antenna_delay);
+        //    dwt_settxantennadelay(antenna_delay);
+        //}
+        //global_tx_antenna_delay = antenna_delay;
+        //printf("tx antenna delay: %u\r\n", antenna_delay);
     }
 
     // // Set the sleep delay. Not sure what this does actually.
@@ -533,7 +549,7 @@ int app_dw1000_init () {
     msg.panID[0] = DW1000_PANID & 0xff;
     msg.panID[1] = DW1000_PANID >> 8;
     msg.seqNum = 0;
-    msg.anchorID = ANCHOR_EUI_BZ;
+    msg.anchorID = ANCHOR_EUI;
 
     // Setup the constants in the outgoing packet
     fin_msg.frameCtrl[0] = 0x41; // data frame, ack req, panid comp
@@ -541,7 +557,7 @@ int app_dw1000_init () {
     fin_msg.panID[0] = DW1000_PANID & 0xff;
     fin_msg.panID[1] = DW1000_PANID >> 8;
     fin_msg.seqNum = 0;
-    fin_msg.anchorID = ANCHOR_EUI_BZ;
+    fin_msg.anchorID = ANCHOR_EUI;
 
     // Setup the constants in the outgoing packet
     bcast_msg.frameCtrl[0] = 0x41; // data frame, ack req, panid comp
