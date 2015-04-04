@@ -20,8 +20,6 @@ static char periodic_task(struct rtimer *rt, void* ptr);
 int app_dw1000_init ();
 /*---------------------------------------------------------------------------*/
 
-// uint8_t buf[100] = {144};
-
 static struct rtimer periodic_timer;
 
 #define DWT_PRF_64M_RFDLY 514.462f
@@ -35,8 +33,8 @@ static struct rtimer periodic_timer;
 #define MSG_TYPE_TAG_FINAL  0x69
 #define MSG_TYPE_ANC_FINAL  0x51
 
-#define DW1000_ROLE_TYPE ANCHOR
-// #define DW1000_ROLE_TYPE TAG
+// #define DW1000_ROLE_TYPE ANCHOR
+#define DW1000_ROLE_TYPE TAG
 
 #define TAG_EUI 0
 #define ANCHOR_EUI 1
@@ -49,7 +47,7 @@ static struct rtimer periodic_timer;
 #define SPEED_OF_LIGHT 299702547.0
 #define NUM_ANTENNAS 3
 #define NUM_CHANNELS 6
-#define SUBSEQUENCE_PERIOD (RTIMER_SECOND*0.05)
+#define SUBSEQUENCE_PERIOD (RTIMER_SECOND*0.065)
 #define SEQUENCE_WAIT_PERIOD (RTIMER_SECOND)
 
 uint16_t global_tx_antenna_delay = 0;
@@ -67,6 +65,7 @@ uint32_t global_subseq_num = 0xFFFFFFFF;
 uint8_t global_chan = 1;
 
 dwt_config_t   global_ranging_config;
+dwt_txconfig_t global_tx_config;
 
 struct ieee154_msg  {
     uint8_t frameCtrl[2];                             //  frame control bytes 00-01
@@ -109,11 +108,26 @@ struct ieee154_msg msg;
 struct ieee154_final_msg fin_msg;
 struct ieee154_bcast_msg bcast_msg;
 
-// typedef enum {
-//     TAG_SEND_POLL,
-// } tag_state_e;
+const uint8_t pgDelay[8] = {
+    0x0,
+    0xc9,
+    0xc2,
+    0xc5,
+    0x95,
+    0xc0,
+    0x0,
+    0x93
+};
 
-// tag_state_e tag_state;
+const uint8_t txPower[8] = {
+    0x67,
+    0x67,
+    0x8b,
+    0x9a,
+    0x85,
+    0x0,
+    0xd1
+};
 
 // convert microseconds to device time
 uint32 app_us_to_devicetimeu32 (double microsecu)
@@ -163,6 +177,10 @@ void set_subsequence_settings(){
     chan_ctrl |= chan<<4;
     dwt_write32bitreg(CHAN_CTRL_ID,chan_ctrl);
 
+    global_tx_config.PGdly = pgDelay[chan]; // magic value from instance_calib.c
+    global_tx_config.power = txPower[chan];
+    dwt_configuretxrf(&global_tx_config);
+
     //Change what antenna we're listening on
     uint8_t ant_sel;
     if(DW1000_ROLE_TYPE == ANCHOR) ant_sel = subseq_num_to_anchor_sel(global_subseq_num);
@@ -170,7 +188,7 @@ void set_subsequence_settings(){
     dw1000_choose_antenna(ant_sel);
 }
 
-void send_poll(uint8_t msg_type){
+void send_poll(){
     // FCS + SEQ + PANID:  5
     // ADDR:              10
     // PKT:                6
@@ -184,13 +202,13 @@ void send_poll(uint8_t msg_type){
     bcast_msg.subSeqNum = global_subseq_num;
 
     // First byte identifies this as a POLL
-    bcast_msg.messageType = msg_type;
+    bcast_msg.messageType = MSG_TYPE_TAG_POLL;
 
     // Tell the DW1000 about the packet
     dwt_writetxfctrl(tx_frame_length, 0);
 
-    // Wait for not very long to get a response (likely an ack)
-    dwt_setrxtimeout(10000); // us
+    // We'll get multiple responses, so let them all come in
+    dwt_setrxtimeout(5000*NUM_ANCHORS);
 
     // Delay RX?
     dwt_setrxaftertxdelay(2000); // us
@@ -438,7 +456,6 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 int app_dw1000_init () {
     uint32_t devID;
     int err;
-    dwt_txconfig_t tx_config;
 
     // Start off DW1000 comms slow
     REG(SSI0_BASE + SSI_CR1) = 0;
@@ -511,9 +528,9 @@ int app_dw1000_init () {
         power = power & 0xFF;
         power = (power | (power << 8) | (power << 16) | (power << 24));
 
-        tx_config.PGdly = 0xc2; // magic value from instance_calib.c
-        tx_config.power = power;
-        dwt_configuretxrf(&tx_config);
+        global_tx_config.PGdly = 0xc2; // magic value from instance_calib.c
+        global_tx_config.power = power;
+        dwt_configuretxrf(&global_tx_config);
     }
 
     // Configure the antenna delay settings
@@ -630,7 +647,7 @@ int app_dw1000_init () {
 
         // Do this for the tag too
         dwt_setautorxreenable(1);
-        dwt_setdblrxbuffmode(0);
+        dwt_setdblrxbuffmode(1);
         dwt_enableautoack(5 /*ACK_RESPONSE_TIME*/);
 
         // Configure sleep
@@ -725,7 +742,10 @@ PROCESS_THREAD(dw1000_test, ev, data) {
         set_subsequence_settings();
         if(DW1000_ROLE_TYPE == TAG){
             if(global_subseq_num < NUM_ANTENNAS*NUM_ANTENNAS*NUM_CHANNELS){
-                send_poll(MSG_TYPE_TAG_POLL);
+                //Make sure we're out of rx mode before attempting to transmit
+                dwt_forcetrxoff();
+
+                send_poll();
             } else if(global_subseq_num == NUM_ANTENNAS*NUM_ANTENNAS*NUM_CHANNELS){
                 dwt_rxenable(0);
                 dwt_setrxtimeout(0); // disable timeout
@@ -737,7 +757,7 @@ PROCESS_THREAD(dw1000_test, ev, data) {
                 dwt_forcetrxoff();
 
                 //Schedule this transmission for our scheduled time slot
-                uint32_t delay_time = dwt_readsystimestamphi32() + global_pkt_delay_upper32*(NUM_ANCHORS-ANCHOR_EUI+1);
+                uint32_t delay_time = dwt_readsystimestamphi32() + global_pkt_delay_upper32*(NUM_ANCHORS-ANCHOR_EUI+1)*2;
                 delay_time &= 0xFFFFFFFE;
                 dwt_setdelayedtrxtime(delay_time);
                 dwt_writetxfctrl(sizeof(fin_msg), 0);
