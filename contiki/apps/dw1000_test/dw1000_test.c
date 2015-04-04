@@ -37,8 +37,8 @@ static struct rtimer periodic_timer;
 #define DW1000_ROLE_TYPE TAG
 
 #define TAG_EUI 0
-#define ANCHOR_EUI 1
-#define NUM_ANCHORS 1
+#define ANCHOR_EUI 2
+#define NUM_ANCHORS 2
 
 #define DW1000_PANID 0xD100
 
@@ -120,6 +120,7 @@ const uint8_t pgDelay[8] = {
 };
 
 const uint8_t txPower[8] = {
+    0x0,
     0x67,
     0x67,
     0x8b,
@@ -165,20 +166,21 @@ void incr_subsequence_counter(){
 
 void set_subsequence_settings(){
     //Last subsequence, reset everything decawave
-    if(global_subseq_num == NUM_ANTENNAS*NUM_ANTENNAS*NUM_CHANNELS+1)
-        app_dw1000_init();
+    if(global_subseq_num == NUM_ANTENNAS*NUM_ANTENNAS*NUM_CHANNELS+1) {
+        int err = app_dw1000_init();
+        if (err == -1)
+            leds_on(LEDS_RED);
+        else
+            leds_off(LEDS_RED);
+    }
 
     //Change the channel depending on what subsequence number we're at
-    uint32_t chan_ctrl = dwt_read32bitreg(CHAN_CTRL_ID);
-    chan_ctrl &= 0xFFFFFF00;
     uint32_t chan = (uint32_t)(subseq_num_to_chan(global_subseq_num));
     global_chan = (uint8_t)chan;
-    chan_ctrl |= chan;
-    chan_ctrl |= chan<<4;
-    dwt_write32bitreg(CHAN_CTRL_ID,chan_ctrl);
-
-    global_tx_config.PGdly = pgDelay[chan]; // magic value from instance_calib.c
-    global_tx_config.power = txPower[chan];
+    global_ranging_config.chan = (uint8_t)chan;
+    dwt_configure(&global_ranging_config, (DWT_LOADANTDLY | DWT_LOADXTALTRIM));
+    global_tx_config.PGdly = pgDelay[global_ranging_config.chan];
+    global_tx_config.power = txPower[global_ranging_config.chan];
     dwt_configuretxrf(&global_tx_config);
 
     //Change what antenna we're listening on
@@ -208,10 +210,10 @@ void send_poll(){
     dwt_writetxfctrl(tx_frame_length, 0);
 
     // We'll get multiple responses, so let them all come in
-    dwt_setrxtimeout(5000*NUM_ANCHORS);
+    dwt_setrxtimeout(NODE_DELAY_US*NUM_ANCHORS);
 
     // Delay RX?
-    dwt_setrxaftertxdelay(2000); // us
+    dwt_setrxaftertxdelay(0); // us
 
     uint32_t cur_time = dwt_readsystimestamphi32();
     uint32_t delay_time = cur_time + global_pkt_delay_upper32;
@@ -246,6 +248,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
         // Need to timestamp it and schedule a response.
 
         if (rxd->event == DWT_SIG_RX_OKAY) {
+            leds_on(LEDS_BLUE);
             uint8_t recv_pkt[512];
             struct ieee154_msg* msg_ptr;
 
@@ -274,31 +277,29 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
                 // weird.
                 uint8_t anchor_id = msg_ptr->anchorID;
                 if(anchor_id >= NUM_ANCHORS) anchor_id = NUM_ANCHORS;
-                uint32_t delay_time =
-                    ((uint32_t) (global_tag_anchor_resp_rx_time >> 8)) +
-                    global_pkt_delay_upper32 * (NUM_ANCHORS-anchor_id+1);
-                delay_time &= 0xFFFFFFFE;
-                dwt_setdelayedtrxtime(delay_time);
 
-                // Set the packet length
-                uint16_t tx_frame_length = sizeof(bcast_msg);
-                // Put at beginning of TX fifo
-                dwt_writetxfctrl(tx_frame_length, 0);
+                // Need to actually fill out the packet
+                bcast_msg.tRR[anchor_id-1] = global_tag_anchor_resp_rx_time;
 
-                err = dwt_starttx(DWT_START_TX_DELAYED);
-                if (err) {
-                    printf("Error sending final message\r\n");
-                } else {
-                    // Need to actually fill out the packet
-                    uint64_t tRR = global_tag_anchor_resp_rx_time;
+                //TODO: Hack.... But not sure of any other way to get this to time out correctly...
+                dwt_setrxtimeout(NODE_DELAY_US*(NUM_ANCHORS-anchor_id)+1000);
+            }
+        } else if (rxd->event == DWT_SIG_RX_TIMEOUT) {
+            uint32_t delay_time = dwt_readsystimestamphi32() + global_pkt_delay_upper32;
+            delay_time &= 0xFFFFFFFE;
+            dwt_setdelayedtrxtime(delay_time);
+            // Set the packet length
+            uint16_t tx_frame_length = sizeof(bcast_msg);
+            // Put at beginning of TX fifo
+            dwt_writetxfctrl(tx_frame_length, 0);
 
-                    bcast_msg.messageType = MSG_TYPE_TAG_FINAL;
-                    bcast_msg.tRR[anchor_id-1] = tRR;
-                    bcast_msg.tSF = delay_time;
-                    bcast_msg.seqNum++;
-
-                    dwt_writetxdata(tx_frame_length, (uint8_t*) &bcast_msg, 0);
-                }
+            bcast_msg.seqNum++;
+            bcast_msg.messageType = MSG_TYPE_TAG_FINAL;
+            bcast_msg.tSF = delay_time;
+            err = dwt_starttx(DWT_START_TX_DELAYED);
+            dwt_writetxdata(tx_frame_length, (uint8_t*) &bcast_msg, 0);
+            if (err) {
+                printf("Error sending final message\r\n");
             }
         }
 
@@ -311,6 +312,8 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
             uint8_t packet_type_byte;
             uint64_t timestamp;
             uint8_t subseq_num;
+
+            leds_on(LEDS_BLUE);
 
             // Get the timestamp first
             uint8_t txTimeStamp[5] = {0, 0, 0, 0, 0};
@@ -347,7 +350,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
                 // Calculate the delay
                 uint32_t delay_time =
                     ((uint32_t) (global_tRP >> 8)) +
-                    global_pkt_delay_upper32;
+                    global_pkt_delay_upper32*ANCHOR_EUI;
                 delay_time &= 0xFFFFFFFE;
                 global_tSR = delay_time;
                 // printf(" poll rx: %X\r\n", ((uint32_t) (global_tRP >> 8)));
@@ -462,6 +465,9 @@ int app_dw1000_init () {
     REG(SSI0_BASE + SSI_CPSR) = 8;
     REG(SSI0_BASE + SSI_CR1) |= SSI_CR1_SSE;
 
+    // Reset the DW1000...for some reason
+    dw1000_reset();
+
     // Make sure we can talk to the DW1000
     devID = dwt_readdevid();
     if (devID != DWT_DEVICE_ID) {
@@ -469,9 +475,6 @@ int app_dw1000_init () {
         printf("Possible the chip is asleep...\r\n");
         return -1;
     }
-
-    // Reset the DW1000...for some reason
-    dw1000_reset();
 
     // Select which of the three antennas on the board to use
     dw1000_choose_antenna(1);
@@ -499,16 +502,16 @@ int app_dw1000_init () {
     // Set the parameters of ranging and channel and whatnot
     global_ranging_config.chan           = 1;
     global_ranging_config.prf            = DWT_PRF_64M;
-    global_ranging_config.txPreambLength = DWT_PLEN_1024;
+    global_ranging_config.txPreambLength = DWT_PLEN_4096;//DWT_PLEN_4096
     // global_ranging_config.txPreambLength = DWT_PLEN_256;
-    global_ranging_config.rxPAC          = DWT_PAC32;
+    global_ranging_config.rxPAC          = DWT_PAC64;
     global_ranging_config.txCode         = 9;  // preamble code
     global_ranging_config.rxCode         = 9;  // preamble code
     global_ranging_config.nsSFD          = 1;
     global_ranging_config.dataRate       = DWT_BR_110K;
     global_ranging_config.phrMode        = DWT_PHRMODE_EXT; //Enable extended PHR mode (up to 1024-byte packets)
     global_ranging_config.smartPowerEn   = 0;
-    global_ranging_config.sfdTO          = (1025 + 64 - 32);
+    global_ranging_config.sfdTO          = 4096+64+1;//(1025 + 64 - 32);
     dwt_configure(&global_ranging_config, (DWT_LOADANTDLY | DWT_LOADXTALTRIM));
 
     // Configure TX power
@@ -528,8 +531,8 @@ int app_dw1000_init () {
         power = power & 0xFF;
         power = (power | (power << 8) | (power << 16) | (power << 24));
 
-        global_tx_config.PGdly = 0xc2; // magic value from instance_calib.c
-        global_tx_config.power = power;
+        global_tx_config.PGdly = pgDelay[global_ranging_config.chan];
+        global_tx_config.power = txPower[global_ranging_config.chan];
         dwt_configuretxrf(&global_tx_config);
     }
 
@@ -723,10 +726,10 @@ PROCESS_THREAD(dw1000_test, ev, data) {
     }
 
     err = app_dw1000_init();
-    if (err == -1) {
-        printf("Error initializing the application.\r\n");
-            leds_on(LEDS_RED);
-    }
+    if (err == -1)
+        leds_on(LEDS_RED);
+    else
+        leds_off(LEDS_RED);
 
     //Set up the real-time task scheduling
     rtimer_init();
