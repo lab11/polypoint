@@ -36,6 +36,8 @@ static struct rtimer periodic_timer;
 // #define DW1000_ROLE_TYPE ANCHOR
 #define DW1000_ROLE_TYPE TAG
 
+#define ANCHOR_CAL_OFFSET (-155.4+.914)
+
 #define TAG_EUI 0
 #define ANCHOR_EUI 2
 #define NUM_ANCHORS 2
@@ -107,6 +109,20 @@ struct ieee154_bcast_msg  {
 struct ieee154_msg msg;
 struct ieee154_final_msg fin_msg;
 struct ieee154_bcast_msg bcast_msg;
+
+const uint8_t xtaltrim[11] = {
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+};
 
 const uint8_t pgDelay[8] = {
     0x0,
@@ -191,6 +207,9 @@ void set_subsequence_settings(){
 }
 
 void send_poll(){
+    //Reset all the tRRs at the beginning of each poll event
+    memset(bcast_msg.tRR, 0, sizeof(bcast_msg.tRR));
+
     // FCS + SEQ + PANID:  5
     // ADDR:              10
     // PKT:                6
@@ -337,6 +356,9 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
                 // Got POLL
                 global_tRP = timestamp;
 
+                //Reset all the distance measurements
+                memset(fin_msg.distanceHist, 0, sizeof(fin_msg.distanceHist));
+
                 // Start timer which will sequentially tune through all the channels
                 dwt_readrxdata(&subseq_num, 1, 16);
                 if(subseq_num == 0){
@@ -414,6 +436,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
                 double dist = (tTOF * (double) DWT_TIME_UNITS) * 0.5;
                 dist *= SPEED_OF_LIGHT;
                 double range_bias = dwt_getrangebias(global_chan, (float) dist, DWT_PRF_64M);
+                dist += ANCHOR_CAL_OFFSET;
                 printf("dist*100 = %d\r\n", (int)(dist*100));
                 printf("range_bias*100 = %d\r\n", (int)(range_bias*100));
                 //dist -= dwt_getrangebias(2, (float) dist, DWT_PRF_64M);
@@ -494,13 +517,18 @@ int app_dw1000_init () {
     dwt_setinterrupt(DWT_INT_TFRS |
                      DWT_INT_RFCG |
                      DWT_INT_SFDT |
-                     DWT_INT_RFTO, 1);
+                     DWT_INT_RFTO |
+                     DWT_INT_RPHE |
+                     DWT_INT_RFCE |
+                     DWT_INT_RFSL |
+                     DWT_INT_RXPTO |
+                     DWT_INT_SFDT, 1);
 
     // Configure the callbacks from the dwt library
     dwt_setcallbacks(app_dw1000_txcallback, app_dw1000_rxcallback);
 
     // Set the parameters of ranging and channel and whatnot
-    global_ranging_config.chan           = 1;
+    global_ranging_config.chan           = 2;
     global_ranging_config.prf            = DWT_PRF_64M;
     global_ranging_config.txPreambLength = DWT_PLEN_4096;//DWT_PLEN_4096
     // global_ranging_config.txPreambLength = DWT_PLEN_256;
@@ -535,6 +563,13 @@ int app_dw1000_init () {
         global_tx_config.power = txPower[global_ranging_config.chan];
         dwt_configuretxrf(&global_tx_config);
     }
+
+    //dwt_configcwmode(global_ranging_config.chan);
+    if(DW1000_ROLE_TYPE == TAG)
+        dwt_xtaltrim(xtaltrim[0]);
+    else
+        dwt_xtaltrim(xtaltrim[ANCHOR_EUI]);
+    //while(1);
 
     // Configure the antenna delay settings
     {
