@@ -48,7 +48,7 @@ static struct rtimer periodic_timer;
 #define DELAY_MASK 0x00FFFFFFFE00
 #define SPEED_OF_LIGHT 299702547.0
 #define NUM_ANTENNAS 3
-#define NUM_CHANNELS 6
+#define NUM_CHANNELS 3
 #define SUBSEQUENCE_PERIOD (RTIMER_SECOND*0.065)
 #define SEQUENCE_WAIT_PERIOD (RTIMER_SECOND)
 
@@ -160,8 +160,9 @@ uint32 app_us_to_devicetimeu32 (double microsecu)
 }
 
 uint8_t subseq_num_to_chan(uint32_t subseq_num){
-    uint8_t return_choice = ((subseq_num/NUM_ANTENNAS/NUM_ANTENNAS) % NUM_CHANNELS) +1;
-    if(return_choice == 6) return_choice = 7;
+    uint8_t mod_choice = ((subseq_num/NUM_ANTENNAS/NUM_ANTENNAS) % NUM_CHANNELS);
+    uint8_t return_choice = (mod_choice == 0) ? 1 :
+                            (mod_choice == 1) ? 4 : 3;
     return return_choice;
 }
 
@@ -194,7 +195,7 @@ void set_subsequence_settings(){
     uint32_t chan = (uint32_t)(subseq_num_to_chan(global_subseq_num));
     global_chan = (uint8_t)chan;
     global_ranging_config.chan = (uint8_t)chan;
-    dwt_configure(&global_ranging_config, (DWT_LOADANTDLY | DWT_LOADXTALTRIM));
+    dwt_configure(&global_ranging_config, 0);//(DWT_LOADANTDLY | DWT_LOADXTALTRIM));
     global_tx_config.PGdly = pgDelay[global_ranging_config.chan];
     global_tx_config.power = txPower[global_ranging_config.chan];
     dwt_configuretxrf(&global_tx_config);
@@ -500,7 +501,7 @@ int app_dw1000_init () {
     }
 
     // Select which of the three antennas on the board to use
-    dw1000_choose_antenna(1);
+    dw1000_choose_antenna(0);
 
     // Init the dw1000 hardware
     err = dwt_initialise(DWT_LOADUCODE    |
@@ -540,36 +541,34 @@ int app_dw1000_init () {
     global_ranging_config.phrMode        = DWT_PHRMODE_EXT; //Enable extended PHR mode (up to 1024-byte packets)
     global_ranging_config.smartPowerEn   = 0;
     global_ranging_config.sfdTO          = 4096+64+1;//(1025 + 64 - 32);
-    dwt_configure(&global_ranging_config, (DWT_LOADANTDLY | DWT_LOADXTALTRIM));
+    dwt_configure(&global_ranging_config, 0);//(DWT_LOADANTDLY | DWT_LOADXTALTRIM));
 
     // Configure TX power
     {
-        uint32_t power;
-
-        // First check if these are in the OTP memory...I'm not sure if
-        // we should expect this or not...
-        power = dwt_getotptxpower(global_ranging_config.prf, global_ranging_config.chan);
-        if (power == 0 || power == 0xFFFFFFFF) {
-            // No power values stored. Use one from the evm sample
-            // application.
-            power = 0x07274767;
-        }
-        // We are not using smartpower, so we do something weird here
-        // to set the power
-        power = power & 0xFF;
-        power = (power | (power << 8) | (power << 16) | (power << 24));
-
         global_tx_config.PGdly = pgDelay[global_ranging_config.chan];
         global_tx_config.power = txPower[global_ranging_config.chan];
         dwt_configuretxrf(&global_tx_config);
     }
 
-    //dwt_configcwmode(global_ranging_config.chan);
     if(DW1000_ROLE_TYPE == TAG)
         dwt_xtaltrim(xtaltrim[0]);
     else
         dwt_xtaltrim(xtaltrim[ANCHOR_EUI]);
+
+    ////TEST 1: XTAL trim calibration
+    //dwt_configcwmode(global_ranging_config.chan);
+    //dwt_xtaltrim(8);
     //while(1);
+    
+    //{
+    //    //TEST 2: TX Power level calibration
+    //    uint8_t msg[127] = "The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the l";
+    //    dwt_configcontinuousframemode(0x1000);
+    //    dwt_writetxdata(127, (uint8 *)  msg, 0) ;
+    //    dwt_writetxfctrl(127, 0);
+    //    dwt_starttx(DWT_START_TX_IMMEDIATE);
+    //    while(1);
+    //}
 
     // Configure the antenna delay settings
     {
