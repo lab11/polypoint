@@ -42,17 +42,18 @@ static struct rtimer periodic_timer;
 #define ANCHOR_CAL_OFFSET (-155.4+.914)
 
 #define TAG_EUI 0
-#define ANCHOR_EUI 2
-#define NUM_ANCHORS 2
+#define ANCHOR_EUI 10
+#define NUM_ANCHORS 10
 
 #define DW1000_PANID 0xD100
 
-#define NODE_DELAY_US 5000
+#define NODE_DELAY_US 6500
+#define ANC_RESP_DELAY 1000
 #define DELAY_MASK 0x00FFFFFFFE00
 #define SPEED_OF_LIGHT 299702547.0
 #define NUM_ANTENNAS 3
 #define NUM_CHANNELS 3
-#define SUBSEQUENCE_PERIOD (RTIMER_SECOND*0.065)
+#define SUBSEQUENCE_PERIOD (RTIMER_SECOND*0.110)
 #define SEQUENCE_WAIT_PERIOD (RTIMER_SECOND)
 
 uint16_t global_tx_antenna_delay = 0;
@@ -149,7 +150,7 @@ const uint8_t txPower[8] = {
     0xd1
 };
 
-const double txDelayCal[NUM_ANCHORS*NUM_CHANNELS] = {
+const double txDelayCal[11*3] = {
     -0.13, 0.36, -0.05,//T2
     -0.14, 0.37, -0.03,//A1
     -0.20, 0.39, -0.06,//A2
@@ -176,11 +177,14 @@ uint32 app_us_to_devicetimeu32 (double microsecu)
     return dt;
 }
 
-uint8_t subseq_num_to_chan(uint32_t subseq_num){
+uint8_t subseq_num_to_chan(uint32_t subseq_num, bool return_channel_index){
     uint8_t mod_choice = ((subseq_num/NUM_ANTENNAS/NUM_ANTENNAS) % NUM_CHANNELS);
     uint8_t return_choice = (mod_choice == 0) ? 1 :
                             (mod_choice == 1) ? 4 : 3;
-    return return_choice;
+    if(return_channel_index)
+        return mod_choice;
+    else
+        return return_choice;
 }
 
 uint8_t subseq_num_to_tag_sel(uint32_t subseq_num){
@@ -217,13 +221,16 @@ void set_subsequence_settings(){
     }
 
     //Change the channel depending on what subsequence number we're at
-    uint32_t chan = (uint32_t)(subseq_num_to_chan(global_subseq_num));
+    uint32_t chan = (uint32_t)(subseq_num_to_chan(global_subseq_num, false));
     global_chan = (uint8_t)chan;
     global_ranging_config.chan = (uint8_t)chan;
     dwt_configure(&global_ranging_config, 0);//(DWT_LOADANTDLY | DWT_LOADXTALTRIM));
     global_tx_config.PGdly = pgDelay[global_ranging_config.chan];
     global_tx_config.power = txPower[global_ranging_config.chan];
     dwt_configuretxrf(&global_tx_config);
+    dwt_setrxantennadelay(0);
+    dwt_settxantennadelay(0);
+
 
     //Change what antenna we're listening on
     uint8_t ant_sel;
@@ -329,7 +336,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
                 bcast_msg.tRR[anchor_id-1] = global_tag_anchor_resp_rx_time;
 
                 //TODO: Hack.... But not sure of any other way to get this to time out correctly...
-                dwt_setrxtimeout(NODE_DELAY_US*(NUM_ANCHORS-anchor_id)+1000);
+                dwt_setrxtimeout(NODE_DELAY_US*(NUM_ANCHORS-anchor_id)+ANC_RESP_DELAY+1000);
             } else if(packet_type_byte == MSG_TYPE_ANC_FINAL){
                 int ii;
                 struct ieee154_final_msg* final_msg_ptr;
@@ -353,8 +360,9 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
             bcast_msg.seqNum++;
             bcast_msg.messageType = MSG_TYPE_TAG_FINAL;
             bcast_msg.tSF = delay_time;
-            err = dwt_starttx(DWT_START_TX_DELAYED);
             dwt_writetxdata(tx_frame_length, (uint8_t*) &bcast_msg, 0);
+            err = dwt_starttx(DWT_START_TX_DELAYED);
+            dwt_settxantennadelay(global_tx_antenna_delay);
             #ifdef DW_DEBUG
                 if (err) {
                     printf("Error sending final message\r\n");
@@ -391,23 +399,12 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
                 // Got POLL
                 global_tRP = timestamp;
 
-                //Reset all the distance measurements
-                memset(fin_msg.distanceHist, 0, sizeof(fin_msg.distanceHist));
-
-                // Start timer which will sequentially tune through all the channels
-                dwt_readrxdata(&subseq_num, 1, 16);
-                if(subseq_num == 0){
-                    global_subseq_num = 0;
-                    rtimer_set(&periodic_timer, RTIMER_NOW() + SUBSEQUENCE_PERIOD - RTIMER_SECOND*0.009869, 1,  //magic number from saleae to approximately line up config times
-                                (rtimer_callback_t)periodic_task, NULL);
-                }
-
                 // Send response
 
                 // Calculate the delay
                 uint32_t delay_time =
                     ((uint32_t) (global_tRP >> 8)) +
-                    global_pkt_delay_upper32*ANCHOR_EUI;
+                    global_pkt_delay_upper32*ANCHOR_EUI + (app_us_to_devicetimeu32(ANC_RESP_DELAY) >> 8);
                 delay_time &= 0xFFFFFFFE;
                 global_tSR = delay_time;
                 dwt_setdelayedtrxtime(delay_time);
@@ -426,15 +423,27 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
                 dwt_writetxdata(tx_frame_length, (uint8_t*) &msg, 0);
 
                 // Start delayed TX
+                // Hopefully we will receive the FINAL message after this...
+                dwt_setrxaftertxdelay(1000);
                 err = dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED);
+                dwt_settxantennadelay(global_tx_antenna_delay);
                 #ifdef DW_DEBUG
                     if (err) {
                         printf("Could not send anchor response\r\n");
                     }
                 #endif
 
-                // Hopefully we will receive the FINAL message after this...
-                dwt_setrxaftertxdelay(1000);
+                //Reset all the distance measurements
+                memset(fin_msg.distanceHist, 0, sizeof(fin_msg.distanceHist));
+
+                // Start timer which will sequentially tune through all the channels
+                dwt_readrxdata(&subseq_num, 1, 16);
+                if(subseq_num == 0){
+                    global_subseq_num = 0;
+                    rtimer_set(&periodic_timer, RTIMER_NOW() + SUBSEQUENCE_PERIOD - RTIMER_SECOND*0.011805, 1,  //magic number from saleae to approximately line up config times
+                                (rtimer_callback_t)periodic_task, NULL);
+                }
+
 
 
             } else if (packet_type_byte == MSG_TYPE_TAG_FINAL) {
@@ -463,20 +472,25 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
                 #endif
 
                 if(tRF != 0.0 && tSR != 0.0 && tRR != 0.0 && tSP != 0.0 && tSF != 0.0 && tRP != 0.0){
-                    //tTOF^2 + (-tRF + tSR - tRR + tSP)*tTOF + (tRR*tRF - tSP*tRF - tSR*tRR + tSP*tSR - (tSF-tRR)*(tSR-tRP)) = 0
-                    double a = 1.0;
-                    double b = -tRF + tSR - tRR + tSP;
-                    double c = tRR*tRF - tSP*tRF - tSR*tRR + tSP*tSR - (tSF-tRR)*(tSR-tRP);
+                    double aot = (tRF-tRP)/(tSF-tSP);
+                    double tTOF = (tRF-tSR)-(tSF-tRR)*aot;
+                    double dist = (tTOF*DWT_TIME_UNITS)/2;
+                    
+                    ////tTOF^2 + (-tRF + tSR - tRR + tSP)*tTOF + (tRR*tRF - tSP*tRF - tSR*tRR + tSP*tSR - (tSF-tRR)*(tSR-tRP)) = 0
+                    //double a = 1.0;
+                    //double b = -tRF + tSR - tRR + tSP;
+                    //double c = tRR*tRF - tSP*tRF - tSR*tRR + tSP*tSR - (tSF-tRR)*(tSR-tRP);
 
-                    //Perform quadratic equation
-                    double tTOF = (-b-sqrt(pow(b,2)-4*a*c))/(2*a);
-                    double dist = (tTOF * (double) DWT_TIME_UNITS) * 0.5;
+                    ////Perform quadratic equation
+                    //double tTOF = (-b-sqrt(pow(b,2)-4*a*c))/(2*a);
+                    //double dist = (tTOF * (double) DWT_TIME_UNITS) * 0.5;
                     dist *= SPEED_OF_LIGHT;
-                    double range_bias = 0.0;//dwt_getrangebias(global_chan, (float) dist, DWT_PRF_64M);
+                    //double range_bias = 0.0;//dwt_getrangebias(global_chan, (float) dist, DWT_PRF_64M);
                     dist += ANCHOR_CAL_OFFSET;
+                    //dist += txDelayCal[ANCHOR_EUI*NUM_CHANNELS + subseq_num_to_chan(global_subseq_num, true)];
                     #ifdef DW_DEBUG
                         printf("dist*100 = %d\r\n", (int)(dist*100));
-                        printf("range_bias*100 = %d\r\n", (int)(range_bias*100));
+                        //printf("range_bias*100 = %d\r\n", (int)(range_bias*100));
                     #endif
                     //dist -= dwt_getrangebias(2, (float) dist, DWT_PRF_64M);
                     fin_msg.distanceHist[global_subseq_num] = (float)dist;
@@ -548,7 +562,6 @@ int app_dw1000_init () {
     err = dwt_initialise(DWT_LOADUCODE    |
                          DWT_LOADLDO      |
                          DWT_LOADTXCONFIG |
-                         DWT_LOADANTDLY   |
                          DWT_LOADXTALTRIM);
     if (err != DWT_SUCCESS) {
         return -1;
@@ -858,6 +871,7 @@ PROCESS_THREAD(dw1000_test, ev, data) {
                 dwt_writetxfctrl(sizeof(fin_msg), 0);
                 dwt_writetxdata(sizeof(fin_msg), (uint8_t*) &fin_msg, 0);
                 dwt_starttx(DWT_START_TX_DELAYED);
+                dwt_settxantennadelay(global_tx_antenna_delay);
             }
         }
        
