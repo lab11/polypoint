@@ -878,6 +878,7 @@ PROCESS_THREAD(dw1000_test, ev, data) {
                     printf("tagend\r\n");
                 }
                 printf("done\r\n");
+                memset(global_distances,0,sizeof(global_distances));
             }
         } else {
             //If it's after the last ranging operation, queue outgoing range estimates
