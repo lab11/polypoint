@@ -101,7 +101,7 @@ if __name__ == "__main__":
             if(first_valid_idx.size > 0):
                 first_valid_idx = first_valid_idx[0]
             else:
-                first_valid_idx = 0#NUM_ANCHORS
+                first_valid_idx = NUM_ANCHORS
             last_valid_idx = first_valid_idx + 3
             
             #Make sure we have enough valid ranges to get a good fix on position (3)
