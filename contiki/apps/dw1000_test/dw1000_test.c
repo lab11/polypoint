@@ -28,7 +28,7 @@ static struct rtimer periodic_timer;
 #define ANCHOR 2
 
 #define DW_DEBUG
-#define DW_CAL_TRX_DELAY
+//#define DW_CAL_TRX_DELAY
 
 // 4 packet types
 #define MSG_TYPE_TAG_POLL   0x61
@@ -36,13 +36,13 @@ static struct rtimer periodic_timer;
 #define MSG_TYPE_TAG_FINAL  0x69
 #define MSG_TYPE_ANC_FINAL  0x51
 
-#define DW1000_ROLE_TYPE ANCHOR
-// #define DW1000_ROLE_TYPE TAG
+// #define DW1000_ROLE_TYPE ANCHOR
+#define DW1000_ROLE_TYPE TAG
 
-#define ANCHOR_CAL_OFFSET (-155.4+.914)
+#define ANCHOR_CAL_LEN (0.914-0.18) //0.18 is post-over-air calibration
 
 #define TAG_EUI 0
-#define ANCHOR_EUI 10
+#define ANCHOR_EUI 1
 #define NUM_ANCHORS 10
 
 #define DW1000_PANID 0xD100
@@ -56,6 +56,7 @@ static struct rtimer periodic_timer;
 #define SUBSEQUENCE_PERIOD (RTIMER_SECOND*0.110)
 #define SEQUENCE_WAIT_PERIOD (RTIMER_SECOND)
 
+uint32_t global_seq_count = 0;
 uint16_t global_tx_antenna_delay = 0;
 
 uint32_t global_pkt_delay_upper32 = 0;
@@ -66,9 +67,11 @@ uint64_t global_tag_anchor_resp_rx_time = 0;
 uint64_t global_tRP = 0;
 uint32_t global_tSR = 0;
 uint64_t global_tRF = 0;
+uint8_t global_recv_pkt[512];
 
 uint32_t global_subseq_num = 0xFFFFFFFF;
 uint8_t global_chan = 1;
+float global_distances[NUM_ANCHORS*NUM_ANTENNAS*NUM_ANTENNAS*NUM_CHANNELS];
 
 dwt_config_t   global_ranging_config;
 dwt_txconfig_t global_tx_config;
@@ -151,17 +154,28 @@ const uint8_t txPower[8] = {
 };
 
 const double txDelayCal[11*3] = {
-    -0.13, 0.36, -0.05,//T2
-    -0.14, 0.37, -0.03,//A1
-    -0.20, 0.39, -0.06,//A2
-    -0.07, 0.43, 0.04,//A3
-    -0.15, 0.38, -0.01,//A4
-    -0.03, 0.49, 0.07,//A5
-    -0.18, 0.45, -0.07,//A6
-    -0.08, 0.42, -0.00,//A7
-    0.04, 0.51, 0.07,//A8
-    -0.15, 0.38, -0.01,//A9
-    -0.12, 0.44, 0.01,//A10
+//    -0.13, 0.36, -0.05,//T2
+//    -0.14, 0.37, -0.03,//A1
+//    -0.20, 0.39, -0.06,//A2
+//    -0.07, 0.43, 0.04,//A3
+//    -0.15, 0.38, -0.01,//A4
+//    -0.03, 0.49, 0.07,//A5
+//    -0.18, 0.45, -0.07,//A6
+//    -0.08, 0.42, -0.00,//A7
+//    0.04, 0.51, 0.07,//A8
+//    -0.15, 0.38, -0.01,//A9
+//    -0.12, 0.44, 0.01,//A10
+0.0, 0.0, 0.0, //dummy for now (EUI = 0)
+   155.5433333333333,   155.0400000000000,   155.4433333333333,
+   155.5766666666667,   154.9922222222222,   155.4500000000000,
+   155.4855555555555,   154.9122222222222,   155.3466666666667,
+   155.5000000000000,   154.9377777777778,   155.3444444444445,
+   155.3955555555556,   154.8555555555555,   155.2922222222222,
+   155.4966666666667,   154.9100000000000,   155.3755555555556,
+   155.4133333333333,   154.9233333333333,   155.3422222222222,
+   155.3266666666667,   154.8377777777778,   155.2800000000000,
+   155.5188888888889,   154.9277777777778,   155.3722222222222,
+   155.4877777777778,   154.9033333333333,   155.3533333333333
 };
 
 // convert microseconds to device time
@@ -301,7 +315,6 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 
         if (rxd->event == DWT_SIG_RX_OKAY) {
             leds_on(LEDS_BLUE);
-            uint8_t recv_pkt[512];
             struct ieee154_msg* msg_ptr;
             uint8_t packet_type_byte;
 
@@ -315,9 +328,10 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
                                              (((uint64_t) txTimeStamp[4]) << 32);
 
             // Get the packet
-            dwt_readrxdata(recv_pkt, rxd->datalength, 0);
-            msg_ptr = (struct ieee154_msg*) recv_pkt;
-            packet_type_byte = recv_pkt[17];
+            dwt_readrxdata(global_recv_pkt, rxd->datalength, 0);
+            msg_ptr = (struct ieee154_msg*) global_recv_pkt;
+            packet_type_byte = global_recv_pkt[21];
+            printf("msg: %X\r\n",packet_type_byte);
 
             // Packet type byte is at a know location
             if (packet_type_byte == MSG_TYPE_ANC_RESP) {
@@ -338,15 +352,10 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
                 //TODO: Hack.... But not sure of any other way to get this to time out correctly...
                 dwt_setrxtimeout(NODE_DELAY_US*(NUM_ANCHORS-anchor_id)+ANC_RESP_DELAY+1000);
             } else if(packet_type_byte == MSG_TYPE_ANC_FINAL){
-                int ii;
                 struct ieee154_final_msg* final_msg_ptr;
-                final_msg_ptr = (struct ieee154_final_msg*) recv_pkt;
-                printf("tagstart %d\r\n",final_msg_ptr->anchorID);
-                for(ii=0; ii < NUM_ANTENNAS*NUM_ANTENNAS*NUM_CHANNELS; ii++){
-                    int dist_times_1000 = (int)(final_msg_ptr->distanceHist[ii]*1000);
-                    printf("%d.%d\r\n",dist_times_1000/1000,dist_times_1000%1000);
-                }
-                printf("tagend\r\n");
+                final_msg_ptr = (struct ieee154_final_msg*) global_recv_pkt;
+                int offset_idx = (final_msg_ptr->anchorID-1)*NUM_ANTENNAS*NUM_ANTENNAS*NUM_CHANNELS;
+                memcpy(&global_distances[offset_idx],final_msg_ptr->distanceHist,sizeof(fin_msg.distanceHist));
             }
         } else if (rxd->event == DWT_SIG_RX_TIMEOUT) {
             uint32_t delay_time = dwt_readsystimestamphi32() + global_pkt_delay_upper32;
@@ -433,15 +442,16 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
                     }
                 #endif
 
-                //Reset all the distance measurements
-                memset(fin_msg.distanceHist, 0, sizeof(fin_msg.distanceHist));
-
                 // Start timer which will sequentially tune through all the channels
                 dwt_readrxdata(&subseq_num, 1, 16);
                 if(subseq_num == 0){
                     global_subseq_num = 0;
                     rtimer_set(&periodic_timer, RTIMER_NOW() + SUBSEQUENCE_PERIOD - RTIMER_SECOND*0.011805, 1,  //magic number from saleae to approximately line up config times
                                 (rtimer_callback_t)periodic_task, NULL);
+                    global_seq_count++;
+                    //Reset all the distance measurements
+                    memset(fin_msg.distanceHist, 0, sizeof(fin_msg.distanceHist));
+
                 }
 
 
@@ -486,8 +496,8 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
                     //double dist = (tTOF * (double) DWT_TIME_UNITS) * 0.5;
                     dist *= SPEED_OF_LIGHT;
                     //double range_bias = 0.0;//dwt_getrangebias(global_chan, (float) dist, DWT_PRF_64M);
-                    dist += ANCHOR_CAL_OFFSET;
-                    //dist += txDelayCal[ANCHOR_EUI*NUM_CHANNELS + subseq_num_to_chan(global_subseq_num, true)];
+                    dist += ANCHOR_CAL_LEN;
+                    dist -= txDelayCal[ANCHOR_EUI*NUM_CHANNELS + subseq_num_to_chan(global_subseq_num, true)];
                     #ifdef DW_DEBUG
                         printf("dist*100 = %d\r\n", (int)(dist*100));
                         //printf("range_bias*100 = %d\r\n", (int)(range_bias*100));
@@ -681,6 +691,7 @@ int app_dw1000_init () {
     global_pkt_delay_upper32 = (app_us_to_devicetimeu32(NODE_DELAY_US) & DELAY_MASK) >> 8;
 
     #ifdef DW_DEBUG
+        printf("global_seq_count: %u\r\n", (unsigned int)global_seq_count);
         printf("delay: %x\r\n", (unsigned int)global_pkt_delay_upper32);
     #endif
 
@@ -856,6 +867,16 @@ PROCESS_THREAD(dw1000_test, ev, data) {
                 dwt_rxenable(0);
                 dwt_setrxtimeout(0); // disable timeout
             } else if(global_subseq_num == NUM_ANTENNAS*NUM_ANTENNAS*NUM_CHANNELS+1){
+                int ii, jj;
+                for(ii=0; ii < NUM_ANCHORS; ii++){
+                    int offset_idx = ii*NUM_ANTENNAS*NUM_ANTENNAS*NUM_CHANNELS;
+                    printf("tagstart %d\r\n",ii+1);
+                    for(jj=0; jj < NUM_ANTENNAS*NUM_ANTENNAS*NUM_CHANNELS; jj++){
+                        int dist_times_1000 = (int)(global_distances[offset_idx+jj]*1000);
+                        printf("%d.%d\r\n",dist_times_1000/1000,dist_times_1000%1000);
+                    }
+                    printf("tagend\r\n");
+                }
                 printf("done\r\n");
             }
         } else {
