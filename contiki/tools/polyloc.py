@@ -11,17 +11,41 @@ from scipy.optimize import fmin_bfgs
 NUM_ANCHORS = 10
 NUM_ANTENNAS = 3
 NUM_CHANNELS = 3
+#ANCHOR_POSITIONS = np.matrix([
+#    [0.055, 0.582, 1.808],
+#    [4.255, 0.567, 1.756],
+#    [0.826, 7.179, 1.457],
+#    [4.263, 6.190, 1.620],
+#    [0.0, 0.0, 0.0],
+#    [0.0, 0.0, 0.0],
+#    [0.0, 0.0, 0.0],
+#    [0.0, 0.0, 0.0],
+#    [0.0, 0.0, 0.0],
+#    [0.0, 0.0, 0.0]
+#]);
+#ANCHOR_POSITIONS = np.matrix([
+#    [11.066+1.778, 0.055, 1.666],
+#    [6.403+1.778, 0.055, 1.776],
+#    [0.28+1.778, 0.055, 1.908],
+#    [15.713-7.582, 19.53, 1.839],
+#    [0.444+0.055, 3.901, 2.180],
+#    [12.603-0.055, 3.836, 2.094],
+#    [0.444+0.055, 9.762, 2.224],
+#    [4.148+1.778, 0.055, 1.689],
+#    [0.444-0.051, 15.065, 2.145],
+#    [15.713-0.055, 25.233-12.338, 1.394]
+#]);
 ANCHOR_POSITIONS = np.matrix([
-    [0.055, 0.582, 1.808],
-    [4.255, 0.567, 1.756],
-    [0.826, 7.179, 1.457],
-    [4.263, 6.190, 1.620],
-    [0.0, 0.0, 0.0],
-    [0.0, 0.0, 0.0],
-    [0.0, 0.0, 0.0],
-    [0.0, 0.0, 0.0],
-    [0.0, 0.0, 0.0],
-    [0.0, 0.0, 0.0]
+    [28.981, 15.296, 2.517],
+    [35.766, 42.256, 1.905],
+    [35.417, 0.054, 2.203],
+    [15.072, 15.213, 2.091],
+    [16.531, 0.054, 2.227],
+    [29.123, 34.708, 2.597],
+    [0.999, 4.027, 2.238],
+    [38.982, 33.845, 2.105],
+    [39.372, 8.606, 1.970],
+    [53.010, -0.076, 2.249]
 ]);
 
 def location_optimize(x,anchor_ranges,anchor_locations):
@@ -92,6 +116,7 @@ if __name__ == "__main__":
     cur_tag_ranges = np.zeros(NUM_ANTENNAS*NUM_ANTENNAS*NUM_CHANNELS)
     cur_tag_range_idx = 0
     ranges = np.zeros(NUM_ANCHORS)
+    tag_position=np.array([0, 0, 0])
     while True:
         cur_line = sp.readline()
         cur_line = cur_line.decode("utf-8")
@@ -123,9 +148,14 @@ if __name__ == "__main__":
             last_valid_idx = first_valid_idx + 3
             
             #Make sure we have enough valid ranges to get a good fix on position (3)
-            num_valid_anchors = sorted_ranges.size - first_valid_idx - 1
-            if(num_valid_anchors < 3):
-                print("ERROR: Not enough anchors this time... ")
+            num_valid_anchors = sorted_ranges.size - first_valid_idx
+            print("Seeing {} anchors",NUM_ANCHORS-first_valid_idx)
+            if(num_valid_anchors == 0):
+                print("ERROR: Zero anchors this time... ")
+                print("Guessing last location: {}".format(tag_position))
+            elif(num_valid_anchors == 1):
+                print("WARNING: ONLY ONE ANCHOR...")
+                print("Guessing last location: {}".format(tag_position))
             else:
                 print("SUCCESS: Enough valid ranges to perform localization...")
                 loc_anchor_positions = ANCHOR_POSITIONS[sorted_range_idxs[first_valid_idx:last_valid_idx]]
@@ -133,7 +163,7 @@ if __name__ == "__main__":
                 print("loc_anchor_ranges = {}".format(loc_anchor_ranges))
                 tag_position = fmin_bfgs(
                     f=location_optimize, 
-                    x0=np.array([0, 0, 0]),
+                    x0=tag_position,
                     args=(loc_anchor_ranges, loc_anchor_positions)
                 )
                 print("Tag position: {}".format(tag_position))

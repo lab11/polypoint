@@ -36,13 +36,13 @@ static struct rtimer periodic_timer;
 #define MSG_TYPE_TAG_FINAL  0x69
 #define MSG_TYPE_ANC_FINAL  0x51
 
-// #define DW1000_ROLE_TYPE ANCHOR
-#define DW1000_ROLE_TYPE TAG
+#define DW1000_ROLE_TYPE ANCHOR
+// #define DW1000_ROLE_TYPE TAG
 
 #define ANCHOR_CAL_LEN (0.914-0.18) //0.18 is post-over-air calibration
 
 #define TAG_EUI 0
-#define ANCHOR_EUI 1
+#define ANCHOR_EUI 10
 #define NUM_ANCHORS 10
 
 #define DW1000_PANID 0xD100
