@@ -1,4 +1,4 @@
-Cmp-Mod V01 Created by Cvpcb (2015-04-25 BZR 5623)-product   date = Mon 27 Apr 2015 09:35:20 PM EDT
+Cmp-Mod V01 Created by Cvpcb (2015-04-27 BZR 5626)-product   date = Tue 28 Apr 2015 09:03:20 AM EDT
 
 BeginCmp
 TimeStamp = /553DDEDF;
@@ -235,7 +235,7 @@ BeginCmp
 TimeStamp = /553DE64A;
 Reference = U1;
 ValeurCmp = DWM1000;
-IdModule  = polypoint:DWM1000_REVERSE;
+IdModule  = polypoint:DWM1000_REVERSE_SMD;
 EndCmp
 
 BeginCmp
