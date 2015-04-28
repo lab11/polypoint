@@ -1,0 +1,276 @@
+Cmp-Mod V01 Created by Cvpcb (2015-04-25 BZR 5623)-product   date = Mon 27 Apr 2015 09:35:20 PM EDT
+
+BeginCmp
+TimeStamp = /553DDEDF;
+Reference = A1;
+ValeurCmp = ANT;
+IdModule  = polypoint:FRACTUS-2.4GHZ-FR05-S1-N-0-102;
+EndCmp
+
+BeginCmp
+TimeStamp = /553DD903;
+Reference = B1;
+ValeurCmp = 2450BM15A0002;
+IdModule  = polypoint:2450BM;
+EndCmp
+
+BeginCmp
+TimeStamp = /553D7BC5;
+Reference = C1;
+ValeurCmp = 1uF;
+IdModule  = Capacitors_SMD:C_0402;
+EndCmp
+
+BeginCmp
+TimeStamp = /553D7BA3;
+Reference = C2;
+ValeurCmp = 0.1uF;
+IdModule  = Capacitors_SMD:C_0402;
+EndCmp
+
+BeginCmp
+TimeStamp = /553D7C83;
+Reference = C3;
+ValeurCmp = 0.1uF;
+IdModule  = Capacitors_SMD:C_0402;
+EndCmp
+
+BeginCmp
+TimeStamp = /553D7B77;
+Reference = C4;
+ValeurCmp = 0.1uF;
+IdModule  = Capacitors_SMD:C_0402;
+EndCmp
+
+BeginCmp
+TimeStamp = /553D7C55;
+Reference = C5;
+ValeurCmp = 0.1uF;
+IdModule  = Capacitors_SMD:C_0402;
+EndCmp
+
+BeginCmp
+TimeStamp = /553D7B43;
+Reference = C6;
+ValeurCmp = 0.1uF;
+IdModule  = Capacitors_SMD:C_0402;
+EndCmp
+
+BeginCmp
+TimeStamp = /553D7C2D;
+Reference = C7;
+ValeurCmp = 220pF;
+IdModule  = Capacitors_SMD:C_0402;
+EndCmp
+
+BeginCmp
+TimeStamp = /553D7B20;
+Reference = C8;
+ValeurCmp = 0.1uF;
+IdModule  = Capacitors_SMD:C_0402;
+EndCmp
+
+BeginCmp
+TimeStamp = /553D7BED;
+Reference = C9;
+ValeurCmp = 0.1uF;
+IdModule  = Capacitors_SMD:C_0402;
+EndCmp
+
+BeginCmp
+TimeStamp = /553D896A;
+Reference = C10;
+ValeurCmp = 22pF;
+IdModule  = Capacitors_SMD:C_0402;
+EndCmp
+
+BeginCmp
+TimeStamp = /553D88F2;
+Reference = C11;
+ValeurCmp = 22pF;
+IdModule  = Capacitors_SMD:C_0402;
+EndCmp
+
+BeginCmp
+TimeStamp = /553D8B30;
+Reference = C12;
+ValeurCmp = 12pF;
+IdModule  = Capacitors_SMD:C_0402;
+EndCmp
+
+BeginCmp
+TimeStamp = /553D8AE8;
+Reference = C13;
+ValeurCmp = 12pF;
+IdModule  = Capacitors_SMD:C_0402;
+EndCmp
+
+BeginCmp
+TimeStamp = /553EE5A1;
+Reference = C14;
+ValeurCmp = 1uF;
+IdModule  = Capacitors_SMD:C_0402;
+EndCmp
+
+BeginCmp
+TimeStamp = /553ECF5E;
+Reference = C15;
+ValeurCmp = 1uF;
+IdModule  = Capacitors_SMD:C_0402;
+EndCmp
+
+BeginCmp
+TimeStamp = /553D9197;
+Reference = C16;
+ValeurCmp = 1uF;
+IdModule  = Capacitors_SMD:C_0402;
+EndCmp
+
+BeginCmp
+TimeStamp = /553D91FD;
+Reference = C17;
+ValeurCmp = 1uF;
+IdModule  = Capacitors_SMD:C_0402;
+EndCmp
+
+BeginCmp
+TimeStamp = /553EA4D8;
+Reference = C18;
+ValeurCmp = 10uF;
+IdModule  = Capacitors_SMD:C_0603;
+EndCmp
+
+BeginCmp
+TimeStamp = /553E9DAA;
+Reference = C19;
+ValeurCmp = 10uF;
+IdModule  = Capacitors_SMD:C_0603;
+EndCmp
+
+BeginCmp
+TimeStamp = /553D948F;
+Reference = C20;
+ValeurCmp = 1nF;
+IdModule  = Capacitors_SMD:C_0402;
+EndCmp
+
+BeginCmp
+TimeStamp = /553DCA89;
+Reference = D1;
+ValeurCmp = Led_RGB_CA;
+IdModule  = polypoint:1mm_SQ_4PAD;
+EndCmp
+
+BeginCmp
+TimeStamp = /553DE7E2;
+Reference = J1;
+ValeurCmp = TC2030-CC2538-BL;
+IdModule  = polypoint:TC2030;
+EndCmp
+
+BeginCmp
+TimeStamp = /553E9E1D;
+Reference = L1;
+ValeurCmp = 2.2uH;
+IdModule  = polypoint:MIPSZ201D;
+EndCmp
+
+BeginCmp
+TimeStamp = /553EB27E;
+Reference = P1;
+ValeurCmp = CONN_01X02;
+IdModule  = Pin_Headers:Pin_Header_Straight_1x02;
+EndCmp
+
+BeginCmp
+TimeStamp = /553EBD24;
+Reference = R1;
+ValeurCmp = 10K;
+IdModule  = Resistors_SMD:R_0402;
+EndCmp
+
+BeginCmp
+TimeStamp = /553EF35C;
+Reference = R2;
+ValeurCmp = 10K;
+IdModule  = Resistors_SMD:R_0402;
+EndCmp
+
+BeginCmp
+TimeStamp = /553D9563;
+Reference = R3;
+ValeurCmp = 2.2K;
+IdModule  = Resistors_SMD:R_0402;
+EndCmp
+
+BeginCmp
+TimeStamp = /553D95B6;
+Reference = R4;
+ValeurCmp = 56K;
+IdModule  = Resistors_SMD:R_0402;
+EndCmp
+
+BeginCmp
+TimeStamp = /553DCBED;
+Reference = R5;
+ValeurCmp = 1K;
+IdModule  = Resistors_SMD:R_0402;
+EndCmp
+
+BeginCmp
+TimeStamp = /553DCB75;
+Reference = R6;
+ValeurCmp = 1K;
+IdModule  = Resistors_SMD:R_0402;
+EndCmp
+
+BeginCmp
+TimeStamp = /553DCC33;
+Reference = R7;
+ValeurCmp = 1K;
+IdModule  = Resistors_SMD:R_0402;
+EndCmp
+
+BeginCmp
+TimeStamp = /553DE64A;
+Reference = U1;
+ValeurCmp = DWM1000;
+IdModule  = polypoint:DWM1000_REVERSE;
+EndCmp
+
+BeginCmp
+TimeStamp = /553D7AFC;
+Reference = U2;
+ValeurCmp = CC2538;
+IdModule  = polypoint:QFN-56-1EP_8x8mm_Pitch0.5mm;
+EndCmp
+
+BeginCmp
+TimeStamp = /553ECE08;
+Reference = U3;
+ValeurCmp = TPS727xx;
+IdModule  = polypoint:WSON-8_1.5x1.5mm;
+EndCmp
+
+BeginCmp
+TimeStamp = /553EE3A0;
+Reference = U4;
+ValeurCmp = TPS62740;
+IdModule  = polypoint:R-PWSON-12;
+EndCmp
+
+BeginCmp
+TimeStamp = /553EFAC7;
+Reference = X1;
+ValeurCmp = CRYSTAL_SMD_4;
+IdModule  = polypoint:FA-128;
+EndCmp
+
+BeginCmp
+TimeStamp = /553D8544;
+Reference = Y1;
+ValeurCmp = Crystal;
+IdModule  = polypoint:ABS05;
+EndCmp
+
+EndListe
