@@ -1,4 +1,4 @@
-update=Thu 30 Apr 2015 11:12:09 AM EDT
+update=Thu 30 Apr 2015 02:44:38 PM EDT
 version=1
 last_client=kicad
 [pcbnew]
@@ -60,3 +60,4 @@ LibName28=atmel
 LibName29=contrib
 LibName30=valves
 LibName31=/home/user/repos/polypoint/pcb/libs/kicad/polypoint
+LibName32=/home/user/repos/atum/hardware/atum/atum

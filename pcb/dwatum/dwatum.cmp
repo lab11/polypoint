@@ -1,109 +1,4 @@
-Cmp-Mod V01 Created by Cvpcb (2015-04-27 BZR 5626)-product   date = Tue 28 Apr 2015 09:03:20 AM EDT
-
-BeginCmp
-TimeStamp = /553DDEDF;
-Reference = A1;
-ValeurCmp = ANT;
-IdModule  = polypoint:FRACTUS-2.4GHZ-FR05-S1-N-0-102;
-EndCmp
-
-BeginCmp
-TimeStamp = /553DD903;
-Reference = B1;
-ValeurCmp = 2450BM15A0002;
-IdModule  = polypoint:2450BM;
-EndCmp
-
-BeginCmp
-TimeStamp = /553D7BC5;
-Reference = C1;
-ValeurCmp = 1uF;
-IdModule  = Capacitors_SMD:C_0402;
-EndCmp
-
-BeginCmp
-TimeStamp = /553D7BA3;
-Reference = C2;
-ValeurCmp = 0.1uF;
-IdModule  = Capacitors_SMD:C_0402;
-EndCmp
-
-BeginCmp
-TimeStamp = /553D7C83;
-Reference = C3;
-ValeurCmp = 0.1uF;
-IdModule  = Capacitors_SMD:C_0402;
-EndCmp
-
-BeginCmp
-TimeStamp = /553D7B77;
-Reference = C4;
-ValeurCmp = 0.1uF;
-IdModule  = Capacitors_SMD:C_0402;
-EndCmp
-
-BeginCmp
-TimeStamp = /553D7C55;
-Reference = C5;
-ValeurCmp = 0.1uF;
-IdModule  = Capacitors_SMD:C_0402;
-EndCmp
-
-BeginCmp
-TimeStamp = /553D7B43;
-Reference = C6;
-ValeurCmp = 0.1uF;
-IdModule  = Capacitors_SMD:C_0402;
-EndCmp
-
-BeginCmp
-TimeStamp = /553D7C2D;
-Reference = C7;
-ValeurCmp = 220pF;
-IdModule  = Capacitors_SMD:C_0402;
-EndCmp
-
-BeginCmp
-TimeStamp = /553D7B20;
-Reference = C8;
-ValeurCmp = 0.1uF;
-IdModule  = Capacitors_SMD:C_0402;
-EndCmp
-
-BeginCmp
-TimeStamp = /553D7BED;
-Reference = C9;
-ValeurCmp = 0.1uF;
-IdModule  = Capacitors_SMD:C_0402;
-EndCmp
-
-BeginCmp
-TimeStamp = /553D896A;
-Reference = C10;
-ValeurCmp = 22pF;
-IdModule  = Capacitors_SMD:C_0402;
-EndCmp
-
-BeginCmp
-TimeStamp = /553D88F2;
-Reference = C11;
-ValeurCmp = 22pF;
-IdModule  = Capacitors_SMD:C_0402;
-EndCmp
-
-BeginCmp
-TimeStamp = /553D8B30;
-Reference = C12;
-ValeurCmp = 12pF;
-IdModule  = Capacitors_SMD:C_0402;
-EndCmp
-
-BeginCmp
-TimeStamp = /553D8AE8;
-Reference = C13;
-ValeurCmp = 12pF;
-IdModule  = Capacitors_SMD:C_0402;
-EndCmp
+Cmp-Mod V01 Created by Cvpcb (2015-04-30 BZR 5634)-product   date = Thu 30 Apr 2015 03:27:33 PM EDT
 
 BeginCmp
 TimeStamp = /553EE5A1;
@@ -120,20 +15,6 @@ IdModule  = Capacitors_SMD:C_0402;
 EndCmp
 
 BeginCmp
-TimeStamp = /553D9197;
-Reference = C16;
-ValeurCmp = 1uF;
-IdModule  = Capacitors_SMD:C_0402;
-EndCmp
-
-BeginCmp
-TimeStamp = /553D91FD;
-Reference = C17;
-ValeurCmp = 1uF;
-IdModule  = Capacitors_SMD:C_0402;
-EndCmp
-
-BeginCmp
 TimeStamp = /553EA4D8;
 Reference = C18;
 ValeurCmp = 10uF;
@@ -145,20 +26,6 @@ TimeStamp = /553E9DAA;
 Reference = C19;
 ValeurCmp = 10uF;
 IdModule  = Capacitors_SMD:C_0603;
-EndCmp
-
-BeginCmp
-TimeStamp = /553D948F;
-Reference = C20;
-ValeurCmp = 1nF;
-IdModule  = Capacitors_SMD:C_0402;
-EndCmp
-
-BeginCmp
-TimeStamp = /553DCA89;
-Reference = D1;
-ValeurCmp = Led_RGB_CA;
-IdModule  = polypoint:1mm_SQ_4PAD;
 EndCmp
 
 BeginCmp
@@ -197,41 +64,6 @@ IdModule  = Resistors_SMD:R_0402;
 EndCmp
 
 BeginCmp
-TimeStamp = /553D9563;
-Reference = R3;
-ValeurCmp = 2.2K;
-IdModule  = Resistors_SMD:R_0402;
-EndCmp
-
-BeginCmp
-TimeStamp = /553D95B6;
-Reference = R4;
-ValeurCmp = 56K;
-IdModule  = Resistors_SMD:R_0402;
-EndCmp
-
-BeginCmp
-TimeStamp = /553DCBED;
-Reference = R5;
-ValeurCmp = 1K;
-IdModule  = Resistors_SMD:R_0402;
-EndCmp
-
-BeginCmp
-TimeStamp = /553DCB75;
-Reference = R6;
-ValeurCmp = 1K;
-IdModule  = Resistors_SMD:R_0402;
-EndCmp
-
-BeginCmp
-TimeStamp = /553DCC33;
-Reference = R7;
-ValeurCmp = 1K;
-IdModule  = Resistors_SMD:R_0402;
-EndCmp
-
-BeginCmp
 TimeStamp = /553DE64A;
 Reference = U1;
 ValeurCmp = DWM1000;
@@ -239,10 +71,10 @@ IdModule  = polypoint:DWM1000_REVERSE_SMD;
 EndCmp
 
 BeginCmp
-TimeStamp = /553D7AFC;
+TimeStamp = /554281F8;
 Reference = U2;
-ValeurCmp = CC2538;
-IdModule  = polypoint:QFN-56-1EP_8x8mm_Pitch0.5mm;
+ValeurCmp = ATUM;
+IdModule  = polypoint:ATUM_SMD;
 EndCmp
 
 BeginCmp
@@ -257,20 +89,6 @@ TimeStamp = /553EE3A0;
 Reference = U4;
 ValeurCmp = TPS62740;
 IdModule  = polypoint:R-PWSON-12;
-EndCmp
-
-BeginCmp
-TimeStamp = /553EFAC7;
-Reference = X1;
-ValeurCmp = CRYSTAL_SMD_4;
-IdModule  = polypoint:FA-128;
-EndCmp
-
-BeginCmp
-TimeStamp = /553D8544;
-Reference = Y1;
-ValeurCmp = Crystal;
-IdModule  = polypoint:ABS05;
 EndCmp
 
 EndListe

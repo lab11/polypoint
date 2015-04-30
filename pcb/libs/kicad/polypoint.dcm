@@ -4,4 +4,8 @@ $CMP CC2538
 D CC2538
 $ENDCMP
 #
+$CMP LXDC2HL
+D Micro DC-DC Converter
+$ENDCMP
+#
 #End Doc Library
