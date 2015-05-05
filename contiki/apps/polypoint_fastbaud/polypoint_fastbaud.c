@@ -142,15 +142,16 @@ const uint8_t pgDelay[8] = {
     0x93
 };
 
-const uint8_t txPower[8] = {
+//NOTE: THIS IS DEPENDENT ON BAUDRATE
+const uint32_t txPower[8] = {
     0x0,
-    0x67,
-    0x67,
-    0x8b,
-    0x9a,
-    0x85,
+    0x07274767UL,
+    0x07274767UL,
+    0x2B4B6B8BUL,
+    0x3A5A7A9AUL,
+    0x25456585UL,
     0x0,
-    0xd1
+    0x5171B1D1UL
 };
 
 const double txDelayCal[11*3] = {
@@ -239,6 +240,7 @@ void set_subsequence_settings(){
     global_chan = (uint8_t)chan;
     global_ranging_config.chan = (uint8_t)chan;
     dwt_configure(&global_ranging_config, 0);//(DWT_LOADANTDLY | DWT_LOADXTALTRIM));
+    dwt_setsmarttxpower(global_ranging_config.smartPowerEn);
     global_tx_config.PGdly = pgDelay[global_ranging_config.chan];
     global_tx_config.power = txPower[global_ranging_config.chan];
     dwt_configuretxrf(&global_tx_config);
@@ -595,17 +597,18 @@ int app_dw1000_init () {
     // Set the parameters of ranging and channel and whatnot
     global_ranging_config.chan           = 2;
     global_ranging_config.prf            = DWT_PRF_64M;
-    global_ranging_config.txPreambLength = DWT_PLEN_4096;//DWT_PLEN_4096
+    global_ranging_config.txPreambLength = DWT_PLEN_64;//DWT_PLEN_4096
     // global_ranging_config.txPreambLength = DWT_PLEN_256;
-    global_ranging_config.rxPAC          = DWT_PAC64;
+    global_ranging_config.rxPAC          = DWT_PAC8;
     global_ranging_config.txCode         = 9;  // preamble code
     global_ranging_config.rxCode         = 9;  // preamble code
-    global_ranging_config.nsSFD          = 1;
-    global_ranging_config.dataRate       = DWT_BR_110K;
+    global_ranging_config.nsSFD          = 0;
+    global_ranging_config.dataRate       = DWT_BR_6M8;
     global_ranging_config.phrMode        = DWT_PHRMODE_EXT; //Enable extended PHR mode (up to 1024-byte packets)
-    global_ranging_config.smartPowerEn   = 0;
-    global_ranging_config.sfdTO          = 4096+64+1;//(1025 + 64 - 32);
+    global_ranging_config.smartPowerEn   = 1;
+    global_ranging_config.sfdTO          = 64+8+1;//(1025 + 64 - 32);
     dwt_configure(&global_ranging_config, 0);//(DWT_LOADANTDLY | DWT_LOADXTALTRIM));
+    dwt_setsmarttxpower(global_ranging_config.smartPowerEn);
 
     // Configure TX power
     {
