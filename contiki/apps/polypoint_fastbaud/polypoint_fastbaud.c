@@ -62,6 +62,9 @@ int app_dw1000_init ();
          (uint32_t) ( (_microsecu / (double) DWT_TIME_UNITS) / 1e6 )\
         )
 
+#define MIN(_a, _b) ((_a < _b) ? (_a) : (_b))
+#define MAX(_a, _b) ((_a > _b) ? (_a) : (_b))
+
 uint32_t global_seq_count = 0;
 uint16_t global_tx_antenna_delay = 0;
 
@@ -80,7 +83,6 @@ static struct rtimer periodic_timer;
 uint64_t global_tRP = 0;
 uint32_t global_tSR = 0;
 uint64_t global_tRF = 0;
-uint8_t global_recv_pkt[512];
 
 uint32_t global_subseq_num = 0xFFFFFFFF;
 uint8_t global_chan = 1;
@@ -314,6 +316,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
             struct ieee154_msg* msg_ptr;
             uint8_t packet_type_byte;
 	    uint64_t timestamp;
+            uint8_t recv_pkt_buf[512];
 
             // Get the timestamp first
             uint8_t txTimeStamp[5] = {0, 0, 0, 0, 0};
@@ -321,9 +324,9 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
             timestamp = ((uint64_t) (*((uint32_t*) txTimeStamp))) | (((uint64_t) txTimeStamp[4]) << 32);
 
             // Get the packet
-            dwt_readrxdata(global_recv_pkt, rxd->datalength, 0);
-            msg_ptr = (struct ieee154_msg*) global_recv_pkt;
-            packet_type_byte = global_recv_pkt[21];
+            dwt_readrxdata(recv_pkt_buf, MIN(512, rxd->datalength), 0);
+            msg_ptr = (struct ieee154_msg*) recv_pkt_buf;
+            packet_type_byte = recv_pkt_buf[21];
             printf("msg: %X\r\n",packet_type_byte);
 
             // Packet type byte is at a know location
@@ -346,7 +349,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
                 dwt_setrxtimeout(NODE_DELAY_US*(NUM_ANCHORS-anchor_id)+ANC_RESP_DELAY+1000);
             } else if(packet_type_byte == MSG_TYPE_ANC_FINAL){
                 struct ieee154_final_msg* final_msg_ptr;
-                final_msg_ptr = (struct ieee154_final_msg*) global_recv_pkt;
+                final_msg_ptr = (struct ieee154_final_msg*) recv_pkt_buf;
                 int offset_idx = (final_msg_ptr->anchorID-1)*NUM_ANTENNAS*NUM_ANTENNAS*NUM_CHANNELS;
                 memcpy(&global_distances[offset_idx],final_msg_ptr->distanceHist,sizeof(fin_msg.distanceHist));
             }
