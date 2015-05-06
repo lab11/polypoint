@@ -77,9 +77,6 @@ const uint32_t GLOBAL_PKT_DELAY_UPPER32 = (APP_US_TO_DEVICETIMEU32(NODE_DELAY_US
 
 static struct rtimer periodic_timer;
 
-uint64_t global_tag_poll_tx_time = 0;
-uint64_t global_tag_anchor_resp_rx_time = 0;
-
 uint64_t global_tRP = 0;
 uint32_t global_tSR = 0;
 uint64_t global_tRF = 0;
@@ -316,11 +313,12 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
             leds_on(LEDS_BLUE);
             struct ieee154_msg* msg_ptr;
             uint8_t packet_type_byte;
+	    uint64_t timestamp;
 
             // Get the timestamp first
             uint8_t txTimeStamp[5] = {0, 0, 0, 0, 0};
             dwt_readrxtimestamp(txTimeStamp);
-            global_tag_anchor_resp_rx_time = ((uint64_t) (*((uint32_t*) txTimeStamp))) | (((uint64_t) txTimeStamp[4]) << 32);
+            timestamp = ((uint64_t) (*((uint32_t*) txTimeStamp))) | (((uint64_t) txTimeStamp[4]) << 32);
 
             // Get the packet
             dwt_readrxdata(global_recv_pkt, rxd->datalength, 0);
@@ -342,7 +340,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
                 if(anchor_id >= NUM_ANCHORS) anchor_id = NUM_ANCHORS;
 
                 // Need to actually fill out the packet
-                bcast_msg.tRR[anchor_id-1] = global_tag_anchor_resp_rx_time;
+                bcast_msg.tRR[anchor_id-1] = timestamp;
 
                 //TODO: Hack.... But not sure of any other way to get this to time out correctly...
                 dwt_setrxtimeout(NODE_DELAY_US*(NUM_ANCHORS-anchor_id)+ANC_RESP_DELAY+1000);
