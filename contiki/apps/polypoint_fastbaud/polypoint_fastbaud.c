@@ -20,8 +20,9 @@ static char periodic_task(struct rtimer *rt, void* ptr);
 int app_dw1000_init ();
 /*---------------------------------------------------------------------------*/
 
-static struct rtimer periodic_timer;
-
+/***********************
+ ** CONFIGURATION MACROS
+ */
 #define DWT_PRF_64M_RFDLY 514.462f
 
 #define TAG 1
@@ -56,10 +57,25 @@ static struct rtimer periodic_timer;
 #define SUBSEQUENCE_PERIOD (RTIMER_SECOND*0.110)
 #define SEQUENCE_WAIT_PERIOD (RTIMER_SECOND)
 
+#define APP_US_TO_DEVICETIMEU32(_microsecu)\
+        (\
+         (uint32_t) ( (_microsecu / (double) DWT_TIME_UNITS) / 1e6 )\
+        )
+
 uint32_t global_seq_count = 0;
 uint16_t global_tx_antenna_delay = 0;
 
-uint32_t global_pkt_delay_upper32 = 0;
+// Calculate the delay between packet reception and transmission.
+// This applies to the time between POLL and RESPONSE (on the anchor side)
+// and RESPONSE and POLL (on the tag side).
+const uint32_t GLOBAL_PKT_DELAY_UPPER32 = (APP_US_TO_DEVICETIMEU32(NODE_DELAY_US) & DELAY_MASK) >> 8;
+
+
+/**************
+ * GLOBAL STATE
+ */
+
+static struct rtimer periodic_timer;
 
 uint64_t global_tag_poll_tx_time = 0;
 uint64_t global_tag_anchor_resp_rx_time = 0;
@@ -179,19 +195,6 @@ const double txDelayCal[11*3] = {
    155.4877777777778,   154.9033333333333,   155.3533333333333
 };
 
-// convert microseconds to device time
-uint32 app_us_to_devicetimeu32 (double microsecu)
-{
-    uint32_t dt;
-    long double dtime;
-
-    dtime = (microsecu / (double) DWT_TIME_UNITS) / 1e6 ;
-
-    dt =  (uint32_t) (dtime) ;
-
-    return dt;
-}
-
 uint8_t subseq_num_to_chan(uint32_t subseq_num, bool return_channel_index){
     uint8_t mod_choice = ((subseq_num/NUM_ANTENNAS/NUM_ANTENNAS) % NUM_CHANNELS);
     uint8_t return_choice = (mod_choice == 0) ? 1 :
@@ -278,7 +281,7 @@ void send_poll(){
     dwt_setrxaftertxdelay(0); // us
 
     uint32_t cur_time = dwt_readsystimestamphi32();
-    uint32_t delay_time = cur_time + global_pkt_delay_upper32;
+    uint32_t delay_time = cur_time + GLOBAL_PKT_DELAY_UPPER32;
     delay_time &= 0xFFFFFFFE; //Make sure last bit is zero
     dwt_setdelayedtrxtime(delay_time);
     bcast_msg.tSP = delay_time;
@@ -350,7 +353,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
                 memcpy(&global_distances[offset_idx],final_msg_ptr->distanceHist,sizeof(fin_msg.distanceHist));
             }
         } else if (rxd->event == DWT_SIG_RX_TIMEOUT) {
-            uint32_t delay_time = dwt_readsystimestamphi32() + global_pkt_delay_upper32;
+            uint32_t delay_time = dwt_readsystimestamphi32() + GLOBAL_PKT_DELAY_UPPER32;
             delay_time &= 0xFFFFFFFE;
             dwt_setdelayedtrxtime(delay_time);
             // Set the packet length
@@ -401,7 +404,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
                 // Calculate the delay
                 uint32_t delay_time =
                     ((uint32_t) (global_tRP >> 8)) +
-                    global_pkt_delay_upper32*ANCHOR_EUI + (app_us_to_devicetimeu32(ANC_RESP_DELAY) >> 8);
+                    GLOBAL_PKT_DELAY_UPPER32*ANCHOR_EUI + (APP_US_TO_DEVICETIMEU32(ANC_RESP_DELAY) >> 8);
                 delay_time &= 0xFFFFFFFE;
                 global_tSR = delay_time;
                 dwt_setdelayedtrxtime(delay_time);
@@ -674,14 +677,9 @@ int app_dw1000_init () {
     bcast_msg.seqNum = 0;
     bcast_msg.subSeqNum = 0;
 
-    // Calculate the delay between packet reception and transmission.
-    // This applies to the time between POLL and RESPONSE (on the anchor side)
-    // and RESPONSE and POLL (on the tag side).
-    global_pkt_delay_upper32 = (app_us_to_devicetimeu32(NODE_DELAY_US) & DELAY_MASK) >> 8;
-
     #ifdef DW_DEBUG
         printf("global_seq_count: %u\r\n", (unsigned int)global_seq_count);
-        printf("delay: %x\r\n", (unsigned int)global_pkt_delay_upper32);
+        printf("delay: %x\r\n", (unsigned int)GLOBAL_PKT_DELAY_UPPER32);
     #endif
 
 
@@ -881,7 +879,7 @@ PROCESS_THREAD(polypoint_fastbaud, ev, data) {
                 dwt_forcetrxoff();
 
                 //Schedule this transmission for our scheduled time slot
-                uint32_t delay_time = dwt_readsystimestamphi32() + global_pkt_delay_upper32*(NUM_ANCHORS-ANCHOR_EUI+1)*2;
+                uint32_t delay_time = dwt_readsystimestamphi32() + GLOBAL_PKT_DELAY_UPPER32*(NUM_ANCHORS-ANCHOR_EUI+1)*2;
                 delay_time &= 0xFFFFFFFE;
                 dwt_setdelayedtrxtime(delay_time);
                 dwt_writetxfctrl(sizeof(fin_msg), 0);
