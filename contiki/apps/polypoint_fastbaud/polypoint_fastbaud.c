@@ -82,7 +82,6 @@ static struct rtimer periodic_timer;
 
 uint64_t global_tRP = 0;
 uint32_t global_tSR = 0;
-uint64_t global_tRF = 0;
 
 uint32_t global_subseq_num = 0xFFFFFFFF;
 uint8_t global_chan = 1;
@@ -454,10 +453,8 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
                 // Read the whole packet
                 dwt_readrxdata((uint8_t*)&bcast_msg, sizeof(bcast_msg), 0);
 
-                global_tRF = timestamp;
-
                 //TODO: might need to normalize all times to tSP and tRP
-                double tRF = (double)global_tRF;
+                double tRF = (double)timestamp;
                 double tSR = (double)(((uint64_t)global_tSR) << 8);
                 double tRR = (double)bcast_msg.tRR[ANCHOR_EUI-1];
                 double tSP = (double)(((uint64_t)bcast_msg.tSP) << 8);
