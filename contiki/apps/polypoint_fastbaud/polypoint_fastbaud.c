@@ -317,11 +317,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
             // Get the timestamp first
             uint8_t txTimeStamp[5] = {0, 0, 0, 0, 0};
             dwt_readrxtimestamp(txTimeStamp);
-            global_tag_anchor_resp_rx_time = (uint64_t) txTimeStamp[0] +
-                                             (((uint64_t) txTimeStamp[1]) << 8) +
-                                             (((uint64_t) txTimeStamp[2]) << 16) +
-                                             (((uint64_t) txTimeStamp[3]) << 24) +
-                                             (((uint64_t) txTimeStamp[4]) << 32);
+            global_tag_anchor_resp_rx_time = ((uint64_t) (*((uint32_t*) txTimeStamp))) | (((uint64_t) txTimeStamp[4]) << 32);
 
             // Get the packet
             dwt_readrxdata(global_recv_pkt, rxd->datalength, 0);
@@ -390,11 +386,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
             // Get the timestamp first
             uint8_t txTimeStamp[5] = {0, 0, 0, 0, 0};
             dwt_readrxtimestamp(txTimeStamp);
-            timestamp = (uint64_t) txTimeStamp[0] +
-                        (((uint64_t) txTimeStamp[1]) << 8) +
-                        (((uint64_t) txTimeStamp[2]) << 16) +
-                        (((uint64_t) txTimeStamp[3]) << 24) +
-                        (((uint64_t) txTimeStamp[4]) << 32);
+            timestamp = ((uint64_t) (*((uint32_t*) txTimeStamp))) | (((uint64_t) txTimeStamp[4]) << 32);
 
             // Get the packet
             dwt_readrxdata(&packet_type_byte, 1, 15);
