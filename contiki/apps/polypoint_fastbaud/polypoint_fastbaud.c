@@ -278,8 +278,7 @@ void send_poll(){
     // Delay RX?
     dwt_setrxaftertxdelay(0); // us
 
-    uint32_t cur_time = dwt_readsystimestamphi32();
-    uint32_t delay_time = cur_time + GLOBAL_PKT_DELAY_UPPER32;
+    uint32_t delay_time = dwt_readsystimestamphi32() + GLOBAL_PKT_DELAY_UPPER32;
     delay_time &= 0xFFFFFFFE; //Make sure last bit is zero
     dwt_setdelayedtrxtime(delay_time);
     bcast_msg.tSP = delay_time;
