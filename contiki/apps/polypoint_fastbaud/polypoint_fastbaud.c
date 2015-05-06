@@ -218,12 +218,6 @@ uint8_t subseq_num_to_anchor_sel(uint32_t subseq_num){
 #endif
 }
 
-void incr_subsequence_counter(){
-    global_subseq_num++;
-    if(global_subseq_num > NUM_ANTENNAS*NUM_ANTENNAS*NUM_CHANNELS+1){
-        global_subseq_num = 0;
-    }
-}
 
 void set_subsequence_settings(){
     //Last subsequence, reset everything decawave
@@ -785,8 +779,13 @@ int app_dw1000_init () {
 static char periodic_task(struct rtimer *rt, void* ptr){
 
     rtimer_clock_t next_start_time = RTIMER_TIME(rt);
-    
-    incr_subsequence_counter();
+
+    // incr_subsequence_counter
+    global_subseq_num++;
+    if(global_subseq_num > NUM_ANTENNAS*NUM_ANTENNAS*NUM_CHANNELS+1){
+        global_subseq_num = 0;
+    }
+
     if(DW1000_ROLE_TYPE == ANCHOR){
         if(global_subseq_num == 0)
             next_start_time = 0;
