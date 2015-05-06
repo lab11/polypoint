@@ -782,18 +782,18 @@ static char periodic_task(struct rtimer *rt, void* ptr){
         if(global_subseq_num == 0)
             next_start_time = 0;
         else if(global_subseq_num == NUM_ANTENNAS*NUM_ANTENNAS*NUM_CHANNELS)
-            next_start_time += SUBSEQUENCE_PERIOD*5;
+            next_start_time += SUBSEQUENCE_PERIOD*3;
         else
             next_start_time += SUBSEQUENCE_PERIOD;
     } else {
         if(global_subseq_num == NUM_ANTENNAS*NUM_ANTENNAS*NUM_CHANNELS+1)
             next_start_time += SEQUENCE_WAIT_PERIOD;
         else if(global_subseq_num == NUM_ANTENNAS*NUM_ANTENNAS*NUM_CHANNELS)
-            next_start_time += SUBSEQUENCE_PERIOD*5;
+            next_start_time += SUBSEQUENCE_PERIOD*3;
         else
             next_start_time += SUBSEQUENCE_PERIOD;
     }
- 
+
     if(next_start_time != 0){
         rtimer_set(rt, next_start_time, 1, 
                     (rtimer_callback_t)periodic_task, ptr);
