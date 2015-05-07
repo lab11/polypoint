@@ -878,9 +878,9 @@ PROCESS_THREAD(polypoint_fastbaud, ev, data) {
                     printf("tagstart %d\r\n",ii+1);
                     for(jj=0; jj < NUM_ANTENNAS*NUM_ANTENNAS*NUM_CHANNELS; jj++){
                         int dist_times_1000 = (int)(global_distances[offset_idx+jj]*1000);
-                        printf("%d.%d\r\n",dist_times_1000/1000,dist_times_1000%1000);
+                        printf("%d.%d\t",dist_times_1000/1000,dist_times_1000%1000);
                     }
-                    printf("tagend\r\n");
+                    printf("\r\ntagend\r\n");
                 }
                 printf("done\r\n");
                 memset(global_distances,0,sizeof(global_distances));
