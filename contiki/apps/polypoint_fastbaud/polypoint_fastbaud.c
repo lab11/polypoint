@@ -49,7 +49,7 @@ int app_dw1000_init ();
 #define DW1000_PANID 0xD100
 
 #define NODE_DELAY_US 6500
-#define ANC_RESP_DELAY 1000
+#define ANC_RESP_DELAY_US 1000
 #define DELAY_MASK 0x00FFFFFFFE00
 #define SPEED_OF_LIGHT 299702547.0
 #define NUM_ANTENNAS 3
@@ -359,7 +359,10 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
                 bcast_msg.tRR[anchor_id-1] = timestamp;
 
                 //TODO: Hack.... But not sure of any other way to get this to time out correctly...
-                dwt_setrxtimeout(NODE_DELAY_US*(NUM_ANCHORS-anchor_id)+ANC_RESP_DELAY+1000);
+                dwt_setrxtimeout(
+				NODE_DELAY_US*(NUM_ANCHORS-anchor_id)
+				+ 2*APP_US_TO_DEVICETIMEU32(ANC_RESP_DELAY_US)
+				);
             } else if(packet_type_byte == MSG_TYPE_ANC_FINAL){
                 struct ieee154_final_msg* final_msg_ptr;
                 final_msg_ptr = (struct ieee154_final_msg*) recv_pkt_buf;
@@ -418,7 +421,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
                 // Calculate the delay
                 uint32_t delay_time =
                     ((uint32_t) (global_tRP >> 8)) +
-                    GLOBAL_PKT_DELAY_UPPER32*ANCHOR_EUI + (APP_US_TO_DEVICETIMEU32(ANC_RESP_DELAY) >> 8);
+                    GLOBAL_PKT_DELAY_UPPER32*ANCHOR_EUI + (APP_US_TO_DEVICETIMEU32(ANC_RESP_DELAY_US) >> 8);
                 delay_time &= 0xFFFFFFFE;
                 global_tSR = delay_time;
                 dwt_setdelayedtrxtime(delay_time);
