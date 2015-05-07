@@ -28,7 +28,7 @@ int app_dw1000_init ();
 #define TAG 1
 #define ANCHOR 2
 
-#define DW_DEBUG
+//#define DW_DEBUG
 //#define DW_CAL_TRX_DELAY
 
 // 4 packet types
@@ -55,7 +55,7 @@ int app_dw1000_init ();
 #define NUM_ANTENNAS 3
 #define NUM_CHANNELS 3
 #define SUBSEQUENCE_PERIOD (RTIMER_SECOND*0.110)
-#define SEQUENCE_WAIT_PERIOD (RTIMER_SECOND)
+#define SEQUENCE_WAIT_PERIOD (RTIMER_SECOND*0.2)
 
 #define APP_US_TO_DEVICETIMEU32(_microsecu)\
         (\
@@ -64,6 +64,19 @@ int app_dw1000_init ();
 
 #define MIN(_a, _b) ((_a < _b) ? (_a) : (_b))
 #define MAX(_a, _b) ((_a > _b) ? (_a) : (_b))
+
+#define DEBUG_B5_LOW\
+    GPIO_CLR_PIN(GPIO_PORT_TO_BASE(GPIO_B_NUM), GPIO_PIN_MASK(5))
+#define DEBUG_B5_HIGH\
+    GPIO_SET_PIN(GPIO_PORT_TO_BASE(GPIO_B_NUM), GPIO_PIN_MASK(5))
+#define DEBUG_B5_INIT\
+    GPIO_SET_OUTPUT(GPIO_PORT_TO_BASE(GPIO_B_NUM), GPIO_PIN_MASK(5))
+#define DEBUG_B4_LOW\
+    GPIO_CLR_PIN(GPIO_PORT_TO_BASE(GPIO_B_NUM), GPIO_PIN_MASK(4))
+#define DEBUG_B4_HIGH\
+    GPIO_SET_PIN(GPIO_PORT_TO_BASE(GPIO_B_NUM), GPIO_PIN_MASK(4))
+#define DEBUG_B4_INIT\
+    GPIO_SET_OUTPUT(GPIO_PORT_TO_BASE(GPIO_B_NUM), GPIO_PIN_MASK(4))
 
 uint32_t global_seq_count = 0;
 uint16_t global_tx_antenna_delay = 0;
@@ -325,7 +338,9 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
             dwt_readrxdata(recv_pkt_buf, MIN(512, rxd->datalength), 0);
             msg_ptr = (struct ieee154_msg*) recv_pkt_buf;
             packet_type_byte = recv_pkt_buf[21];
+#ifdef DW_DEBUG
             printf("msg: %X\r\n",packet_type_byte);
+#endif
 
             // Packet type byte is at a know location
             if (packet_type_byte == MSG_TYPE_ANC_RESP) {
@@ -777,14 +792,14 @@ static char periodic_task(struct rtimer *rt, void* ptr){
         if(global_subseq_num == 0)
             next_start_time = 0;
         else if(global_subseq_num == NUM_ANTENNAS*NUM_ANTENNAS*NUM_CHANNELS)
-            next_start_time += SUBSEQUENCE_PERIOD*3;
+            next_start_time += SUBSEQUENCE_PERIOD*2;
         else
             next_start_time += SUBSEQUENCE_PERIOD;
     } else {
         if(global_subseq_num == NUM_ANTENNAS*NUM_ANTENNAS*NUM_CHANNELS+1)
             next_start_time += SEQUENCE_WAIT_PERIOD;
         else if(global_subseq_num == NUM_ANTENNAS*NUM_ANTENNAS*NUM_CHANNELS)
-            next_start_time += SUBSEQUENCE_PERIOD*3;
+            next_start_time += SUBSEQUENCE_PERIOD*2;
         else
             next_start_time += SUBSEQUENCE_PERIOD;
     }
@@ -856,6 +871,7 @@ PROCESS_THREAD(polypoint_fastbaud, ev, data) {
                 dwt_rxenable(0);
                 dwt_setrxtimeout(0); // disable timeout
             } else if(global_subseq_num == NUM_ANTENNAS*NUM_ANTENNAS*NUM_CHANNELS+1){
+		// n.b. This loop of printfs takes 140-180 ms to execute
                 int ii, jj;
                 for(ii=0; ii < NUM_ANCHORS; ii++){
                     int offset_idx = ii*NUM_ANTENNAS*NUM_ANTENNAS*NUM_CHANNELS;
