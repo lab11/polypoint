@@ -1,0 +1,8 @@
+*.a
+*.map
+*.bin
+*.co
+*.elf
+*.hex
+*.atum
+obj_atum
