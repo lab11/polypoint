@@ -29,6 +29,8 @@ static struct rtimer substate_timer;
 static bool substate_timer_fired = false;
 /*---------------------------------------------------------------------------*/
 
+#define TAG_EUI 0
+
 /**************
  * GLOBAL STATE
  */
@@ -64,8 +66,11 @@ static void send_poll(){
 	// Delay RX?
 	dwt_setrxaftertxdelay(1); // us
 
+	DEBUG_B4_HIGH;
 	uint32_t temp = dwt_readsystimestamphi32();
-	uint32_t delay_time = temp + GLOBAL_PKT_DELAY_UPPER32;
+	//uint32_t delay_time = temp + GLOBAL_PKT_DELAY_UPPER32;
+	//(APP_US_TO_DEVICETIMEU32(NODE_DELAY_US) & DELAY_MASK) >> 8
+	uint32_t delay_time = temp + (APP_US_TO_DEVICETIMEU32(250) >> 8);
 	//uint32_t delay_time = dwt_readsystimestamphi32() + GLOBAL_PKT_DELAY_UPPER32;
 	delay_time &= 0xFFFFFFFE; //Make sure last bit is zero
 	dwt_setdelayedtrxtime(delay_time);
@@ -76,6 +81,7 @@ static void send_poll(){
 
 	// Start the transmission
 	err = dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED);
+	DEBUG_B4_LOW;
 
 	// MP bug - TX antenna delay needs reprogramming as it is
 	// not preserved
@@ -97,7 +103,7 @@ void app_dw1000_txcallback (const dwt_callback_data_t *txd) {
 // Triggered when we receive a packet
 void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 	if (rxd->event == DWT_SIG_RX_OKAY) {
-		leds_on(LEDS_BLUE);
+		leds_toggle(LEDS_BLUE);
 		uint8_t packet_type;
 		uint64_t timestamp;
 		uint8_t recv_pkt_buf[512];
@@ -150,7 +156,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 
 void app_init(void) {
 	DEBUG_P("\r\n### APP INIT\r\n");
-	int err = app_dw1000_init(TAG, app_dw1000_txcallback, app_dw1000_rxcallback);
+	int err = app_dw1000_init(TAG, TAG_EUI, app_dw1000_txcallback, app_dw1000_rxcallback);
 	if (err == -1)
 		leds_on(LEDS_RED);
 	else
@@ -297,6 +303,11 @@ PROCESS_THREAD(polypoint_tag, ev, data) {
 	rtimer_set(&subsequence_timer, RTIMER_NOW() + RTIMER_SECOND, 1,
 			(rtimer_callback_t)subsequence_task, NULL);
 
+	DEBUG_B4_INIT;
+	DEBUG_B5_INIT;
+	DEBUG_B4_LOW;
+	DEBUG_B5_LOW;
+
 	while(1) {
 		PROCESS_YIELD_UNTIL(ev == PROCESS_EVENT_POLL);
 
@@ -315,15 +326,21 @@ PROCESS_THREAD(polypoint_tag, ev, data) {
 		if(global_subseq_num < NUM_MEASUREMENTS) {
 			if (subsequence_timer_fired) {
 				subsequence_timer_fired = false;
+				DEBUG_B4_LOW;
+				DEBUG_B5_LOW;
 
 				set_subsequence_settings(global_subseq_num, TAG);
+				DEBUG_B5_HIGH;
 
 				//Make sure we're out of rx mode before attempting to transmit
 				dwt_forcetrxoff();
 
 				send_poll(); // sets RX mode
+				DEBUG_B5_LOW;
 			} else {
 				substate_timer_fired = false;
+				DEBUG_B4_HIGH;
+				DEBUG_B5_LOW;
 
 				//Make sure we're out of rx mode before attempting to transmit
 				dwt_forcetrxoff();
@@ -362,6 +379,8 @@ PROCESS_THREAD(polypoint_tag, ev, data) {
 		} else {
 			if (subsequence_timer_fired) {
 				subsequence_timer_fired = false;
+				DEBUG_B4_LOW;
+				DEBUG_B5_HIGH;
 
 				dwt_rxenable(0);
 
@@ -372,6 +391,8 @@ PROCESS_THREAD(polypoint_tag, ev, data) {
 				// fill out the results array
 			} else {
 				substate_timer_fired = false;
+				DEBUG_B4_HIGH;
+				DEBUG_B5_HIGH;
 
 				// n.b. This loop of printfs takes 140-180 ms to execute
 				int ii, jj;

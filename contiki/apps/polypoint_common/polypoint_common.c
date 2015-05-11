@@ -110,6 +110,7 @@ static uint8_t subseq_num_to_anchor_sel(uint8_t subseq_num){
 
 int app_dw1000_init (
 		int HACK_role,
+		int HACK_EUI,
 		void (*txcallback)(const dwt_callback_data_t *),
 		void (*rxcallback)(const dwt_callback_data_t *)
 		) {
@@ -243,7 +244,7 @@ int app_dw1000_init (
 		// Enable frame filtering
 		dwt_enableframefilter(DWT_FF_DATA_EN | DWT_FF_ACK_EN);
 
-		dw1000_populate_eui(eui_array, ANCHOR_EUI);
+		dw1000_populate_eui(eui_array, HACK_EUI);
 		dwt_seteui(eui_array);
 		dwt_setpanid(DW1000_PANID);
 
@@ -263,7 +264,7 @@ int app_dw1000_init (
 		// Allow data and ack frames
 		dwt_enableframefilter(DWT_FF_DATA_EN | DWT_FF_ACK_EN);
 
-		dw1000_populate_eui(eui_array, TAG_EUI);
+		dw1000_populate_eui(eui_array, HACK_EUI);
 		dwt_seteui(eui_array);
 		dwt_setpanid(DW1000_PANID);
 

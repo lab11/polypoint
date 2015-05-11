@@ -30,6 +30,11 @@ static bool substate_timer_fired = false;
 // (fwd decl)
 static bool start_of_new_subseq;
 
+// temp
+#define TAG_EUI 0
+
+#define ANCHOR_EUI 2
+
 /**************
  * GLOBAL STATE
  */
@@ -69,7 +74,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 		// Then the contiki RT timestamp
 		rt_timestamp = RTIMER_NOW();
 
-		leds_on(LEDS_BLUE);
+		leds_toggle(LEDS_BLUE);
 
 		// Get the packet
 		dwt_readrxdata(
@@ -91,6 +96,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 
 		if (packet_type_byte == MSG_TYPE_TAG_POLL) {
 			DEBUG_P("TAG_POLL received (remote subseq %u)\r\n", subseq_num);
+			DEBUG_B5_HIGH;
 
 			// Got POLL
 			global_tRP = dw_timestamp;
@@ -98,11 +104,11 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 			// Send response
 
 			// Calculate the delay
+			uint32_t pkt_delay_upper32 = (APP_US_TO_DEVICETIMEU32(300) & DELAY_MASK) >> 8;
 			uint32_t delay_time =
 				((uint32_t) (global_tRP >> 8)) +
-				GLOBAL_PKT_DELAY_UPPER32*ANCHOR_EUI +
-				(APP_US_TO_DEVICETIMEU32(ANC_RESP_DELAY_US)
-				 >> 8);
+				pkt_delay_upper32*(ANCHOR_EUI-1) +
+				(APP_US_TO_DEVICETIMEU32(ANC_RESP_DELAY_US) >> 8);
 			delay_time &= 0xFFFFFFFE;
 			global_tSR = delay_time;
 			dwt_setdelayedtrxtime(delay_time);
@@ -121,9 +127,11 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 			err = dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED);
 			dwt_settxantennadelay(TX_ANTENNA_DELAY);
 			if (err) {
+#ifdef DW_DEBUG
 				uint32_t now = dwt_readsystimestamphi32();
 				DEBUG_P("Could not send anchor response\r\n");
 				DEBUG_P(" -- sched time %lu, now %lu (diff %lu)\r\n", delay_time, now, now-delay_time);
+#endif
 			} else {
 				DEBUG_P("Send ANC_RESP\r\n");
 			}
@@ -165,6 +173,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 			}
 		} else if (packet_type_byte == MSG_TYPE_TAG_FINAL) {
 			DEBUG_P("TAG_FINAL received (remote subseq %u)\r\n", subseq_num);
+			DEBUG_B5_LOW;
 
 			// Got FINAL
 			struct ieee154_bcast_msg bcast_msg;
@@ -219,7 +228,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 void app_init() {
 	DEBUG_P("\r\n### APP INIT\r\n");
 
-	int err = app_dw1000_init(ANCHOR, app_dw1000_txcallback, app_dw1000_rxcallback);
+	int err = app_dw1000_init(ANCHOR, ANCHOR_EUI, app_dw1000_txcallback, app_dw1000_rxcallback);
 	if (err == -1)
 		leds_on(LEDS_RED);
 	else
@@ -386,6 +395,11 @@ PROCESS_THREAD(polypoint_anchor, ev, data) {
 
 	rtimer_init();
 
+	DEBUG_B4_INIT;
+	DEBUG_B5_INIT;
+	DEBUG_B4_LOW;
+	DEBUG_B5_LOW;
+
 	while(1) {
 		PROCESS_YIELD_UNTIL(ev == PROCESS_EVENT_POLL);
 
@@ -398,10 +412,14 @@ PROCESS_THREAD(polypoint_anchor, ev, data) {
 		if(global_subseq_num < NUM_MEASUREMENTS) {
 			if (subsequence_timer_fired) {
 				subsequence_timer_fired = false;
+				DEBUG_B4_LOW;
+				DEBUG_B5_LOW;
 
 				// no-op; will respond to TAG_POLL
 			} else {
 				substate_timer_fired = false;
+				DEBUG_B4_HIGH;
+				DEBUG_B5_LOW;
 
 				global_subseq_num++;
 				if(global_subseq_num < NUM_MEASUREMENTS) {
@@ -411,6 +429,8 @@ PROCESS_THREAD(polypoint_anchor, ev, data) {
 		} else {
 			if (subsequence_timer_fired) {
 				subsequence_timer_fired = false;
+				DEBUG_B4_LOW;
+				DEBUG_B5_HIGH;
 
 				//We're likely in RX mode, so we need to exit before transmission
 				dwt_forcetrxoff();
@@ -426,14 +446,18 @@ PROCESS_THREAD(polypoint_anchor, ev, data) {
 				dwt_settxantennadelay(TX_ANTENNA_DELAY);
 
 				if (err) {
+#ifdef DW_DEBUG
 					uint32_t now = dwt_readsystimestamphi32();
 					DEBUG_P("Could not send anchor response\r\n");
 					DEBUG_P(" -- sched time %lu, now %lu (diff %lu)\r\n", delay_time, now, now-delay_time);
+#endif
 				} else {
 					DEBUG_P("Send ANC_FINAL\r\n");
 				}
 			} else {
 				substate_timer_fired = false;
+				DEBUG_B4_HIGH;
+				DEBUG_B5_HIGH;
 
 				DEBUG_P("reset for next round\r\n");
 

@@ -9,7 +9,7 @@
 #define TAG 1
 #define ANCHOR 2
 
-#define DW_DEBUG
+//#define DW_DEBUG
 //#define DW_CAL_TRX_DELAY
 
 // 4 packet types
@@ -20,8 +20,6 @@
 
 #define ANCHOR_CAL_LEN (0.914-0.18) //0.18 is post-over-air calibration
 
-#define TAG_EUI 0
-#define ANCHOR_EUI 1
 #define NUM_ANCHORS 10
 
 #define DW1000_PANID 0xD100
@@ -29,7 +27,7 @@
 #define NUM_MEASUREMENTS (NUM_ANTENNAS*NUM_ANTENNAS*NUM_CHANNELS)
 
 #define NODE_DELAY_US 7000
-#define ANC_RESP_DELAY_US 1000
+#define ANC_RESP_DELAY_US 500
 #define DELAY_MASK 0x00FFFFFFFE00
 #define SPEED_OF_LIGHT 299702547.0
 #define NUM_ANTENNAS 3
@@ -139,7 +137,8 @@ _Static_assert(offsetof(struct ieee154_anchor_poll_resp, messageType) == offseto
 uint8_t subseq_num_to_chan(uint8_t subseq_num, bool return_channel_index);
 void set_subsequence_settings(uint8_t subseq_num, int role);
 int app_dw1000_init (
-		int HACK,
+		int HACK_role,
+		int HACK_EUI,
 		void (*txcallback)(const dwt_callback_data_t *),
 		void (*rxcallback)(const dwt_callback_data_t *)
 		);
