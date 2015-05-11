@@ -19,8 +19,12 @@
 PROCESS(polypoint_anchor, "Polypoint-anchor");
 AUTOSTART_PROCESSES(&polypoint_anchor);
 static char subsequence_task(struct rtimer *rt, void* ptr);
-static char substate_task(struct rtimer *rt, void* ptr);
+static struct rtimer subsequence_timer;
 static bool subsequence_timer_fired = false;
+/* virtualized in app timer instead
+static char substate_task(struct rtimer *rt, void* ptr);
+static struct rtimer substate_timer;
+*/
 static bool substate_timer_fired = false;
 /*---------------------------------------------------------------------------*/
 // (fwd decl)
@@ -33,9 +37,6 @@ static bool start_of_new_subseq;
 static uint8_t global_round_num = 0xAA;
 static uint32_t global_seq_count = 0;
 static uint8_t global_subseq_num = 0xAA;
-
-static struct rtimer subsequence_timer;
-static struct rtimer substate_timer;
 
 static struct ieee154_anchor_poll_resp poll_resp_msg;
 static struct ieee154_anchor_final_msg fin_msg;
@@ -107,6 +108,8 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 			global_tSR = delay_time;
 			dwt_setdelayedtrxtime(delay_time);
 
+			poll_resp_msg.seqNum++;
+
 			uint16_t tx_frame_length = sizeof(poll_resp_msg);
 			// Put at beginning of TX fifo
 			dwt_writetxfctrl(tx_frame_length, 0);
@@ -120,6 +123,8 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 			dwt_settxantennadelay(TX_ANTENNA_DELAY);
 			if (err) {
 				DEBUG_P("Could not send anchor response\r\n");
+			} else {
+				DEBUG_P("Send ANC_RESP\r\n");
 			}
 
 			if(subseq_num == 0){
@@ -225,6 +230,7 @@ void app_init() {
 	poll_resp_msg.panID[0] = DW1000_PANID & 0xff;
 	poll_resp_msg.panID[1] = DW1000_PANID >> 8;
 	poll_resp_msg.seqNum = 0;
+	poll_resp_msg.messageType = MSG_TYPE_ANC_RESP;
 	poll_resp_msg.anchorID = ANCHOR_EUI;
 
 	// Setup the constants in the outgoing packet
@@ -233,8 +239,8 @@ void app_init() {
 	fin_msg.panID[0] = DW1000_PANID & 0xff;
 	fin_msg.panID[1] = DW1000_PANID >> 8;
 	fin_msg.seqNum = 0;
-	fin_msg.anchorID = ANCHOR_EUI;
 	fin_msg.messageType = MSG_TYPE_ANC_FINAL;
+	fin_msg.anchorID = ANCHOR_EUI;
 
 	// Set more packet constants
 	dw1000_populate_eui(poll_resp_msg.sourceAddr, ANCHOR_EUI);
@@ -243,10 +249,6 @@ void app_init() {
 	// hard code destination for now....
 	dw1000_populate_eui(poll_resp_msg.destAddr, TAG_EUI);
 	dw1000_populate_eui(fin_msg.destAddr, TAG_EUI);
-
-	// Try pre-populating this
-	poll_resp_msg.seqNum++;
-	poll_resp_msg.messageType = MSG_TYPE_ANC_RESP;
 }
 
 
@@ -414,15 +416,20 @@ PROCESS_THREAD(polypoint_anchor, ev, data) {
 				uint32_t delay_time = dwt_readsystimestamphi32() + GLOBAL_PKT_DELAY_UPPER32*(NUM_ANCHORS-ANCHOR_EUI+1)*2;
 				delay_time &= 0xFFFFFFFE;
 				dwt_setdelayedtrxtime(delay_time);
+				fin_msg.seqNum++;
 				dwt_writetxfctrl(sizeof(fin_msg), 0);
 				dwt_writetxdata(sizeof(fin_msg), (uint8_t*) &fin_msg, 0);
 				dwt_starttx(DWT_START_TX_DELAYED);
+				DEBUG_P("Send ANC_FINAL\r\n");
 				dwt_settxantennadelay(TX_ANTENNA_DELAY);
 			} else {
 				substate_timer_fired = false;
 
 				global_subseq_num = 0;
 				set_subsequence_settings(global_subseq_num, ANCHOR);
+
+				// Go for receiving
+				dwt_rxenable(0);
 			}
 		}
 	}

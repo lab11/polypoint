@@ -20,8 +20,12 @@
 PROCESS(polypoint_tag, "Polypoint-tag");
 AUTOSTART_PROCESSES(&polypoint_tag);
 static char subsequence_task(struct rtimer *rt, void* ptr);
-static char substate_task(struct rtimer *rt, void* ptr);
+static struct rtimer subsequence_timer;
 static bool subsequence_timer_fired = false;
+/* virtualized in app timer instead
+static char substate_task(struct rtimer *rt, void* ptr);
+static struct rtimer substate_timer;
+*/
 static bool substate_timer_fired = false;
 /*---------------------------------------------------------------------------*/
 
@@ -33,24 +37,17 @@ static uint8_t global_round_num = 0xFF;
 static uint32_t global_seq_count = 0;
 static uint8_t global_subseq_num = 0xFF;
 
-static struct rtimer subsequence_timer;
-static struct rtimer substate_timer;
-
 static float global_distances[NUM_ANCHORS*NUM_MEASUREMENTS];
 
 static struct ieee154_bcast_msg bcast_msg;
 
 static void send_poll(){
+	int err;
+
 	//Reset all the tRRs at the beginning of each poll event
 	memset(bcast_msg.tRR, 0, sizeof(bcast_msg.tRR));
 
-	// FCS + SEQ + PANID:  5
-	// ADDR:              10
-	// PKT:                6
-	// CRC:                2
-	// EXTRA (??):         2
-	// total              25
-	uint16_t tx_frame_length = 25;
+	uint16_t tx_frame_length = offsetof(struct ieee154_bcast_msg, tSP) + 2;
 	memset(bcast_msg.destAddr, 0xFF, 2);
 
 	bcast_msg.seqNum++;
@@ -63,7 +60,7 @@ static void send_poll(){
 	dwt_writetxfctrl(tx_frame_length, 0);
 
 	// We'll get multiple responses, so let them all come in
-	dwt_setrxtimeout(NODE_DELAY_US*NUM_ANCHORS);
+	//dwt_setrxtimeout(APP_US_TO_DEVICETIMEU32(NODE_DELAY_US*(NUM_ANCHORS+1)));
 
 	// Delay RX?
 	dwt_setrxaftertxdelay(0); // us
@@ -77,12 +74,17 @@ static void send_poll(){
 	dwt_writetxdata(tx_frame_length, (uint8_t*) &bcast_msg, 0);
 
 	// Start the transmission
-	dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED);
-	DEBUG_P("Sent TAG_POLL\r\n");
+	err = dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED);
 
 	// MP bug - TX antenna delay needs reprogramming as it is
 	// not preserved
 	dwt_settxantennadelay(TX_ANTENNA_DELAY);
+
+	if (err == DWT_SUCCESS) {
+		DEBUG_P("Sent TAG_POLL  (t=%lu)\r\n", RTIMER_NOW());
+	} else {
+		DEBUG_P("Error sending TAG_POLL: %d\r\n", err);
+	}
 }
 
 // Triggered after a TX
@@ -94,7 +96,6 @@ void app_dw1000_txcallback (const dwt_callback_data_t *txd) {
 void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 	if (rxd->event == DWT_SIG_RX_OKAY) {
 		leds_on(LEDS_BLUE);
-		struct ieee154_anchor_poll_resp* msg_ptr;
 		uint8_t packet_type;
 		uint64_t timestamp;
 		uint8_t recv_pkt_buf[512];
@@ -106,11 +107,19 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 
 		// Get the packet
 		dwt_readrxdata(recv_pkt_buf, MIN(512, rxd->datalength), 0);
-		msg_ptr = (struct ieee154_anchor_poll_resp*) recv_pkt_buf;
 		packet_type = recv_pkt_buf[offsetof(struct ieee154_anchor_poll_resp, messageType)];
 
+		if (rxd->datalength < offsetof(struct ieee154_anchor_poll_resp, messageType)) {
+			DEBUG_P("WARN: Packet too short (%u bytes)\r\n", rxd->datalength);
+			return;
+		}
+
 		if (packet_type == MSG_TYPE_ANC_RESP) {
+			struct ieee154_anchor_poll_resp* msg_ptr;
+			msg_ptr = (struct ieee154_anchor_poll_resp*) recv_pkt_buf;
+
 			uint8_t anchor_id = msg_ptr->anchorID;
+
 			DEBUG_P("ANC_RESP from %u\r\n", anchor_id);
 			if(anchor_id >= NUM_ANCHORS) anchor_id = NUM_ANCHORS;
 
@@ -332,7 +341,7 @@ PROCESS_THREAD(polypoint_tag, ev, data) {
 				int err = dwt_starttx(DWT_START_TX_DELAYED);
 				dwt_settxantennadelay(TX_ANTENNA_DELAY);
 
-				DEBUG_P("Sent TAG_FINAL\n");
+				DEBUG_P("Sent TAG_FINAL (t=%lu)\n", RTIMER_NOW());
 				if (err) {
 					DEBUG_P("Error sending final message\r\n");
 				}

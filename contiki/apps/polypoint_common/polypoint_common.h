@@ -21,7 +21,7 @@
 #define ANCHOR_CAL_LEN (0.914-0.18) //0.18 is post-over-air calibration
 
 #define TAG_EUI 0
-#define ANCHOR_EUI 10
+#define ANCHOR_EUI 1
 #define NUM_ANCHORS 10
 
 #define DW1000_PANID 0xD100
@@ -35,9 +35,13 @@
 #define NUM_ANTENNAS 3
 #define NUM_CHANNELS 3
 
-#define RT_SUBSEQUENCE_PERIOD (RTIMER_SECOND * 0.110)
+//#define RT_SUBSEQUENCE_PERIOD (RTIMER_SECOND * 0.110)
+#define RT_SUBSEQUENCE_PERIOD (RTIMER_SECOND * 0.220)
 #define RT_SEQUENCE_PERIOD (RTIMER_SECOND * 2)
-#define RT_ANCHOR_RESPONSE_WINDOW (RTIMER_SECOND * ((NUM_ANCHORS+1)*(NODE_DELAY_US/1000000)))
+#define RT_ANCHOR_RESPONSE_WINDOW (RTIMER_SECOND * (\
+			(NUM_ANCHORS+1)*(NODE_DELAY_US/1000000)\
+			+ 2*(ANC_RESP_DELAY_US/1000000)\
+			))
 #define RT_TAG_FINAL_WINDOW (RTIMER_SECOND * (NODE_DELAY_US/1000000))
 
 _Static_assert(RT_SEQUENCE_PERIOD >= RT_SUBSEQUENCE_PERIOD,
@@ -123,6 +127,10 @@ struct ieee154_bcast_msg  {
 	uint64_t tRR[NUM_ANCHORS]; // time differences
 	uint8_t fcs[2] ;                                  //  we allow space for the CRC as it is logically part of the message. However ScenSor TX calculates and adds these bytes.
 } __attribute__ ((__packed__));
+
+
+_Static_assert(offsetof(struct ieee154_anchor_poll_resp, messageType) == offsetof(struct ieee154_anchor_final_msg, messageType),\
+			"messageType field at inconsisten offsets (ap,af)");
 
 
 uint8_t subseq_num_to_chan(uint8_t subseq_num, bool return_channel_index);
