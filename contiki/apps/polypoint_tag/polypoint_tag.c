@@ -70,7 +70,7 @@ static void send_poll(){
 	uint32_t temp = dwt_readsystimestamphi32();
 	//uint32_t delay_time = temp + GLOBAL_PKT_DELAY_UPPER32;
 	//(APP_US_TO_DEVICETIMEU32(NODE_DELAY_US) & DELAY_MASK) >> 8
-	uint32_t delay_time = temp + (APP_US_TO_DEVICETIMEU32(250) >> 8);
+	uint32_t delay_time = temp + (APP_US_TO_DEVICETIMEU32(TAG_SEND_POLL_DELAY_US) >> 8);
 	//uint32_t delay_time = dwt_readsystimestamphi32() + GLOBAL_PKT_DELAY_UPPER32;
 	delay_time &= 0xFFFFFFFE; //Make sure last bit is zero
 	dwt_setdelayedtrxtime(delay_time);
@@ -223,9 +223,18 @@ static char subsequence_task(struct rtimer *rt, void* ptr){
 		subsequence_timer_fired = true;
 		//DEBUG_P("subseq_start; subseq fire\r\n"); too fast to print
 
+		/*
 		// Need to set substate timer, same in all cases
 		rtimer_set(rt, subseq_start + RT_ANCHOR_RESPONSE_WINDOW,
 				1, (rtimer_callback_t)subsequence_task, NULL);
+		*/
+		if (global_subseq_num < NUM_MEASUREMENTS) {
+			rtimer_set(rt, subseq_start + RTIMER_SECOND*(TAG_FINAL_DELAY_US/1e6),
+					1, (rtimer_callback_t)subsequence_task, NULL);
+		} else {
+			rtimer_set(rt, subseq_start + RT_ANCHOR_RESPONSE_WINDOW,
+					1, (rtimer_callback_t)subsequence_task, NULL);
+		}
 	} else {
 		start_of_new_subseq = true;
 		substate_timer_fired = true;
@@ -346,7 +355,8 @@ PROCESS_THREAD(polypoint_tag, ev, data) {
 				dwt_forcetrxoff();
 
 				uint32_t temp = dwt_readsystimestamphi32();
-				uint32_t delay_time = temp + GLOBAL_PKT_DELAY_UPPER32;
+				//uint32_t delay_time = temp + GLOBAL_PKT_DELAY_UPPER32;
+				uint32_t delay_time = temp + (APP_US_TO_DEVICETIMEU32(TAG_SEND_FINAL_DELAY_US) >> 8);
 				//uint32_t delay_time = dwt_readsystimestamphi32() + GLOBAL_PKT_DELAY_UPPER32;
 				delay_time &= 0xFFFFFFFE;
 				dwt_setdelayedtrxtime(delay_time);
