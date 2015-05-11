@@ -34,7 +34,6 @@ static bool substate_timer_fired = false;
  */
 
 static uint8_t global_round_num = 0xFF;
-static uint32_t global_seq_count = 0;
 static uint8_t global_subseq_num = 0xFF;
 
 static float global_distances[NUM_ANCHORS*NUM_MEASUREMENTS];
@@ -63,9 +62,11 @@ static void send_poll(){
 	//dwt_setrxtimeout(APP_US_TO_DEVICETIMEU32(NODE_DELAY_US*(NUM_ANCHORS+1)));
 
 	// Delay RX?
-	dwt_setrxaftertxdelay(0); // us
+	dwt_setrxaftertxdelay(1); // us
 
-	uint32_t delay_time = dwt_readsystimestamphi32() + GLOBAL_PKT_DELAY_UPPER32;
+	uint32_t temp = dwt_readsystimestamphi32();
+	uint32_t delay_time = temp + GLOBAL_PKT_DELAY_UPPER32;
+	//uint32_t delay_time = dwt_readsystimestamphi32() + GLOBAL_PKT_DELAY_UPPER32;
 	delay_time &= 0xFFFFFFFE; //Make sure last bit is zero
 	dwt_setdelayedtrxtime(delay_time);
 	bcast_msg.tSP = delay_time;
@@ -80,8 +81,9 @@ static void send_poll(){
 	// not preserved
 	dwt_settxantennadelay(TX_ANTENNA_DELAY);
 
+	DEBUG_P("now %lu + delay %lli\r\n", temp, GLOBAL_PKT_DELAY_UPPER32);
 	if (err == DWT_SUCCESS) {
-		DEBUG_P("Sent TAG_POLL  (t=%lu)\r\n", RTIMER_NOW());
+		DEBUG_P("Sent TAG_POLL  (%u)\r\n", bcast_msg.subSeqNum);
 	} else {
 		DEBUG_P("Error sending TAG_POLL: %d\r\n", err);
 	}
@@ -326,7 +328,9 @@ PROCESS_THREAD(polypoint_tag, ev, data) {
 				//Make sure we're out of rx mode before attempting to transmit
 				dwt_forcetrxoff();
 
-				uint32_t delay_time = dwt_readsystimestamphi32() + GLOBAL_PKT_DELAY_UPPER32;
+				uint32_t temp = dwt_readsystimestamphi32();
+				uint32_t delay_time = temp + GLOBAL_PKT_DELAY_UPPER32;
+				//uint32_t delay_time = dwt_readsystimestamphi32() + GLOBAL_PKT_DELAY_UPPER32;
 				delay_time &= 0xFFFFFFFE;
 				dwt_setdelayedtrxtime(delay_time);
 
@@ -341,9 +345,16 @@ PROCESS_THREAD(polypoint_tag, ev, data) {
 				int err = dwt_starttx(DWT_START_TX_DELAYED);
 				dwt_settxantennadelay(TX_ANTENNA_DELAY);
 
-				DEBUG_P("Sent TAG_FINAL (t=%lu)\n", RTIMER_NOW());
+				DEBUG_P("now %lu + delay %lli\r\n", temp, GLOBAL_PKT_DELAY_UPPER32);
 				if (err) {
 					DEBUG_P("Error sending final message\r\n");
+				} else {
+					DEBUG_P("Sent TAG_FINAL (%u)\n", bcast_msg.subSeqNum);
+				}
+
+				int i;
+				for (i=0; i<NUM_ANCHORS; i++) {
+					DEBUG_P("\tbcast_msg.tRR[%02d] = %llu\r\n", i, bcast_msg.tRR[i]);
 				}
 	
 				global_subseq_num++;
@@ -351,6 +362,10 @@ PROCESS_THREAD(polypoint_tag, ev, data) {
 		} else {
 			if (subsequence_timer_fired) {
 				subsequence_timer_fired = false;
+
+				dwt_rxenable(0);
+
+				DEBUG_P("In wait period expecting ANC_FINALs\r\n");
 
 				// no-op, anchors should begin sending ANC_FINAL
 				// messages during this slot; the rx handler will

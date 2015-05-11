@@ -35,7 +35,6 @@ static bool start_of_new_subseq;
  */
 
 static uint8_t global_round_num = 0xAA;
-static uint32_t global_seq_count = 0;
 static uint8_t global_subseq_num = 0xAA;
 
 static struct ieee154_anchor_poll_resp poll_resp_msg;
@@ -122,7 +121,9 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 			err = dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED);
 			dwt_settxantennadelay(TX_ANTENNA_DELAY);
 			if (err) {
+				uint32_t now = dwt_readsystimestamphi32();
 				DEBUG_P("Could not send anchor response\r\n");
+				DEBUG_P(" -- sched time %lu, now %lu (diff %lu)\r\n", delay_time, now, now-delay_time);
 			} else {
 				DEBUG_P("Send ANC_RESP\r\n");
 			}
@@ -403,7 +404,9 @@ PROCESS_THREAD(polypoint_anchor, ev, data) {
 				substate_timer_fired = false;
 
 				global_subseq_num++;
-				set_subsequence_settings(global_subseq_num, ANCHOR);
+				if(global_subseq_num < NUM_MEASUREMENTS) {
+					set_subsequence_settings(global_subseq_num, ANCHOR);
+				}
 			}
 		} else {
 			if (subsequence_timer_fired) {
@@ -419,11 +422,20 @@ PROCESS_THREAD(polypoint_anchor, ev, data) {
 				fin_msg.seqNum++;
 				dwt_writetxfctrl(sizeof(fin_msg), 0);
 				dwt_writetxdata(sizeof(fin_msg), (uint8_t*) &fin_msg, 0);
-				dwt_starttx(DWT_START_TX_DELAYED);
-				DEBUG_P("Send ANC_FINAL\r\n");
+				int err = dwt_starttx(DWT_START_TX_DELAYED);
 				dwt_settxantennadelay(TX_ANTENNA_DELAY);
+
+				if (err) {
+					uint32_t now = dwt_readsystimestamphi32();
+					DEBUG_P("Could not send anchor response\r\n");
+					DEBUG_P(" -- sched time %lu, now %lu (diff %lu)\r\n", delay_time, now, now-delay_time);
+				} else {
+					DEBUG_P("Send ANC_FINAL\r\n");
+				}
 			} else {
 				substate_timer_fired = false;
+
+				DEBUG_P("reset for next round\r\n");
 
 				global_subseq_num = 0;
 				set_subsequence_settings(global_subseq_num, ANCHOR);

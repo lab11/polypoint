@@ -28,7 +28,7 @@
 
 #define NUM_MEASUREMENTS (NUM_ANTENNAS*NUM_ANTENNAS*NUM_CHANNELS)
 
-#define NODE_DELAY_US 6500
+#define NODE_DELAY_US 7000
 #define ANC_RESP_DELAY_US 1000
 #define DELAY_MASK 0x00FFFFFFFE00
 #define SPEED_OF_LIGHT 299702547.0
@@ -36,13 +36,16 @@
 #define NUM_CHANNELS 3
 
 //#define RT_SUBSEQUENCE_PERIOD (RTIMER_SECOND * 0.110)
-#define RT_SUBSEQUENCE_PERIOD (RTIMER_SECOND * 0.220)
+#define RT_SUBSEQUENCE_PERIOD (RTIMER_SECOND * 0.250)
 #define RT_SEQUENCE_PERIOD (RTIMER_SECOND * 2)
+/*
 #define RT_ANCHOR_RESPONSE_WINDOW (RTIMER_SECOND * (\
 			(NUM_ANCHORS+1)*(NODE_DELAY_US/1000000)\
 			+ 2*(ANC_RESP_DELAY_US/1000000)\
 			))
-#define RT_TAG_FINAL_WINDOW (RTIMER_SECOND * (NODE_DELAY_US/1000000))
+			*/
+#define RT_ANCHOR_RESPONSE_WINDOW (RTIMER_SECOND * .2)
+#define RT_TAG_FINAL_WINDOW (RTIMER_SECOND * 5*(NODE_DELAY_US/1e6))
 
 _Static_assert(RT_SEQUENCE_PERIOD >= RT_SUBSEQUENCE_PERIOD,
 		"Inter-sequence timing can't be shorter than subseuqence timing");
@@ -74,7 +77,7 @@ _Static_assert(RT_SUBSEQUENCE_PERIOD > (RT_ANCHOR_RESPONSE_WINDOW+RT_TAG_FINAL_W
 
 #ifdef DW_DEBUG
 #define DEBUG_P(...)\
-	printf("[%lu %u %u]  ", global_seq_count, global_round_num, global_subseq_num); printf(__VA_ARGS__)
+	printf("[%u %u]  ", global_round_num, global_subseq_num); printf(__VA_ARGS__)
 #else
 #define DEBUG_P(...)
 #endif
