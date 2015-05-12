@@ -239,7 +239,7 @@ static char subsequence_task(struct rtimer *rt, void* ptr){
 		//DEBUG_P("substate fire\r\n"); too fast to print here
 
 		if (global_subseq_num < NUM_MEASUREMENTS) {
-			rtimer_set(rt, subseq_start + RT_SUBSEQUENCE_PERIOD,
+			rtimer_set(rt, subseq_start + RTIMER_SECOND*(SUBSEQUENCE_PERIOD_US/1e6),
 				1, (rtimer_callback_t)subsequence_task, NULL);
 		} else {
 			rtimer_set(rt, subseq_start + RT_SEQUENCE_PERIOD,

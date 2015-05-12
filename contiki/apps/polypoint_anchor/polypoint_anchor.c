@@ -167,7 +167,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 				start_of_new_subseq = false;
 				subseq_start_time = rt_timestamp - (RTIMER_SECOND*((TAG_SETTINGS_SETUP_US+TAG_SEND_POLL_DELAY_US)/1e6));;
 				rtimer_set(&subsequence_timer,
-						subseq_start_time + RT_ANCHOR_RESPONSE_WINDOW+RT_TAG_FINAL_WINDOW,
+						subseq_start_time + RTIMER_SECOND*((TAG_FINAL_DELAY_US+ANC_RX_AND_PROC_TAG_FINAL_US)/1e6),
 						1,
 						(rtimer_callback_t)subsequence_task,
 						NULL);
@@ -306,9 +306,10 @@ static char subsequence_task(struct rtimer *rt, void* ptr){
 		//DEBUG_P("subseq_start_time; subseq fire\r\n"); too fast to print
 
 		// Need to set substate timer, same in all cases
+			/*
 		rtimer_set(rt, subseq_start_time + RT_ANCHOR_RESPONSE_WINDOW + RT_TAG_FINAL_WINDOW,
 				1, (rtimer_callback_t)subsequence_task, NULL);
-			/*
+			*/
 		if (global_subseq_num < NUM_MEASUREMENTS) {
 			rtimer_set(rt, subseq_start_time + RTIMER_SECOND*((TAG_FINAL_DELAY_US+ANC_RX_AND_PROC_TAG_FINAL_US)/1e6),
 					1, (rtimer_callback_t)subsequence_task, NULL);
@@ -316,14 +317,13 @@ static char subsequence_task(struct rtimer *rt, void* ptr){
 			rtimer_set(rt, subseq_start_time + RT_ANCHOR_RESPONSE_WINDOW + RT_TAG_FINAL_WINDOW,
 					1, (rtimer_callback_t)subsequence_task, NULL);
 		}
-			*/
 	} else {
 		start_of_new_subseq = true;
 		substate_timer_fired = true;
 		//DEBUG_P("substate fire\r\n"); too fast to print here
 
 		if (global_subseq_num < NUM_MEASUREMENTS) {
-			rtimer_set(rt, subseq_start_time + RT_SUBSEQUENCE_PERIOD,
+			rtimer_set(rt, subseq_start_time + RTIMER_SECOND*(SUBSEQUENCE_PERIOD_US/1e6),
 				1, (rtimer_callback_t)subsequence_task, NULL);
 		}
 		// Don't set a timer after the round is done, wait for tag
