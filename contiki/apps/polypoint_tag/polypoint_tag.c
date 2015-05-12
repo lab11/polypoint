@@ -66,7 +66,6 @@ static void send_poll(){
 	// Delay RX?
 	dwt_setrxaftertxdelay(1); // us
 
-	DEBUG_B4_HIGH;
 	uint32_t temp = dwt_readsystimestamphi32();
 	//uint32_t delay_time = temp + GLOBAL_PKT_DELAY_UPPER32;
 	//(APP_US_TO_DEVICETIMEU32(NODE_DELAY_US) & DELAY_MASK) >> 8
@@ -81,7 +80,6 @@ static void send_poll(){
 
 	// Start the transmission
 	err = dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED);
-	DEBUG_B4_LOW;
 
 	// MP bug - TX antenna delay needs reprogramming as it is
 	// not preserved
@@ -339,13 +337,11 @@ PROCESS_THREAD(polypoint_tag, ev, data) {
 				DEBUG_B5_LOW;
 
 				set_subsequence_settings(global_subseq_num, TAG);
-				DEBUG_B5_HIGH;
 
 				//Make sure we're out of rx mode before attempting to transmit
 				dwt_forcetrxoff();
 
 				send_poll(); // sets RX mode
-				DEBUG_B5_LOW;
 			} else {
 				substate_timer_fired = false;
 				DEBUG_B4_HIGH;

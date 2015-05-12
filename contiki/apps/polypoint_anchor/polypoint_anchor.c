@@ -28,6 +28,7 @@ static struct rtimer substate_timer;
 static bool substate_timer_fired = false;
 /*---------------------------------------------------------------------------*/
 // (fwd decl)
+static rtimer_clock_t subseq_start_time;
 static bool start_of_new_subseq;
 
 // temp
@@ -96,7 +97,6 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 
 		if (packet_type_byte == MSG_TYPE_TAG_POLL) {
 			DEBUG_P("TAG_POLL received (remote subseq %u)\r\n", subseq_num);
-			DEBUG_B5_HIGH;
 
 			// Got POLL
 			global_tRP = dw_timestamp;
@@ -165,15 +165,15 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 						NULL);
 				*/
 				start_of_new_subseq = false;
+				subseq_start_time = rt_timestamp - (RTIMER_SECOND*((TAG_SETTINGS_SETUP_US+TAG_SEND_POLL_DELAY_US)/1e6));;
 				rtimer_set(&subsequence_timer,
-						rt_timestamp + RT_ANCHOR_RESPONSE_WINDOW+RT_TAG_FINAL_WINDOW,
+						subseq_start_time + RT_ANCHOR_RESPONSE_WINDOW+RT_TAG_FINAL_WINDOW,
 						1,
 						(rtimer_callback_t)subsequence_task,
 						NULL);
 			}
 		} else if (packet_type_byte == MSG_TYPE_TAG_FINAL) {
 			DEBUG_P("TAG_FINAL received (remote subseq %u)\r\n", subseq_num);
-			DEBUG_B5_LOW;
 
 			// Got FINAL
 			struct ieee154_bcast_msg bcast_msg;
@@ -297,25 +297,33 @@ static char substate_task(struct rtimer *rt, void* ptr) {
 
 static char subsequence_task(struct rtimer *rt, void* ptr){
 	// (fwd decl'd) static bool start_of_new_subseq;
-	static rtimer_clock_t subseq_start;
 	rtimer_clock_t now = RTIMER_NOW();
 
 	if (start_of_new_subseq) {
 		start_of_new_subseq = false;
-		subseq_start = now;
+		subseq_start_time = now;
 		subsequence_timer_fired = true;
-		//DEBUG_P("subseq_start; subseq fire\r\n"); too fast to print
+		//DEBUG_P("subseq_start_time; subseq fire\r\n"); too fast to print
 
 		// Need to set substate timer, same in all cases
-		rtimer_set(rt, subseq_start + RT_ANCHOR_RESPONSE_WINDOW + RT_TAG_FINAL_WINDOW,
+		rtimer_set(rt, subseq_start_time + RT_ANCHOR_RESPONSE_WINDOW + RT_TAG_FINAL_WINDOW,
 				1, (rtimer_callback_t)subsequence_task, NULL);
+			/*
+		if (global_subseq_num < NUM_MEASUREMENTS) {
+			rtimer_set(rt, subseq_start_time + RTIMER_SECOND*((TAG_FINAL_DELAY_US+ANC_RX_AND_PROC_TAG_FINAL_US)/1e6),
+					1, (rtimer_callback_t)subsequence_task, NULL);
+		} else {
+			rtimer_set(rt, subseq_start_time + RT_ANCHOR_RESPONSE_WINDOW + RT_TAG_FINAL_WINDOW,
+					1, (rtimer_callback_t)subsequence_task, NULL);
+		}
+			*/
 	} else {
 		start_of_new_subseq = true;
 		substate_timer_fired = true;
 		//DEBUG_P("substate fire\r\n"); too fast to print here
 
 		if (global_subseq_num < NUM_MEASUREMENTS) {
-			rtimer_set(rt, subseq_start + RT_SUBSEQUENCE_PERIOD,
+			rtimer_set(rt, subseq_start_time + RT_SUBSEQUENCE_PERIOD,
 				1, (rtimer_callback_t)subsequence_task, NULL);
 		}
 		// Don't set a timer after the round is done, wait for tag
@@ -436,7 +444,11 @@ PROCESS_THREAD(polypoint_anchor, ev, data) {
 				dwt_forcetrxoff();
 
 				//Schedule this transmission for our scheduled time slot
-				uint32_t delay_time = dwt_readsystimestamphi32() + GLOBAL_PKT_DELAY_UPPER32*(NUM_ANCHORS-ANCHOR_EUI+1)*2;
+				const uint32_t pkt_delay_upper32 = (APP_US_TO_DEVICETIMEU32(ANC_FINAL_SEND_TIME_US) & DELAY_MASK) >> 8;
+				uint32_t delay_time =
+					dwt_readsystimestamphi32() +
+					((APP_US_TO_DEVICETIMEU32(ANC_FINAL_BUFFER_FILL_TIME_US) & DELAY_MASK) >> 8) +
+					pkt_delay_upper32*(ANCHOR_EUI-1);
 				delay_time &= 0xFFFFFFFE;
 				dwt_setdelayedtrxtime(delay_time);
 				fin_msg.seqNum++;
@@ -450,6 +462,7 @@ PROCESS_THREAD(polypoint_anchor, ev, data) {
 					uint32_t now = dwt_readsystimestamphi32();
 					DEBUG_P("Could not send anchor response\r\n");
 					DEBUG_P(" -- sched time %lu, now %lu (diff %lu)\r\n", delay_time, now, now-delay_time);
+					leds_on(LEDS_RED);
 #endif
 				} else {
 					DEBUG_P("Send ANC_FINAL\r\n");
@@ -460,6 +473,7 @@ PROCESS_THREAD(polypoint_anchor, ev, data) {
 				DEBUG_B5_HIGH;
 
 				DEBUG_P("reset for next round\r\n");
+				leds_off(LEDS_BLUE);
 
 				global_subseq_num = 0;
 				set_subsequence_settings(global_subseq_num, ANCHOR);
