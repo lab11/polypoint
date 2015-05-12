@@ -104,7 +104,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 			// Send response
 
 			// Calculate the delay
-			uint32_t pkt_delay_upper32 = (APP_US_TO_DEVICETIMEU32(ANC_RESP_SEND_TIME_US) & DELAY_MASK) >> 8;
+			const uint32_t pkt_delay_upper32 = (APP_US_TO_DEVICETIMEU32(ANC_RESP_SEND_TIME_US) & DELAY_MASK) >> 8;
 			uint32_t delay_time =
 				((uint32_t) (global_tRP >> 8)) +
 				pkt_delay_upper32*(ANCHOR_EUI-1) +
@@ -123,7 +123,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 
 			// Start delayed TX
 			// Hopefully we will receive the FINAL message after this...
-			dwt_setrxaftertxdelay(1000); //FIXME
+			dwt_setrxaftertxdelay(ANC_RESP_SEND_TIME_US*(NUM_ANCHORS - ANCHOR_EUI));
 			err = dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED);
 			dwt_settxantennadelay(TX_ANTENNA_DELAY);
 			if (err) {
