@@ -221,18 +221,9 @@ static char subsequence_task(struct rtimer *rt, void* ptr){
 		subsequence_timer_fired = true;
 		//DEBUG_P("subseq_start; subseq fire\r\n"); too fast to print
 
-		/*
 		// Need to set substate timer, same in all cases
-		rtimer_set(rt, subseq_start + RT_ANCHOR_RESPONSE_WINDOW,
+		rtimer_set(rt, subseq_start + RTIMER_SECOND*(TAG_FINAL_DELAY_US/1e6),
 				1, (rtimer_callback_t)subsequence_task, NULL);
-		*/
-		if (global_subseq_num < NUM_MEASUREMENTS) {
-			rtimer_set(rt, subseq_start + RTIMER_SECOND*(TAG_FINAL_DELAY_US/1e6),
-					1, (rtimer_callback_t)subsequence_task, NULL);
-		} else {
-			rtimer_set(rt, subseq_start + RT_ANCHOR_RESPONSE_WINDOW,
-					1, (rtimer_callback_t)subsequence_task, NULL);
-		}
 	} else {
 		start_of_new_subseq = true;
 		substate_timer_fired = true;
@@ -324,12 +315,6 @@ PROCESS_THREAD(polypoint_tag, ev, data) {
 			DEBUG_P("   substate_timer: %d\r\n", substate_timer_fired);
 		}
 
-		/*
-		//Last subsequence, reset everything decawave
-		if(global_subseq_num == NUM_MEASUREMENTS+1) {
-			app_init();
-		}
-		*/
 		if(global_subseq_num < NUM_MEASUREMENTS) {
 			if (subsequence_timer_fired) {
 				subsequence_timer_fired = false;
@@ -416,6 +401,8 @@ PROCESS_THREAD(polypoint_tag, ev, data) {
 				bcast_msg.roundNum = ++global_round_num;
 
 				global_subseq_num = 0;
+
+				DEBUG_B5_LOW; //measure printf duration
 			}
 		}
 	}
