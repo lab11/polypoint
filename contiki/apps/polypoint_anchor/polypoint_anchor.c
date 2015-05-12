@@ -34,7 +34,7 @@ static bool start_of_new_subseq;
 // temp
 #define TAG_EUI 0
 
-#define ANCHOR_EUI 2
+#define ANCHOR_EUI 1
 
 /**************
  * GLOBAL STATE

@@ -233,7 +233,7 @@ static char subsequence_task(struct rtimer *rt, void* ptr){
 			rtimer_set(rt, subseq_start + RTIMER_SECOND*(SUBSEQUENCE_PERIOD_US/1e6),
 				1, (rtimer_callback_t)subsequence_task, NULL);
 		} else {
-			rtimer_set(rt, subseq_start + RT_SEQUENCE_PERIOD,
+			rtimer_set(rt, subseq_start + RT_FINAL_PRINTF_DURATION,
 				1, (rtimer_callback_t)subsequence_task, NULL);
 		}
 	}
@@ -394,7 +394,7 @@ PROCESS_THREAD(polypoint_tag, ev, data) {
 						int dist_times_1000 = (int)(global_distances[offset_idx+jj]*1000);
 						printf("%d.%d\t",dist_times_1000/1000,dist_times_1000%1000);
 					}
-					printf("\r\ntagend\r\n");
+					printf("\r\n");
 				}
 				printf("done\r\n");
 				memset(global_distances,0,sizeof(global_distances));

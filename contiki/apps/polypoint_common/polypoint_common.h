@@ -47,26 +47,13 @@
 #define NUM_ANTENNAS 3
 #define NUM_CHANNELS 3
 
-#define RT_SUBSEQUENCE_PERIOD (RTIMER_SECOND * 0.200)
 #define SUBSEQUENCE_PERIOD_US (\
 			TAG_FINAL_DELAY_US \
 			+ ANC_RX_AND_PROC_TAG_FINAL_US \
 			+ ANC_SETTINGS_SETUP_US \
 			)
-#define RT_SEQUENCE_PERIOD (RTIMER_SECOND * 2)
-/*
-#define RT_ANCHOR_RESPONSE_WINDOW (RTIMER_SECOND * (\
-			(NUM_ANCHORS+1)*(NODE_DELAY_US/1000000)\
-			+ 2*(ANC_RESP_DELAY_US/1000000)\
-			))
-			*/
-#define RT_ANCHOR_RESPONSE_WINDOW (RTIMER_SECOND * .15)
-#define RT_TAG_FINAL_WINDOW (RTIMER_SECOND * 5*(NODE_DELAY_US/1e6))
+#define RT_FINAL_PRINTF_DURATION (RTIMER_SECOND * 0.125)
 
-_Static_assert(RT_SEQUENCE_PERIOD >= RT_SUBSEQUENCE_PERIOD,
-		"Inter-sequence timing can't be shorter than subseuqence timing");
-_Static_assert(RT_SUBSEQUENCE_PERIOD > (RT_ANCHOR_RESPONSE_WINDOW+RT_TAG_FINAL_WINDOW),
-		"Subsequence period must be long enough for all anchors and tag final");
 
 #define TX_ANTENNA_DELAY 0
 
