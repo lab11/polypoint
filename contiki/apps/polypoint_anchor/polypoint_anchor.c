@@ -54,6 +54,23 @@ void app_dw1000_txcallback (const dwt_callback_data_t *txd) {
 	//NOTE: No need for tx timestamping after-the-fact (everything's done beforehand)
 }
 
+static void insert_sorted(float arr[], float new, unsigned end) {
+	unsigned insert_at = 0;
+	while ((insert_at < end) && (new > arr[insert_at])) {
+		insert_at++;
+	}
+	if (insert_at == end) {
+		arr[insert_at] = new;
+	} else {
+		while (insert_at <= end) {
+			float temp = arr[insert_at];
+			arr[insert_at] = new;
+			new = temp;
+			insert_at++;
+		}
+	}
+}
+
 // Triggered when we receive a packet
 void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 	int err;
@@ -208,7 +225,11 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 				dist += ANCHOR_CAL_LEN;
 				dist -= txDelayCal[ANCHOR_EUI*NUM_CHANNELS + subseq_num_to_chan(global_subseq_num, true)];
 				DEBUG_P("dist*100 = %d\r\n", (int)(dist*100));
+#ifdef SORT_MEASUREMENTS
+				insert_sorted(fin_msg.distanceHist, (float)dist, global_subseq_num);
+#else
 				fin_msg.distanceHist[global_subseq_num] = (float)dist;
+#endif
 			}
 
 			// Get ready to receive next POLL
@@ -434,6 +455,27 @@ PROCESS_THREAD(polypoint_anchor, ev, data) {
 				//We're likely in RX mode, so we need to exit before transmission
 				dwt_forcetrxoff();
 
+#ifdef ANC_FINAL_PERCENTILE_ONLY
+				{
+					// Need to skip 0's (bad ranges) and interpolate %ile
+					const unsigned bot = NUM_MEASUREMENTS*TARGET_PERCENTILE;
+					const unsigned top = NUM_MEASUREMENTS*TARGET_PERCENTILE+1;
+					unsigned idx = 0;
+					while (fin_msg.distanceHist[idx] == 0) {
+						idx++;
+						if ((idx+top) == NUM_MEASUREMENTS) break;
+					}
+					if ((idx+top) == NUM_MEASUREMENTS) {
+						// Didn't get enough valid measurements
+						fin_msg.distanceHist[0] = 0; /* actually, this should already be true */
+					} else {
+						fin_msg.distanceHist[0] =
+							fin_msg.distanceHist[idx+bot] +
+							fin_msg.distanceHist[idx+top] * (NUM_MEASUREMENTS*TARGET_PERCENTILE - (float) bot);
+					}
+				}
+#endif
+
 				//Schedule this transmission for our scheduled time slot
 				const uint32_t pkt_delay_upper32 = (APP_US_TO_DEVICETIMEU32(ANC_FINAL_SEND_TIME_US) & DELAY_MASK) >> 8;
 				uint32_t delay_time =
@@ -443,8 +485,14 @@ PROCESS_THREAD(polypoint_anchor, ev, data) {
 				delay_time &= 0xFFFFFFFE;
 				dwt_setdelayedtrxtime(delay_time);
 				fin_msg.seqNum++;
-				dwt_writetxfctrl(sizeof(fin_msg), 0);
-				dwt_writetxdata(sizeof(fin_msg), (uint8_t*) &fin_msg, 0);
+#ifdef ANC_FINAL_PERCENTILE_ONLY
+				uint16 frame_len = offsetof(struct ieee154_anchor_final_msg, anchorID);
+				frame_len += sizeof(float) + 2;
+#else
+				uint16 frame_len = sizeof(fin_msg);
+#endif
+				dwt_writetxfctrl(frame_len, 0);
+				dwt_writetxdata(frame_len, (uint8_t*) &fin_msg, 0);
 				int err = dwt_starttx(DWT_START_TX_DELAYED);
 				dwt_settxantennadelay(TX_ANTENNA_DELAY);
 

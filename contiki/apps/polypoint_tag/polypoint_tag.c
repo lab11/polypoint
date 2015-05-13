@@ -138,11 +138,15 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 			DEBUG_P("ANC_FINAL from %u\r\n", final_msg_ptr->anchorID);
 
 			int offset_idx = (final_msg_ptr->anchorID-1)*NUM_MEASUREMENTS;
+#ifdef ANC_FINAL_PERCENTILE_ONLY
+			global_distances[offset_idx] = final_msg_ptr->distanceHist[0];
+#else
 			memcpy(
 					&global_distances[offset_idx],
 					final_msg_ptr->distanceHist,
 					sizeof(final_msg_ptr->distanceHist)
 					);
+#endif
 		} else {
 			DEBUG_P("*** ERR: RX Unknown packet type: 0x%X\r\n", packet_type);
 		}
@@ -386,14 +390,20 @@ PROCESS_THREAD(polypoint_tag, ev, data) {
 				DEBUG_B5_HIGH;
 
 				// n.b. This loop of printfs takes 140-180 ms to execute
-				int ii, jj;
+				int ii;
 				for(ii=0; ii < NUM_ANCHORS; ii++){
 					int offset_idx = ii*NUM_MEASUREMENTS;
+#ifdef ANC_FINAL_PERCENTILE_ONLY
+					int dist_times_1000 = (int)(global_distances[offset_idx]*1000);
+					printf("%d %d.%d, ", ii, dist_times_1000/1000,dist_times_1000%1000);
+#else
+					int jj;
 					printf("tagstart %d\r\n",ii+1);
 					for(jj=0; jj < NUM_MEASUREMENTS; jj++){
 						int dist_times_1000 = (int)(global_distances[offset_idx+jj]*1000);
 						printf("%d.%d\t",dist_times_1000/1000,dist_times_1000%1000);
 					}
+#endif
 					printf("\r\n");
 				}
 				printf("done\r\n");

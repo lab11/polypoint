@@ -12,6 +12,15 @@
 //#define DW_DEBUG
 //#define DW_CAL_TRX_DELAY
 
+// If set, the anchor will sort the ranges as they arrive
+#define SORT_MEASUREMENTS
+
+#ifdef  SORT_MEASUREMENTS
+// If set, the anchor will only report the 10th %ile distance in ANC_FINAL. Requires SORT_MEASUREMENTS
+#define TARGET_PERCENTILE 0.10
+#define ANC_FINAL_PERCENTILE_ONLY
+#endif
+
 // 4 packet types
 #define MSG_TYPE_TAG_POLL   0x61
 #define MSG_TYPE_ANC_RESP   0x50
