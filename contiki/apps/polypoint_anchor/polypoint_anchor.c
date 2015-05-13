@@ -486,8 +486,8 @@ PROCESS_THREAD(polypoint_anchor, ev, data) {
 				dwt_setdelayedtrxtime(delay_time);
 				fin_msg.seqNum++;
 #ifdef ANC_FINAL_PERCENTILE_ONLY
-				uint16 frame_len = offsetof(struct ieee154_anchor_final_msg, anchorID);
-				frame_len += sizeof(float) + 2;
+				uint16 frame_len = offsetof(struct ieee154_anchor_final_msg, distanceHist);
+				frame_len += sizeof(float) + 2*sizeof(uint8_t);
 #else
 				uint16 frame_len = sizeof(fin_msg);
 #endif

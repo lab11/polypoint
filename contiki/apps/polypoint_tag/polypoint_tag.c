@@ -395,7 +395,7 @@ PROCESS_THREAD(polypoint_tag, ev, data) {
 					int offset_idx = ii*NUM_MEASUREMENTS;
 #ifdef ANC_FINAL_PERCENTILE_ONLY
 					int dist_times_1000 = (int)(global_distances[offset_idx]*1000);
-					printf("%d %d.%d, ", ii, dist_times_1000/1000,dist_times_1000%1000);
+					printf("%d %d.%d,\t", ii+1, dist_times_1000/1000,dist_times_1000%1000);
 #else
 					int jj;
 					printf("tagstart %d\r\n",ii+1);
@@ -403,10 +403,14 @@ PROCESS_THREAD(polypoint_tag, ev, data) {
 						int dist_times_1000 = (int)(global_distances[offset_idx+jj]*1000);
 						printf("%d.%d\t",dist_times_1000/1000,dist_times_1000%1000);
 					}
-#endif
 					printf("\r\n");
+#endif
 				}
+#ifdef ANC_FINAL_PERCENTILE_ONLY
+				printf("\r\n");
+#else
 				printf("done\r\n");
+#endif
 				memset(global_distances,0,sizeof(global_distances));
 				bcast_msg.roundNum = ++global_round_num;
 
