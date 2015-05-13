@@ -48,7 +48,8 @@ static void send_poll(){
 	//Reset all the tRRs at the beginning of each poll event
 	memset(bcast_msg.tRR, 0, sizeof(bcast_msg.tRR));
 
-	uint16_t tx_frame_length = offsetof(struct ieee154_bcast_msg, tSP) + 2;
+	// Through tSP (tSF is field after) then +2 for FCS
+	uint16_t tx_frame_length = offsetof(struct ieee154_bcast_msg, tSF) + 2;
 	memset(bcast_msg.destAddr, 0xFF, 2);
 
 	bcast_msg.seqNum++;
