@@ -149,6 +149,16 @@ int app_dw1000_init (
 #define DEBUG_P(...)
 #endif
 
+#ifdef DW_DEBUG
+#define PDBL(dbl)\
+{\
+	int64_t _dbl1000 = (int64_t)(dbl*1000);\
+	printf(# dbl ": %lld.%lld\r\n", _dbl1000/1000, _dbl1000%1000);\
+}
+#else
+#define PDBL(dbl)
+#endif
+
 #define MIN(_a, _b) ((_a < _b) ? (_a) : (_b))
 #define MAX(_a, _b) ((_a > _b) ? (_a) : (_b))
 

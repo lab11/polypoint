@@ -45,6 +45,72 @@ static uint64_t global_final_TOAs[NUM_ANCHORS] = {0};
 
 static struct pp_tag_poll pp_tag_poll_pkt;
 
+static double dwtime_to_dist(double dwtime, unsigned anchor_id, unsigned subseq) {
+	double dist = dwtime * DWT_TIME_UNITS * SPEED_OF_LIGHT;
+	dist += ANCHOR_CAL_LEN;
+	dist -= txDelayCal[anchor_id*NUM_CHANNELS + subseq_num_to_chan(subseq, true)];
+	return dist;
+}
+
+static void compute_results() {
+	unsigned i;
+	for(i=0; i < 1 /*NUM_ANCHORS*/; i++){
+		unsigned j;
+		printf("tagstart %d\r\n",i+1);
+		for (j=0; j < NUM_MEASUREMENTS+1; j++) {
+			printf("%02d: ts %llu aa %llu af %llu tf %llu\r\n",
+					j,
+					global_poll_send_times[j],
+					global_anchor_TOAs[i][j],
+					global_anchor_final_send_times[i],
+					global_final_TOAs[i]
+			      );
+		}
+		printf("\r\n");
+
+		double tRF = (double)(global_anchor_TOAs[i][NUM_MEASUREMENTS]);
+		double tSP = (double)(global_poll_send_times[0]);
+		double tSF = (double)(global_poll_send_times[NUM_MEASUREMENTS]);
+		double tRP = (double)(global_anchor_TOAs[i][0]);
+
+		// Find a multiplier for the crystal offset between tag and anchor
+		double aot = (tRF-tRP)/(tSF-tSP);
+		PDBL(aot);
+
+		// 2-way ToF from last round
+		double tSR = (double)(global_anchor_final_send_times[i]);
+		double tRR = (double)(global_final_TOAs[i]);
+		double tTOF = (tRF-tSR)-(tSF-tRR)*aot;
+		// Want one-way TOF
+		tTOF /= 2;
+
+		PDBL(tTOF);
+
+		double dist = dwtime_to_dist(tTOF, i, 0);
+		int64_t dist_times_1000 = (int64_t)(dist*1000);
+		printf("**[%02d %02d] %lld.%lld\r\n", i+1, 0, dist_times_1000/1000,dist_times_1000%1000);
+
+		// ancTOA = tagSent + twToF + offset
+		double anc_tag_dw_offset = tRF - tSF - tTOF;
+
+		PDBL(tRF);
+		PDBL(tSF);
+		PDBL(tTOF);
+		PDBL(anc_tag_dw_offset);
+
+		for (j=0; j < NUM_MEASUREMENTS; j++) {
+			double AA = (double)(global_anchor_TOAs[i][j]);
+			double PS = (double)(global_poll_send_times[j]);
+			double ToF = AA*aot - PS - anc_tag_dw_offset;
+			PDBL(ToF);
+			double dist = dwtime_to_dist(ToF, i, j);
+			int dist_times_1000 = (int)(dist*1000);
+			printf("[%02d %02d] %d.%d\r\n", i+1, j, dist_times_1000/1000,dist_times_1000%1000);
+		}
+	}
+	printf("done\r\n");
+}
+
 static void send_pkt(bool is_final){
 	const uint16_t tx_frame_length = sizeof(struct pp_tag_poll);
 	pp_tag_poll_pkt.header.seqNum++;
@@ -62,7 +128,7 @@ static void send_pkt(bool is_final){
 	uint32_t delay_time = temp + DW_DELAY_FROM_PKT_LEN(tx_frame_length);
 	delay_time &= 0xFFFFFFFE; //Make sure last bit is zero
 	dwt_setdelayedtrxtime(delay_time);
-	global_poll_send_times[global_subseq_num] = delay_time;
+	global_poll_send_times[global_subseq_num] = ((uint64_t)delay_time) << 8;
 
 	// Write the data
 	dwt_writetxdata(tx_frame_length, (uint8_t*) &pp_tag_poll_pkt, 0);
@@ -136,7 +202,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 					anc_final->TOAs,
 					sizeof(anc_final->TOAs)
 					);
-			global_anchor_final_send_times[anchor_id-1] = anc_final->dw_time_sent;
+			global_anchor_final_send_times[anchor_id-1] = ((uint64_t)anc_final->dw_time_sent) << 8;
 			global_final_TOAs[anchor_id-1] = timestamp;
 		} else {
 			DEBUG_P("*** ERR: RX Unknown packet type: 0x%X\r\n", packet_type);
@@ -323,21 +389,7 @@ PROCESS_THREAD(polypoint_tag, ev, data) {
 				DEBUG_B4_HIGH;
 				DEBUG_B5_HIGH;
 
-				unsigned ii;
-				for(ii=0; ii < 2 /*NUM_ANCHORS*/; ii++){
-					unsigned jj;
-					printf("tagstart %d\r\n",ii+1);
-					for (jj=0; jj < NUM_MEASUREMENTS+1; jj++) {
-						printf("ts %llu aa %llu af %llu tf %llu\r\n",
-								global_poll_send_times[jj],
-								global_anchor_TOAs[ii][jj],
-								global_anchor_final_send_times[ii],
-								global_final_TOAs[ii]
-						      );
-					}
-					printf("\r\n");
-				}
-				printf("done\r\n");
+				compute_results();
 
 				pp_tag_poll_pkt.roundNum = ++global_round_num;
 
