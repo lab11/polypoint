@@ -57,6 +57,7 @@ static void compute_results() {
 	for(i=0; i < 1 /*NUM_ANCHORS*/; i++){
 		unsigned j;
 		printf("tagstart %d\r\n",i+1);
+		/*
 		for (j=0; j < NUM_MEASUREMENTS+1; j++) {
 			printf("%02d: ts %llu aa %llu af %llu tf %llu\r\n",
 					j,
@@ -67,6 +68,7 @@ static void compute_results() {
 			      );
 		}
 		printf("\r\n");
+		*/
 
 		double tRF = (double)(global_anchor_TOAs[i][NUM_MEASUREMENTS]);
 		double tSP = (double)(global_poll_send_times[0]);
@@ -74,38 +76,29 @@ static void compute_results() {
 		double tRP = (double)(global_anchor_TOAs[i][0]);
 
 		// Find a multiplier for the crystal offset between tag and anchor
-		double aot = (tRF-tRP)/(tSF-tSP);
-		PDBL(aot);
+		double anchor_over_tag = (tRF-tRP)/(tSF-tSP);
 
 		// 2-way ToF from last round
 		double tSR = (double)(global_anchor_final_send_times[i]);
 		double tRR = (double)(global_final_TOAs[i]);
-		double tTOF = (tRF-tSR)-(tSF-tRR)*aot;
+		double tTOF = (tRF-tSR)-(tSF-tRR)*anchor_over_tag;
 		// Want one-way TOF
 		tTOF /= 2;
 
-		PDBL(tTOF);
-
-		double dist = dwtime_to_dist(tTOF, i, 0);
-		int64_t dist_times_1000 = (int64_t)(dist*1000);
-		printf("**[%02d %02d] %lld.%lld\r\n", i+1, 0, dist_times_1000/1000,dist_times_1000%1000);
+		double dist = dwtime_to_dist(tTOF, i+1, 0);
+		int64_t dist_times_1000000 = (int64_t)(dist*1000000);
+		printf("**[%02d %02d] %lld.%lld\r\n", i+1, 0, dist_times_1000000/1000000,dist_times_1000000%1000000);
 
 		// ancTOA = tagSent + twToF + offset
-		double anc_tag_dw_offset = tRF - tSF - tTOF;
-
-		PDBL(tRF);
-		PDBL(tSF);
-		PDBL(tTOF);
-		PDBL(anc_tag_dw_offset);
+		double anc_tag_dw_offset = tRF - tSF*anchor_over_tag - tTOF;
 
 		for (j=0; j < NUM_MEASUREMENTS; j++) {
 			double AA = (double)(global_anchor_TOAs[i][j]);
 			double PS = (double)(global_poll_send_times[j]);
-			double ToF = AA*aot - PS - anc_tag_dw_offset;
-			PDBL(ToF);
-			double dist = dwtime_to_dist(ToF, i, j);
-			int dist_times_1000 = (int)(dist*1000);
-			printf("[%02d %02d] %d.%d\r\n", i+1, j, dist_times_1000/1000,dist_times_1000%1000);
+			double ToF = AA - PS*anchor_over_tag - anc_tag_dw_offset;
+			double dist = dwtime_to_dist(ToF, i+1, j);
+			int64_t dist_times_1000000 = (int64_t)(dist*1000000);
+			printf("[%02d %02d] %lld.%lld\r\n", i+1, j, dist_times_1000000/1000000,dist_times_1000000%1000000);
 		}
 	}
 	printf("done\r\n");
