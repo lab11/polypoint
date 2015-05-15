@@ -40,6 +40,10 @@
 #define TX_ANTENNA_DELAY 0
 
 
+
+/****************************************************** MEASURED TIMES */
+// n.b. RTIMER_SECOND on this platform has ~33 us precision
+
 #define ANC_FINAL_RX_PKT_TIME_US	820
 #define ANC_FINAL_RX_PKT_MEMCPY_TIME_US	120
 #define ANC_FINAL_RX_PKT_PRINTF_TIME_US	150
@@ -58,6 +62,10 @@
 		ANC_FINAL_RX_PKT_GUARD_US\
 		)
 #endif
+
+#define TAG_SQ_START_TO_POLL_SFD_HIGH_US	896
+
+
 
 #ifdef DW_DEBUG
 // lots of headroom for printfs

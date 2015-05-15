@@ -114,7 +114,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 				DEBUG_B5_LOW;
 				global_round_active = true;
 				start_of_new_subseq = false;
-				subseq_start_time = rt_timestamp;
+				subseq_start_time = rt_timestamp - US_TO_RT(TAG_SQ_START_TO_POLL_SFD_HIGH_US);
 				rtimer_clock_t set_to = subseq_start_time + US_TO_RT(POLL_TO_SS_US);
 				rtimer_set(&subsequence_timer,
 						set_to,
