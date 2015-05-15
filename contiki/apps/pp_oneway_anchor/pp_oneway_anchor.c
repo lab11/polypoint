@@ -123,8 +123,6 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 						NULL);
 			}
 		} else if (packet_type == MSG_TYPE_PP_ONEWAY_TAG_FINAL) {
-			struct pp_tag_poll* pkt = (struct pp_tag_poll*) recv_pkt_buf;
-
 			if (!global_round_active) {
 				// The first packet we happened to receive was
 				// an ANC_FINAL. We have nothing interesting to
@@ -159,8 +157,11 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 			dwt_settxantennadelay(TX_ANTENNA_DELAY);
 			DEBUG_B6_HIGH;
 
+#ifdef DW_DEBUG
 			// No printing until after all dwt timing op's
+			struct pp_tag_poll* pkt = (struct pp_tag_poll*) recv_pkt_buf;
 			DEBUG_P("TAG_FINAL rx: %u\r\n", pkt->subsequence);
+#endif
 
 			if (err) {
 #ifdef DW_DEBUG

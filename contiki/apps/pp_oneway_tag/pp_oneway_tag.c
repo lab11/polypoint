@@ -85,9 +85,11 @@ static void compute_results() {
 		// Want one-way TOF
 		tTOF /= 2;
 
+		/*
 		double dist = dwtime_to_dist(tTOF, i+1, 0);
 		int64_t dist_times_1000000 = (int64_t)(dist*1000000);
 		printf("**[%02d %02d] %lld.%lld\r\n", i+1, 0, dist_times_1000000/1000000,dist_times_1000000%1000000);
+		*/
 
 		// ancTOA = tagSent + twToF + offset
 		double anc_tag_dw_offset = tRF - tSF*anchor_over_tag - tTOF;

@@ -9,7 +9,7 @@
 #define TAG 1
 #define ANCHOR 2
 
-#define DW_DEBUG
+//#define DW_DEBUG
 //#define DW_CAL_TRX_DELAY
 
 // If set, the anchor will sort the ranges as they arrive
@@ -59,12 +59,18 @@
 		)
 #endif
 
-
+#ifdef DW_DEBUG
+// lots of headroom for printfs
 #define POLL_TO_SS_US		 5000
 #define SS_TO_SQ_US		 3000
 #define ALL_ANC_FINAL_US	80000
-//#define SS_PRINTF_US		 4000
 #define SS_PRINTF_US		  2e6
+#else
+#define POLL_TO_SS_US		 5000
+#define SS_TO_SQ_US		 3000
+#define ALL_ANC_FINAL_US	80000
+#define SS_PRINTF_US		  2e6
+#endif
 
 #define US_TO_RT(_us) (RTIMER_SECOND * ((_us)/1e6))
 
@@ -108,7 +114,7 @@
 	)
 // uint32_t delay_time = temp + (APP_US_TO_DEVICETIMEU32(TAG_SEND_POLL_DELAY_US) >> 8);
 #define SPI_US_PER_BYTE 1.18
-#define SPI_SLACK_US	300
+#define SPI_SLACK_US	200
 #define DW_DELAY_FROM_PKT_LEN(_len)\
 	(\
 	 APP_US_TO_DEVICETIMEU32(SPI_US_PER_BYTE * (_len) + SPI_SLACK_US) >> 8\
