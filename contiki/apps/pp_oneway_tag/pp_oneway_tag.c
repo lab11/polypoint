@@ -112,6 +112,7 @@ static void compute_results() {
 }
 
 static void send_pkt(bool is_final){
+	DEBUG_B6_HIGH;
 	const uint16_t tx_frame_length = sizeof(struct pp_tag_poll);
 	pp_tag_poll_pkt.header.seqNum++;
 	pp_tag_poll_pkt.message_type = (is_final) ? MSG_TYPE_PP_ONEWAY_TAG_FINAL : MSG_TYPE_PP_ONEWAY_TAG_POLL;
@@ -123,7 +124,6 @@ static void send_pkt(bool is_final){
 	// Tell the DW1000 about the packet
 	dwt_writetxfctrl(tx_frame_length, 0);
 
-	DEBUG_B5_HIGH;
 	uint32_t temp = dwt_readsystimestamphi32();
 	uint32_t delay_time = temp + DW_DELAY_FROM_PKT_LEN(tx_frame_length);
 	delay_time &= 0xFFFFFFFE; //Make sure last bit is zero
@@ -141,7 +141,6 @@ static void send_pkt(bool is_final){
 	} else {
 		err = dwt_starttx(DWT_START_TX_DELAYED);
 	}
-	DEBUG_B5_LOW;
 
 	// MP bug - TX antenna delay needs reprogramming as it is not preserved
 	dwt_settxantennadelay(TX_ANTENNA_DELAY);
@@ -153,6 +152,7 @@ static void send_pkt(bool is_final){
 		DEBUG_P("Start %lu, goal %lu, now %lu\r\n",
 				temp, delay_time, dwt_readsystimestamphi32());
 	}
+	DEBUG_B6_LOW;
 }
 
 static void send_poll() {
@@ -173,6 +173,7 @@ _Static_assert(RX_PKT_BUF_LEN >= sizeof(struct pp_anc_final), "RX_PKT_BUF_LEN to
 
 // Triggered when we receive a packet
 void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
+	DEBUG_B6_HIGH;
 	if (rxd->event == DWT_SIG_RX_OKAY) {
 		leds_toggle(LEDS_BLUE);
 		uint8_t packet_type;
@@ -189,6 +190,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 		packet_type = recv_pkt_buf[offsetof(struct pp_anc_final, message_type)];
 
 		if (packet_type == MSG_TYPE_PP_ONEWAY_ANC_FINAL) {
+			DEBUG_B6_LOW;
 			struct pp_anc_final* anc_final;
 			anc_final = (struct pp_anc_final*) recv_pkt_buf;
 
@@ -197,6 +199,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 			DEBUG_P("ANC_FINAL from %u\r\n", anchor_id);
 			if(anchor_id >= NUM_ANCHORS) return;
 
+			DEBUG_B6_HIGH;
 			memcpy(
 					&global_anchor_TOAs[anchor_id-1],
 					anc_final->TOAs,
@@ -210,6 +213,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 	} else {
 		DEBUG_P("*** ERR: rxd->event unknown: 0x%X\r\n", rxd->event);
 	}
+	DEBUG_B6_LOW;
 }
 
 
@@ -335,8 +339,10 @@ PROCESS_THREAD(polypoint_tag, ev, data) {
 
 	DEBUG_B4_INIT;
 	DEBUG_B5_INIT;
+	DEBUG_B6_INIT;
 	DEBUG_B4_HIGH;
 	DEBUG_B5_HIGH;
+	DEBUG_B6_LOW;
 
 	while(1) {
 		PROCESS_YIELD_UNTIL(ev == PROCESS_EVENT_POLL);
@@ -389,6 +395,9 @@ PROCESS_THREAD(polypoint_tag, ev, data) {
 				DEBUG_B4_HIGH;
 				DEBUG_B5_HIGH;
 
+				// measure timing
+				DEBUG_B6_HIGH;
+
 				compute_results();
 
 				pp_tag_poll_pkt.roundNum = ++global_round_num;
@@ -400,7 +409,7 @@ PROCESS_THREAD(polypoint_tag, ev, data) {
 
 				global_subseq_num = 0;
 
-				DEBUG_B5_LOW; //measure printf duration
+				DEBUG_B6_LOW;
 			}
 		}
 	}

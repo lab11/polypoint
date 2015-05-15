@@ -51,6 +51,7 @@ void app_dw1000_txcallback (const dwt_callback_data_t *txd) {
 	//NOTE: No need for tx timestamping after-the-fact (everything's done beforehand)
 }
 
+/*
 static void insert_sorted(float arr[], float new, unsigned end) {
 	unsigned insert_at = 0;
 	while ((insert_at < end) && (new > arr[insert_at])) {
@@ -67,6 +68,7 @@ static void insert_sorted(float arr[], float new, unsigned end) {
 		}
 	}
 }
+*/
 
 #define RX_PKT_BUF_LEN	64
 _Static_assert(RX_PKT_BUF_LEN >= sizeof(struct pp_tag_poll), "RX_PKT_BUF_LEN too small");
@@ -75,6 +77,7 @@ _Static_assert(RX_PKT_BUF_LEN >= sizeof(struct pp_tag_poll), "RX_PKT_BUF_LEN too
 void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 	// First grab a copy of local time when this arrived
 	rtimer_clock_t rt_timestamp = RTIMER_NOW();
+	DEBUG_B6_HIGH;
 
 	if (rxd->event == DWT_SIG_RX_OKAY) {
 		leds_toggle(LEDS_BLUE);
@@ -95,7 +98,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 
 		if (packet_type == MSG_TYPE_PP_ONEWAY_TAG_POLL) {
 			struct pp_tag_poll* pkt = (struct pp_tag_poll*) recv_pkt_buf;
-			DEBUG_P("TAG_POLL received (remote subseq %u)\r\n", pkt->subsequence);
+			DEBUG_P("TAG_POLL rx: %u\r\n", pkt->subsequence);
 
 			if (global_subseq_num == pkt->subsequence) {
 				// Configurations matched, record arrival time
@@ -121,7 +124,6 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 			}
 		} else if (packet_type == MSG_TYPE_PP_ONEWAY_TAG_FINAL) {
 			struct pp_tag_poll* pkt = (struct pp_tag_poll*) recv_pkt_buf;
-			DEBUG_P("TAG_FINAL received (remote subseq %u)\r\n", pkt->subsequence);
 
 			if (!global_round_active) {
 				// The first packet we happened to receive was
@@ -143,10 +145,11 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 			dwt_writetxfctrl(frame_len, 0);
 
 			//Schedule this transmission for our scheduled time slot
+			DEBUG_B6_LOW;
 			uint32_t delay_time =
 				dwt_readsystimestamphi32() +
 				DW_DELAY_FROM_PKT_LEN(frame_len) +
-				DW_DELAY_FROM_PKT_LEN(1000)*(ANCHOR_EUI-1); // HACK
+				DW_DELAY_FROM_US(ANC_FINAL_RX_TIME_ON_TAG)*(ANCHOR_EUI-1);
 			delay_time &= 0xFFFFFFFE;
 			pp_anc_final_pkt.dw_time_sent = delay_time;
 			dwt_setdelayedtrxtime(delay_time);
@@ -154,6 +157,10 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 
 			int err = dwt_starttx(DWT_START_TX_DELAYED);
 			dwt_settxantennadelay(TX_ANTENNA_DELAY);
+			DEBUG_B6_HIGH;
+
+			// No printing until after all dwt timing op's
+			DEBUG_P("TAG_FINAL rx: %u\r\n", pkt->subsequence);
 
 			if (err) {
 #ifdef DW_DEBUG
@@ -212,6 +219,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 	} else {
 		DEBUG_P("*** ERR: rxd->event unknown: 0x%X\r\n", rxd->event);
 	}
+	DEBUG_B6_LOW;
 }
 
 void app_init() {
@@ -348,8 +356,10 @@ PROCESS_THREAD(polypoint_anchor, ev, data) {
 
 	DEBUG_B4_INIT;
 	DEBUG_B5_INIT;
+	DEBUG_B6_INIT;
 	DEBUG_B4_LOW;
 	DEBUG_B5_LOW;
+	DEBUG_B6_LOW;
 
 	while(1) {
 		PROCESS_YIELD_UNTIL(ev == PROCESS_EVENT_POLL);
