@@ -51,7 +51,7 @@
 #define CMN_SET_SUBSEQ_TIME_US		270  // measured 462 @ 8mhz, 268 @ 16 mhz
 #define TAG_ANC_TIMER_MISMATCH_GUARD_US	170  // measured up to 136
 
-#define ANC_RX_AND_PROCESS_TAG_POLL_US	220  // measured 213.8 SFD -> done
+#define ANC_RX_AND_PROCESS_TAG_POLL_US	120  // 16mhz: meas 119.8; 8mhz: 220, measured 213.8 SFD -> done
 
 #define ANC_FINAL_RX_PKT_TIME_US	820
 #define ANC_FINAL_RX_PKT_MEMCPY_TIME_US	120
