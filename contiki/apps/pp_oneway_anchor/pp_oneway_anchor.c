@@ -113,14 +113,21 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 				DEBUG_B4_LOW;
 				DEBUG_B5_LOW;
 				global_round_active = true;
-				start_of_new_subseq = false;
+				start_of_new_subseq = true;
+				substate_timer_fired = true;
+				/*
 				subseq_start_time = rt_timestamp - US_TO_RT(TAG_SQ_START_TO_POLL_SFD_HIGH_US);
-				rtimer_clock_t set_to = subseq_start_time + US_TO_RT(POLL_TO_SS_US);
+				rtimer_clock_t set_to = subseq_start_time + US_TO_RT(POLL_TO_SS_US+SS_TO_SQ_US);
+				*/
+				rtimer_clock_t set_to = rt_timestamp + US_TO_RT(
+						POLL_TO_SS_US + SS_TO_SQ_US
+						- TAG_SQ_START_TO_POLL_SFD_HIGH_US);
 				rtimer_set(&subsequence_timer,
 						set_to,
 						1,
 						(rtimer_callback_t)subsequence_task,
 						NULL);
+				process_poll(&polypoint_anchor);
 			}
 		} else if (packet_type == MSG_TYPE_PP_ONEWAY_TAG_FINAL) {
 			if (!global_round_active) {
