@@ -121,7 +121,8 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 				*/
 				rtimer_clock_t set_to = rt_timestamp + US_TO_RT(
 						POLL_TO_SS_US + SS_TO_SQ_US
-						- TAG_SQ_START_TO_POLL_SFD_HIGH_US);
+						- TAG_SQ_START_TO_POLL_SFD_HIGH_US
+						- ANC_MYSTERY_STARTUP_DELAY_US);
 				rtimer_set(&subsequence_timer,
 						set_to,
 						1,

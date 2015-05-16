@@ -47,9 +47,10 @@
 #define CMN_GUARD_US			33
 
 #define TAG_SQ_START_TO_POLL_SFD_HIGH_US	574  // 896 @ 8 mhz
+#define ANC_MYSTERY_STARTUP_DELAY_US	110  // measured 100-140
 
 #define CMN_SET_SUBSEQ_TIME_US		270  // measured 462 @ 8mhz, 268 @ 16 mhz
-#define TAG_ANC_TIMER_MISMATCH_GUARD_US	170  // measured up to 136
+#define TAG_ANC_TIMER_MISMATCH_GUARD_US	 20  // just enough to push CMN_SET_SUBSEQ_TIME_US up one timer tick
 
 #define ANC_RX_AND_PROCESS_TAG_POLL_US	120  // 16mhz: meas 119.8; 8mhz: 220, measured 213.8 SFD -> done
 
