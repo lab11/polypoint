@@ -44,10 +44,14 @@
 /****************************************************** MEASURED TIMES */
 // n.b. RTIMER_SECOND on this platform has ~33 us precision
 
+#define CMN_GUARD_US			33
+
 #define TAG_SQ_START_TO_POLL_SFD_HIGH_US	896
 
 #define CMN_SET_SUBSEQ_TIME_US		500  // measured 462
-#define TAG_ANC_TIMER_MISMATCH_GUARD	170  // measured up to 136
+#define TAG_ANC_TIMER_MISMATCH_GUARD_US	170  // measured up to 136
+
+#define ANC_RX_AND_PROCESS_TAG_POLL_US	220  // measured 213.8 SFD -> done
 
 #define ANC_FINAL_RX_PKT_TIME_US	820
 #define ANC_FINAL_RX_PKT_MEMCPY_TIME_US	120
@@ -77,8 +81,8 @@
 #define ALL_ANC_FINAL_US	80000
 #define SS_PRINTF_US		  2e6
 #else
-#define POLL_TO_SS_US		 5000
-#define SS_TO_SQ_US		 (CMN_SET_SUBSEQ_TIME_US+TAG_ANC_TIMER_MISMATCH_GUARD)
+#define POLL_TO_SS_US		(TAG_SQ_START_TO_POLL_SFD_HIGH_US+ANC_RX_AND_PROCESS_TAG_POLL_US+CMN_GUARD_US)
+#define SS_TO_SQ_US		(CMN_SET_SUBSEQ_TIME_US+TAG_ANC_TIMER_MISMATCH_GUARD_US)
 #define ALL_ANC_FINAL_US	80000
 #define SS_PRINTF_US		  2e6
 #endif
