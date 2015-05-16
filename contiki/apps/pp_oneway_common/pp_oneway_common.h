@@ -46,9 +46,9 @@
 
 #define CMN_GUARD_US			33
 
-#define TAG_SQ_START_TO_POLL_SFD_HIGH_US	896
+#define TAG_SQ_START_TO_POLL_SFD_HIGH_US	574  // 896 @ 8 mhz
 
-#define CMN_SET_SUBSEQ_TIME_US		500  // measured 462
+#define CMN_SET_SUBSEQ_TIME_US		270  // measured 462 @ 8mhz, 268 @ 16 mhz
 #define TAG_ANC_TIMER_MISMATCH_GUARD_US	170  // measured up to 136
 
 #define ANC_RX_AND_PROCESS_TAG_POLL_US	220  // measured 213.8 SFD -> done
@@ -128,11 +128,14 @@
 	 (uint32_t) ( ((_microsecu) / (double) DWT_TIME_UNITS) / 1e6 )\
 	)
 // uint32_t delay_time = temp + (APP_US_TO_DEVICETIMEU32(TAG_SEND_POLL_DELAY_US) >> 8);
-#define SPI_US_PER_BYTE 1.18
-#define SPI_SLACK_US	200
+#define SPI_US_PER_BYTE		0.47	// 1.18 @ 8mhz
+#define SPI_US_BETWEEN_BYTES	0.30	// didn't have this at 8mhz; annoying inconsistent
+#define SPI_SLACK_US		150	// 200 @ 8mhz
 #define DW_DELAY_FROM_PKT_LEN(_len)\
 	(\
-	 APP_US_TO_DEVICETIMEU32(SPI_US_PER_BYTE * (_len) + SPI_SLACK_US) >> 8\
+	 APP_US_TO_DEVICETIMEU32(\
+		 SPI_US_PER_BYTE * (_len) + SPI_US_BETWEEN_BYTES * (_len) + SPI_SLACK_US\
+		 ) >> 8\
 	)
 #define DW_DELAY_FROM_US(_us)\
 	(\
