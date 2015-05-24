@@ -154,8 +154,8 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 			DEBUG_B6_LOW;
 			uint32_t delay_time =
 				dwt_readsystimestamphi32() +
-				DW_DELAY_FROM_PKT_LEN(frame_len) +
-				DW_DELAY_FROM_US(ANC_FINAL_RX_TIME_ON_TAG)*(ANCHOR_EUI-1);
+				REVISED_DW_DELAY_FROM_PKT_LEN(frame_len) +
+				DW_DELAY_FROM_US(2*ANC_FINAL_RX_TIME_ON_TAG)*(ANCHOR_EUI-1);
 			delay_time &= 0xFFFFFFFE;
 			pp_anc_final_pkt.dw_time_sent = delay_time;
 			dwt_setdelayedtrxtime(delay_time);

@@ -54,7 +54,7 @@ static double dwtime_to_dist(double dwtime, unsigned anchor_id, unsigned subseq)
 
 static void compute_results() {
 	unsigned i;
-	for(i=0; i < 1 /*NUM_ANCHORS*/; i++){
+	for(i=0; i < 2 /*NUM_ANCHORS*/; i++){
 		unsigned j;
 		printf("tagstart %d\r\n",i+1);
 		/*

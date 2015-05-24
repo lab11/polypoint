@@ -54,8 +54,8 @@
 
 #define ANC_RX_AND_PROCESS_TAG_POLL_US	120  // 16mhz: meas 119.8; 8mhz: 220, measured 213.8 SFD -> done
 
-#define ANC_FINAL_RX_PKT_TIME_US	820
-#define ANC_FINAL_RX_PKT_MEMCPY_TIME_US	120
+#define ANC_FINAL_RX_PKT_TIME_US	427  // 8mhz: 820
+#define ANC_FINAL_RX_PKT_MEMCPY_TIME_US	 79  // 8mhz: 120
 #define ANC_FINAL_RX_PKT_PRINTF_TIME_US	150
 #define ANC_FINAL_RX_PKT_GUARD_US	50
 #ifdef DW_DEBUG
@@ -141,6 +141,16 @@
 #define DW_DELAY_FROM_US(_us)\
 	(\
 	 APP_US_TO_DEVICETIMEU32(_us) >> 8\
+	)
+
+
+#define REVISED_SPI_US_PER_BYTE		0.62  // time per byte during pkt cpoy
+#define REVISED_DELAY_PKT_OVERHEAD	(33.2 + 31.25) // time read_timestamp -> copy + fin copy -> done
+#define REVISED_DW_DELAY_FROM_PKT_LEN(_len)\
+	(\
+	 APP_US_TO_DEVICETIMEU32(\
+		 REVISED_SPI_US_PER_BYTE * (_len) + REVISED_DELAY_PKT_OVERHEAD\
+		 ) >> 8\
 	)
 
 
