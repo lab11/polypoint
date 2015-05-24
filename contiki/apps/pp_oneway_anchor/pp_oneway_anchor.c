@@ -152,17 +152,30 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 
 			//Schedule this transmission for our scheduled time slot
 			DEBUG_B6_LOW;
-			uint32_t delay_time =
-				dwt_readsystimestamphi32() +
-				REVISED_DW_DELAY_FROM_PKT_LEN(frame_len) +
-				DW_DELAY_FROM_US(2*ANC_FINAL_RX_TIME_ON_TAG)*(ANCHOR_EUI-1);
+			uint32_t temp = dwt_readsystimestamphi32();
+			uint32_t delay_time = temp +
+				DW_DELAY_FROM_US(
+					300 +
+					(ANC_FINAL_RX_TIME_ON_TAG*(ANCHOR_EUI-1))
+					);
+				/* I don't understand what exactly is going on
+				 * here. The chip seems to want way longer for
+				 * this preamble than others -- maybe something
+				 * to do with the large payload? From empirical
+				 * measurements, the 300 base delay is about the
+				 * minimum (250 next tested as not working)
+				DW_DELAY_FROM_US(
+					REVISED_DELAY_FROM_PKT_LEN_US(frame_len) +
+					(2*ANC_FINAL_RX_TIME_ON_TAG*(ANCHOR_EUI-1))
+					);
+				*/
 			delay_time &= 0xFFFFFFFE;
 			pp_anc_final_pkt.dw_time_sent = delay_time;
 			dwt_setdelayedtrxtime(delay_time);
-			dwt_writetxdata(frame_len, (uint8_t*) &pp_anc_final_pkt, 0);
 
 			int err = dwt_starttx(DWT_START_TX_DELAYED);
 			dwt_settxantennadelay(TX_ANTENNA_DELAY);
+			dwt_writetxdata(frame_len, (uint8_t*) &pp_anc_final_pkt, 0);
 			DEBUG_B6_HIGH;
 
 #ifdef DW_DEBUG
@@ -182,46 +195,6 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 				DEBUG_P("Send ANC_FINAL\r\n");
 				leds_off(LEDS_RED);
 			}
-
-
-			/*
-			// Read the whole packet
-			dwt_readrxdata((uint8_t*)&bcast_msg, sizeof(bcast_msg), 0);
-			global_round_num = bcast_msg.roundNum;
-
-			//TODO: might need to normalize all times to tSP and tRP
-			double tRF = (double)dw_timestamp;
-			double tSR = (double)(((uint64_t)global_tSR) << 8);
-			double tRR = (double)bcast_msg.tRR[ANCHOR_EUI-1];
-			double tSP = (double)(((uint64_t)bcast_msg.tSP) << 8);
-			double tSF = (double)(((uint64_t)bcast_msg.tSF) << 8);
-			double tRP = (double)global_tRP;
-
-#ifdef DW_DEBUG
-			printf("tRF = %llu\r\n", (uint64_t)tRF);
-			printf("tSR = %llu\r\n", (uint64_t)tSR);
-			printf("tRR = %llu\r\n", (uint64_t)tRR);
-			printf("tSP = %llu\r\n", (uint64_t)tSP);
-			printf("tSF = %llu\r\n", (uint64_t)tSF);
-			printf("tRP = %llu\r\n", (uint64_t)tRP);
-#endif
-
-			if(tRF != 0.0 && tSR != 0.0 && tRR != 0.0 && tSP != 0.0 && tSF != 0.0 && tRP != 0.0){
-				double aot = (tRF-tRP)/(tSF-tSP);
-				double tTOF = (tRF-tSR)-(tSF-tRR)*aot;
-				double dist = (tTOF*DWT_TIME_UNITS)/2;
-
-				dist *= SPEED_OF_LIGHT;
-				dist += ANCHOR_CAL_LEN;
-				dist -= txDelayCal[ANCHOR_EUI*NUM_CHANNELS + subseq_num_to_chan(global_subseq_num, true)];
-				DEBUG_P("dist*100 = %d\r\n", (int)(dist*100));
-#ifdef SORT_MEASUREMENTS
-				insert_sorted(fin_msg.distanceHist, (float)dist, global_subseq_num);
-#else
-				fin_msg.distanceHist[global_subseq_num] = (float)dist;
-#endif
-			}
-			*/
 		} else {
 			DEBUG_P("*** ERR: RX Unknown packet type: 0x%X\r\n", packet_type);
 		}

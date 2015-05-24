@@ -140,17 +140,16 @@
 	)
 #define DW_DELAY_FROM_US(_us)\
 	(\
-	 APP_US_TO_DEVICETIMEU32(_us) >> 8\
+	 APP_US_TO_DEVICETIMEU32((_us)) >> 8\
 	)
 
 
 #define REVISED_SPI_US_PER_BYTE		0.62  // time per byte during pkt cpoy
 #define REVISED_DELAY_PKT_OVERHEAD	(33.2 + 31.25) // time read_timestamp -> copy + fin copy -> done
-#define REVISED_DW_DELAY_FROM_PKT_LEN(_len)\
+#define REVISED_PREAMBLE_US		160
+#define REVISED_DELAY_FROM_PKT_LEN_US(_len)\
 	(\
-	 APP_US_TO_DEVICETIMEU32(\
-		 REVISED_SPI_US_PER_BYTE * (_len) + REVISED_DELAY_PKT_OVERHEAD\
-		 ) >> 8\
+	 REVISED_SPI_US_PER_BYTE * (_len) + REVISED_DELAY_PKT_OVERHEAD + REVISED_PREAMBLE_US\
 	)
 
 
