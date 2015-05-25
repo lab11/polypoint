@@ -43,6 +43,8 @@ static uint64_t global_anchor_TOAs[NUM_ANCHORS][NUM_MEASUREMENTS+1] = {{0}};
 static uint64_t global_anchor_final_send_times[NUM_ANCHORS] = {0};
 static uint64_t global_final_TOAs[NUM_ANCHORS] = {0};
 
+static bool global_received_final_from[NUM_ANCHORS] = {0};
+
 static struct pp_tag_poll pp_tag_poll_pkt;
 
 
@@ -75,7 +77,13 @@ static void compute_results() {
 	unsigned i;
 	for(i=0; i < NUM_ANCHORS; i++){
 		unsigned j;
-#ifndef REPORT_PERCENTILE_ONLY
+#ifdef REPORT_PERCENTILE_ONLY
+		// Shortcut the whole thing if we didn't rx a final from this anc
+		if (!global_received_final_from[i]) {
+			printf("XXX ");
+			continue;
+		}
+#else
 		printf("\r\ntagstart %d\r\n",i+1);
 #endif
 		/*
@@ -269,6 +277,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 					);
 			global_anchor_final_send_times[anchor_id-1] = ((uint64_t)anc_final->dw_time_sent) << 8;
 			global_final_TOAs[anchor_id-1] = timestamp;
+			global_received_final_from[anchor_id-1] = true;
 		} else {
 			DEBUG_P("*** ERR: RX Unknown packet type: 0x%X\r\n", packet_type);
 		}
@@ -473,6 +482,7 @@ PROCESS_THREAD(polypoint_tag, ev, data) {
 				memset(global_anchor_TOAs, 0, sizeof(global_anchor_TOAs));
 				memset(global_anchor_final_send_times, 0, sizeof(global_anchor_final_send_times));
 				memset(global_final_TOAs, 0, sizeof(global_final_TOAs));
+				memset(global_received_final_from, 0, sizeof(global_received_final_from));
 
 				global_subseq_num = 0;
 
