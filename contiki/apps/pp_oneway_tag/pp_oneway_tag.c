@@ -49,7 +49,7 @@ static struct pp_tag_poll pp_tag_poll_pkt;
 
 static void insert_sorted(double arr[], double new, unsigned end) {
 	unsigned insert_at = 0;
-	while ((insert_at < end) && (new > arr[insert_at])) {
+	while ((insert_at < end) && (new >= arr[insert_at])) {
 		insert_at++;
 	}
 	if (insert_at == end) {
