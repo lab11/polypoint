@@ -5,6 +5,8 @@ APP_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
 TARGETDIRS += ../../../../atum/contiki/platform
 
 all: $(CONTIKI_PROJECT)
+# Force build of this every time to pick up common.h dep
+.PHONY:	pp_oneway_tag.c
 
 #LDFLAGS += --specs=nano.specs -u _printf_float
 LDFLAGS += --specs=nano.specs
