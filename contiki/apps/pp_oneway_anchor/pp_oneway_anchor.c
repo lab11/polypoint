@@ -34,7 +34,9 @@ static bool start_of_new_subseq;
 // temp
 #define TAG_EUI 0
 
+#ifndef ANCHOR_EUI
 #define ANCHOR_EUI 1
+#endif
 
 /**************
  * GLOBAL STATE
@@ -155,7 +157,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 			uint32_t temp = dwt_readsystimestamphi32();
 			uint32_t delay_time = temp +
 				DW_DELAY_FROM_US(
-					300 +
+					ANC_FINAL_INITIAL_DELAY_HACK_VALUE +
 					(ANC_FINAL_RX_TIME_ON_TAG*(ANCHOR_EUI-1))
 					);
 				/* I don't understand what exactly is going on

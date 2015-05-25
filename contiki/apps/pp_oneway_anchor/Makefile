@@ -4,6 +4,10 @@ CONTIKI_PROJECT = pp_oneway_anchor
 APP_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
 TARGETDIRS += ../../../../atum/contiki/platform
 
+CFLAGS += -D ANCHOR_EUI=$(ANCHOR_EUI)
+# Force build of this every time to pick up env var
+.PHONY:	pp_oneway_anchor.c
+
 all: $(CONTIKI_PROJECT)
 
 #LDFLAGS += --specs=nano.specs -u _printf_float

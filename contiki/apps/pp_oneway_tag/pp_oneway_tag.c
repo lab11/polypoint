@@ -54,9 +54,9 @@ static double dwtime_to_dist(double dwtime, unsigned anchor_id, unsigned subseq)
 
 static void compute_results() {
 	unsigned i;
-	for(i=0; i < 2 /*NUM_ANCHORS*/; i++){
+	for(i=0; i < NUM_ANCHORS; i++){
 		unsigned j;
-		printf("tagstart %d\r\n",i+1);
+		printf("\r\ntagstart %d\r\n",i+1);
 		/*
 		for (j=0; j < NUM_MEASUREMENTS+1; j++) {
 			printf("%02d: ts %llu aa %llu af %llu tf %llu\r\n",
@@ -99,11 +99,16 @@ static void compute_results() {
 			double PS = (double)(global_poll_send_times[j]);
 			double ToF = AA - PS*anchor_over_tag - anc_tag_dw_offset;
 			double dist = dwtime_to_dist(ToF, i+1, j);
+#ifdef DW_DEBUG
 			int64_t dist_times_1000000 = (int64_t)(dist*1000000);
 			printf("[%02d %02d] %lld.%lld\r\n", i+1, j, dist_times_1000000/1000000,dist_times_1000000%1000000);
+#else
+			int dist_times_100 = (int)(dist*100);
+			printf("%d.%d ", dist_times_100/100, dist_times_100%100);
+#endif
 		}
 	}
-	printf("done\r\n");
+	printf("\r\ndone\r\n");
 }
 
 static void send_pkt(bool is_final){
@@ -192,7 +197,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 			uint8_t anchor_id = anc_final->anchor_id;
 
 			DEBUG_P("ANC_FINAL from %u\r\n", anchor_id);
-			if(anchor_id >= NUM_ANCHORS) return;
+			if((anchor_id-1) >= NUM_ANCHORS) return;
 
 			DEBUG_B6_HIGH;
 			memcpy(
