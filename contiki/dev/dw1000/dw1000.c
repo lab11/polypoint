@@ -17,7 +17,7 @@
  * if its size is above this threshold
  */
 #define UDMA_RX_SIZE_THRESHOLD 3
-#define SSI_TX_FIFO_DEPTH 8
+#define SSI_FIFO_DEPTH 8
 
 // I don't understand how Contiki doesn't define this or something like it
 // somewhere. I think they don't understand the TI channel vs encoding idea
@@ -143,8 +143,38 @@ int readfromspi(uint16_t headerLength,
 
   SPI_FLUSH();
 
+  /*
   for (i=0; i<readlength; i++) {
     SPI_READ(readBuffer[i]);
+  }
+  */
+  if (readlength <= SSI_FIFO_DEPTH) {
+    // easy mode
+    for (i=0; i<readlength; i++) {
+      SPI_TXBUF = 0;
+    }
+    for (i=0; i<readlength; i++) {
+      SPI_WAITFOREORx();
+      readBuffer[i] = SPI_RXBUF;
+    }
+  } else {
+    // prime the pipeline
+    for (i=0; i<SSI_FIFO_DEPTH; i++) {
+      SPI_TXBUF = 0;
+    }
+    while (i < readlength) {
+      SPI_WAITFOREORx();
+      readBuffer[i-SSI_FIFO_DEPTH] = SPI_RXBUF;
+      SPI_WAITFORTxREADY();
+      SPI_TXBUF = 0;
+      i++;
+    }
+    i -= SSI_FIFO_DEPTH;
+    while (i < readlength) {
+      SPI_WAITFOREORx();
+      readBuffer[i] = SPI_RXBUF;
+      i++;
+    }
   }
 
   SPI_CS_SET(DW1000_CS_N_PORT_NUM, DW1000_CS_N_PIN);
@@ -200,7 +230,7 @@ int writetospi(uint16_t headerLength,
   spi_set_mode(SSI_CR0_FRF_MOTOROLA, 0, 0, 8);
   SPI_CS_CLR(DW1000_CS_N_PORT_NUM, DW1000_CS_N_PIN);
 
-  if ((headerLength + bodylength) < SSI_TX_FIFO_DEPTH) {
+  if ((headerLength + bodylength) <= SSI_FIFO_DEPTH) {
     // Bypass contiki SPI mechanism b/c we won't exceed the fifo depth here
     SPI_WAITFORTxREADY();
     for (i=0; i<headerLength; i++) {
@@ -215,7 +245,7 @@ int writetospi(uint16_t headerLength,
       SPI_WRITE_FAST(headerBuffer[i]);
     }
 
-    if (bodylength > SSI_TX_FIFO_DEPTH) {
+    if (bodylength > SSI_FIFO_DEPTH) {
       // Slow path
       for (i=0; i<bodylength; i++) {
         SPI_WRITE_FAST(bodyBuffer[i]);
