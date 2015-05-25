@@ -3,10 +3,27 @@
 #include "spi-arch.h"
 #include "spi.h"
 #include "dev/ssi.h"
+#include "dev/udma.h"
 #include "dev/leds.h"
 #include "dev/ioc.h"
 #include "deca_device_api.h"
 #include "deca_regs.h"
+
+
+
+/*---------------------------------------------------------------------------*/
+/*
+ * uDMA transfer threshold. DMA will only be used to read an incoming frame
+ * if its size is above this threshold
+ */
+#define UDMA_RX_SIZE_THRESHOLD 3
+#define SSI_TX_FIFO_DEPTH 8
+
+// I don't understand how Contiki doesn't define this or something like it
+// somewhere. I think they don't understand the TI channel vs encoding idea
+#define UDMA_SSI0_RX_CHANNEL 10
+#define UDMA_SSI0_TX_CHANNEL 11
+/*---------------------------------------------------------------------------*/
 
 decaIrqStatus_t dw1000_irq_onoff = 0;
 
@@ -64,6 +81,46 @@ dw1000_init()
   GPIO_SOFTWARE_CONTROL(GPIO_PORT_TO_BASE(GPIO_B_NUM), GPIO_PIN_MASK(6));
   GPIO_SET_OUTPUT(GPIO_PORT_TO_BASE(GPIO_B_NUM), GPIO_PIN_MASK(6));
   GPIO_CLR_PIN(GPIO_PORT_TO_BASE(GPIO_B_NUM), GPIO_PIN_MASK(6));
+
+  /*
+  // Set up DMA
+  // Handles 10.4.1
+  //  -- enables DMA controller
+  //  -- set up control channel table
+  // Also enables DMA interrupts in NVIC controller
+  udma_init();
+
+  // Enable DMA on the SSI0 controller
+  //REG(SSI0_BASE + SSI_DMACTL) = SSI_DMACTL_RXDMAE | SSI_DMACTL_TXDMAE;
+
+  // 10.4.3.1 - 1
+  // Don't care about priority
+  // 10.4.3.1 - 2
+  udma_channel_use_primary(UDMA_SSI0_RX_CHANNEL);
+  // 10.4.3.1 - 3
+  udma_channel_use_single(UDMA_SSI0_RX_CHANNEL);
+  // 10.4.3.1 - 4
+  udma_channel_mask_clr(UDMA_SSI0_RX_CHANNEL);
+
+  // Set the channel's SRC. DST can not be set yet since changes for each transfer
+  udma_set_channel_src(UDMA_SSI0_RX_CHANNEL, SPI_RXBUF);
+
+
+  // 10.4.3.1 - 1, write UDMA_PRIOCLR
+  udma_channel_prio_set_default(UDMA_SSI0_TX_CHANNEL);
+  // 10.4.3.1 - 2, write UDMA_ALTCLR
+  udma_channel_use_primary(UDMA_SSI0_TX_CHANNEL);
+  // 10.4.3.1 - 3, write UDMA_USEBURSTCLR
+  udma_channel_use_single(UDMA_SSI0_TX_CHANNEL);
+  // 10.4.3.1 - 4, write UDMA_REQMASKCLR
+  udma_channel_mask_clr(UDMA_SSI0_TX_CHANNEL);
+
+  // Set the channel's DST. SRC can not be set yet since changes for each transfer
+  udma_set_channel_dst(UDMA_SSI0_TX_CHANNEL, SPI_TXBUF);
+
+  // Use the legcay mapper b/c it's easier
+  REG(UDMA_CHASGN) = 0;
+  */
 }
 
 int readfromspi(uint16_t headerLength,
@@ -94,6 +151,43 @@ int readfromspi(uint16_t headerLength,
 
   return 0;
 
+  /*
+  if (readlength > UDMA_RX_SIZE_THRESHOLD) {
+    // Set the transfer destination's end address
+    //udma_set_channel_dst(CC2538_RF_CONF_RX_DMA_CHAN, (uint32_t)(buf) + len - 1);
+    udma_set_channel_dst(UDMA_SSI0_RX_CHANNEL, (uint32_t)(readBuffer) + readlength - 1);
+
+    // Configure the control word
+    // 10.4.3.2.1
+    udma_set_channel_control_word(UDMA_SSI0_RX_CHANNEL,
+        UDMA_CHCTL_DSTINC_8 |
+        UDMA_CHCTL_DSTSIZE_8 |
+        UDMA_CHCTL_SRCINC_NONE |
+        UDMA_CHCTL_SRCSIZE_8 |
+        UDMA_CHCTL_ARBSIZE_4 |
+        udma_xfer_size(readlength) |
+        UDMA_CHCTL_XFERMODE_AUTO
+        );
+
+    // 10.4.3.3 - 1
+    udma_channel_enable(UDMA_SSI0_RX_CHANNEL);
+
+    int i;
+    for (i = 0; i < readlength; i++)
+      SPI_WRITE_FAST(0);
+
+    // <from rf>
+    udma_channel_sw_request(UDMA_SSI0_RX_CHANNEL);
+
+    // Wait for the transfer to complete.
+    while (udma_channel_get_mode(UDMA_SSI0_RX_CHANNEL) != UDMA_CHCTL_XFERMODE_STOP)
+      ;
+  } else {
+    for(i = 0; i < len; ++i) {
+      ((unsigned char *)(buf))[i] = REG(RFCORE_SFR_RFDATA);
+    }
+  }
+  */
 }
 
 int writetospi(uint16_t headerLength,
@@ -106,21 +200,67 @@ int writetospi(uint16_t headerLength,
   spi_set_mode(SSI_CR0_FRF_MOTOROLA, 0, 0, 8);
   SPI_CS_CLR(DW1000_CS_N_PORT_NUM, DW1000_CS_N_PIN);
 
-  for (i=0; i<headerLength; i++) {
-    // SPI_WRITE(headerBuffer[i]);
-    SPI_WRITE_FAST(headerBuffer[i]);
-  }
+  if ((headerLength + bodylength) < SSI_TX_FIFO_DEPTH) {
+    // Bypass contiki SPI mechanism b/c we won't exceed the fifo depth here
+    SPI_WAITFORTxREADY();
+    for (i=0; i<headerLength; i++) {
+      SPI_TXBUF = headerBuffer[i];
+    }
+    for (i=0; i<bodylength; i++) {
+      SPI_TXBUF = bodyBuffer[i];
+    }
+    SPI_WAITFOREOTx();
+  } else {
+    for (i=0; i<headerLength; i++) {
+      SPI_WRITE_FAST(headerBuffer[i]);
+    }
 
-  for (i=0; i<bodylength; i++) {
-    // SPI_WRITE(bodyBuffer[i]);
-    SPI_WRITE_FAST(bodyBuffer[i]);
-  }
+    if (bodylength > SSI_TX_FIFO_DEPTH) {
+      // Slow path
+      for (i=0; i<bodylength; i++) {
+        SPI_WRITE_FAST(bodyBuffer[i]);
+      }
+      SPI_WAITFOREOTx();
+    } else {
 
-  SPI_WAITFOREOTx();
+      // Bypass contiki SPI mechanism b/c we won't exceed the fifo depth here
+      SPI_WAITFORTxREADY();
+      for (i=0; i<bodylength; i++) {
+        //SPI_WRITE_FAST(bodyBuffer[i]);
+        SPI_TXBUF = bodyBuffer[i];
+      }
+      SPI_WAITFOREOTx();
+    }
+  }
 
   SPI_CS_SET(DW1000_CS_N_PORT_NUM, DW1000_CS_N_PIN);
 
   return 0;
+
+      /*
+      REG(SSI0_BASE + SSI_DMACTL) = SSI_DMACTL_TXDMAE;
+      udma_set_channel_dst(UDMA_SSI0_TX_CHANNEL, SPI_TXBUF);
+      udma_set_channel_src(UDMA_SSI0_TX_CHANNEL, (uint32_t)(bodyBuffer) + bodylength - 1);
+
+      // Configure the control word
+      // 10.4.3.2.1
+      udma_set_channel_control_word(UDMA_SSI0_TX_CHANNEL,
+          UDMA_CHCTL_DSTINC_NONE |
+          UDMA_CHCTL_DSTSIZE_8 |
+          UDMA_CHCTL_SRCINC_8 |
+          UDMA_CHCTL_SRCSIZE_8 |
+          UDMA_CHCTL_ARBSIZE_4 |
+          udma_xfer_size(bodylength) |
+          UDMA_CHCTL_XFERMODE_AUTO
+          );
+
+      // 10.4.3.3 - 1, write UDMA_ENASET
+      udma_channel_enable(UDMA_SSI0_TX_CHANNEL);
+
+      // Wait for the transfer to complete.
+      while (udma_channel_get_mode(UDMA_SSI0_TX_CHANNEL) != UDMA_CHCTL_XFERMODE_STOP)
+        ;
+      */
 }
 
 // Select the active antenna
