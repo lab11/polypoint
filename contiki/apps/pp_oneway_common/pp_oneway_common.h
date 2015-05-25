@@ -36,6 +36,10 @@
 #define NUM_CHANNELS 3
 #define NUM_MEASUREMENTS (NUM_ANTENNAS*NUM_ANTENNAS*NUM_CHANNELS)
 
+// Range estimates that fall outside this range are thrown away to speed up processing
+#define MIN_VALID_RANGE_IN_CM -100
+#define MAX_VALID_RANGE_IN_CM (50*100)
+
 #define TX_ANTENNA_DELAY 0
 
 

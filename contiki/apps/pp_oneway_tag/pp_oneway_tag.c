@@ -134,7 +134,14 @@ static void compute_results() {
 			double ToF = AA - PS*anchor_over_tag - anc_tag_dw_offset;
 			double dist = dwtime_to_dist(ToF, i+1, j);
 #ifdef SORT_MEASUREMENTS
-			insert_sorted(dists_times_100, (int)(dist*100), j);
+			int dist_times_100 = (int)(dist*100);
+			// Convert invalid values to a large number so that they
+			// run through the sort algorithm in minimal time and
+			// are easy to discard when doing the %ile measurements
+			if ((dist_times_100 < MIN_VALID_RANGE_IN_CM) || (dist_times_100 > MAX_VALID_RANGE_IN_CM)) {
+				dist_times_100 = MAX_VALID_RANGE_IN_CM;
+			}
+			insert_sorted(dists_times_100, dist_times_100, j);
 #else // SORT_MEASUREMENTS
 #ifdef DW_DEBUG
 			int64_t dist_times_1000000 = (int64_t)(dist*1000000);
@@ -150,21 +157,16 @@ static void compute_results() {
 #ifdef REPORT_PERCENTILE_ONLY
 		{
 			DEBUG_B6_LOW;
-			// Need to skip bad ranges (usu ~-154) and interpolate %ile
 			const unsigned bot = NUM_MEASUREMENTS*TARGET_PERCENTILE;
 			const unsigned top = NUM_MEASUREMENTS*TARGET_PERCENTILE+1;
-			unsigned idx = 0;
-			while (dists_times_100[idx] < -50) {
-				idx++;
-				if ((idx+top) == NUM_MEASUREMENTS) break;
-			}
-			if ((idx+top) == NUM_MEASUREMENTS) {
+			if (dists_times_100[top] == MAX_VALID_RANGE_IN_CM) {
+				// Not enough valid ranges
 				const unsigned char* s = (unsigned char*) "- ";
 				dbg_send_bytes(s, 2);
 			} else {
 				int perc =
-					dists_times_100[idx+bot] +
-					dists_times_100[idx+top] * (NUM_MEASUREMENTS*TARGET_PERCENTILE - (float) bot);
+					dists_times_100[bot] +
+					dists_times_100[top] * (NUM_MEASUREMENTS*TARGET_PERCENTILE - (float) bot);
 				printf("%d.%d ", perc/100, perc%100);
 			}
 			DEBUG_B6_HIGH;
