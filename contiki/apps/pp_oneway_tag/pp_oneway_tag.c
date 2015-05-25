@@ -45,6 +45,25 @@ static uint64_t global_final_TOAs[NUM_ANCHORS] = {0};
 
 static struct pp_tag_poll pp_tag_poll_pkt;
 
+
+
+static void insert_sorted(double arr[], double new, unsigned end) {
+	unsigned insert_at = 0;
+	while ((insert_at < end) && (new > arr[insert_at])) {
+		insert_at++;
+	}
+	if (insert_at == end) {
+		arr[insert_at] = new;
+	} else {
+		while (insert_at <= end) {
+			double temp = arr[insert_at];
+			arr[insert_at] = new;
+			new = temp;
+			insert_at++;
+		}
+	}
+}
+
 static double dwtime_to_dist(double dwtime, unsigned anchor_id, unsigned subseq) {
 	double dist = dwtime * DWT_TIME_UNITS * SPEED_OF_LIGHT;
 	dist += ANCHOR_CAL_LEN;
@@ -56,7 +75,9 @@ static void compute_results() {
 	unsigned i;
 	for(i=0; i < NUM_ANCHORS; i++){
 		unsigned j;
+#ifndef REPORT_PERCENTILE_ONLY
 		printf("\r\ntagstart %d\r\n",i+1);
+#endif
 		/*
 		for (j=0; j < NUM_MEASUREMENTS+1; j++) {
 			printf("%02d: ts %llu aa %llu af %llu tf %llu\r\n",
@@ -94,21 +115,63 @@ static void compute_results() {
 		// ancTOA = tagSent + twToF + offset
 		double anc_tag_dw_offset = tRF - tSF*anchor_over_tag - tTOF;
 
+#ifdef SORT_MEASUREMENTS
+		double dists[NUM_MEASUREMENTS] = {0};
+#endif
 		for (j=0; j < NUM_MEASUREMENTS; j++) {
 			double AA = (double)(global_anchor_TOAs[i][j]);
 			double PS = (double)(global_poll_send_times[j]);
 			double ToF = AA - PS*anchor_over_tag - anc_tag_dw_offset;
 			double dist = dwtime_to_dist(ToF, i+1, j);
+#ifdef SORT_MEASUREMENTS
+			insert_sorted(dists, dist, j);
+#else // SORT_MEASUREMENTS
 #ifdef DW_DEBUG
 			int64_t dist_times_1000000 = (int64_t)(dist*1000000);
 			printf("[%02d %02d] %lld.%lld\r\n", i+1, j, dist_times_1000000/1000000,dist_times_1000000%1000000);
 #else
 			int dist_times_100 = (int)(dist*100);
 			printf("%d.%d ", dist_times_100/100, dist_times_100%100);
-#endif
+#endif // DW_DEBUG
+#endif // !SORT_MEASUREMENTS
 		}
+
+#ifdef SORT_MEASUREMENTS
+#ifdef REPORT_PERCENTILE_ONLY
+		{
+			DEBUG_B6_LOW;
+			// Need to skip bad ranges (usu ~-154) and interpolate %ile
+			const unsigned bot = NUM_MEASUREMENTS*TARGET_PERCENTILE;
+			const unsigned top = NUM_MEASUREMENTS*TARGET_PERCENTILE+1;
+			unsigned idx = 0;
+			while (dists[idx] < -50) {
+				idx++;
+				if ((idx+top) == NUM_MEASUREMENTS) break;
+			}
+			if ((idx+top) == NUM_MEASUREMENTS) {
+				printf("--- ");
+			} else {
+				double perc =
+					dists[idx+bot] +
+					dists[idx+top] * (NUM_MEASUREMENTS*TARGET_PERCENTILE - (double) bot);
+				int dist_times_100 = (int)(perc*100);
+				printf("%d.%d ", dist_times_100/100, dist_times_100%100);
+			}
+			DEBUG_B6_HIGH;
+		}
+#else  // REPORT_PERCENTILE_ONLY
+		for (j=0; j < NUM_MEASUREMENTS; j++) {
+			int dist_times_100 = (int)(dists[j]*100);
+			printf("%d.%d ", dist_times_100/100, dist_times_100%100);
+		}
+#endif // !REPORT_PERCENTILE_ONLY
+#endif // SORT_MEASUREMENTS
 	}
+#ifdef REPORT_PERCENTILE_ONLY
+	printf("\r\n");
+#else
 	printf("\r\ndone\r\n");
+#endif
 }
 
 static void send_pkt(bool is_final){
@@ -253,6 +316,8 @@ static char subsequence_task(struct rtimer *rt, void* ptr){
 	rtimer_clock_t now = RTIMER_NOW();
 	rtimer_clock_t set_to;
 
+	bool set_timer = true;
+
 	if (start_of_new_subseq) {
 		start_of_new_subseq = false;
 		subseq_start = now;
@@ -270,11 +335,14 @@ static char subsequence_task(struct rtimer *rt, void* ptr){
 		if (global_subseq_num < NUM_MEASUREMENTS) {
 			set_to = subseq_start + US_TO_RT(POLL_TO_SS_US+SS_TO_SQ_US);
 		} else {
-			set_to = subseq_start + US_TO_RT(ALL_ANC_FINAL_US+SS_PRINTF_US);
+			set_timer = false;
+			//set_to = subseq_start + US_TO_RT(ALL_ANC_FINAL_US+SS_PRINTF_US);
 		}
 	}
 
-	rtimer_set(rt, set_to, 1, (rtimer_callback_t)subsequence_task, NULL);
+	if (set_timer) {
+		rtimer_set(rt, set_to, 1, (rtimer_callback_t)subsequence_task, NULL);
+	}
 
 	process_poll(&polypoint_tag);
 	return 1;
@@ -408,6 +476,19 @@ PROCESS_THREAD(polypoint_tag, ev, data) {
 				memset(global_final_TOAs, 0, sizeof(global_final_TOAs));
 
 				global_subseq_num = 0;
+
+#ifdef INTERVAL_DELAY_US
+				rtimer_set(
+						&subsequence_timer,
+						RTIMER_NOW() + US_TO_RT(INTERVAL_DELAY_US),
+						1,
+						(rtimer_callback_t)subsequence_task,
+						NULL
+						);
+#else
+				// Call the timer function so the next round kickstarts
+				subsequence_task(&subsequence_timer, NULL);
+#endif
 
 				DEBUG_B6_LOW;
 			}

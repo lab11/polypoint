@@ -16,9 +16,8 @@
 #define SORT_MEASUREMENTS
 
 #ifdef  SORT_MEASUREMENTS
-// If set, the anchor will only report the 10th %ile distance in ANC_FINAL. Requires SORT_MEASUREMENTS
 #define TARGET_PERCENTILE 0.10
-#define ANC_FINAL_PERCENTILE_ONLY
+#define REPORT_PERCENTILE_ONLY
 #endif
 
 #define MSG_TYPE_PP_ONEWAY_TAG_POLL   0x60
@@ -82,12 +81,12 @@
 #define POLL_TO_SS_US		 5000
 #define SS_TO_SQ_US		 3000
 #define ALL_ANC_FINAL_US	80000
-#define SS_PRINTF_US		  2e6
+#define INTERVAL_DELAY_US	  2e6
 #else
 #define POLL_TO_SS_US		(TAG_SQ_START_TO_POLL_SFD_HIGH_US+ANC_RX_AND_PROCESS_TAG_POLL_US+CMN_GUARD_US)
 #define SS_TO_SQ_US		(CMN_SET_SUBSEQ_TIME_US+TAG_ANC_TIMER_MISMATCH_GUARD_US)
 #define ALL_ANC_FINAL_US	(ANC_FINAL_TIME_TO_FIRST_RX_HACK_VALUE + (NUM_ANCHORS*ANC_FINAL_RX_TIME_ON_TAG))
-#define SS_PRINTF_US		125e3 // meas 110, needs lots of headroom tho
+//#define INTERVAL_DELAY_US	100e3
 #endif
 
 #define US_TO_RT(_us) (RTIMER_SECOND * ((_us)/1e6))

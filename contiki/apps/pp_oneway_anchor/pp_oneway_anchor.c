@@ -53,24 +53,6 @@ void app_dw1000_txcallback (const dwt_callback_data_t *txd) {
 	//NOTE: No need for tx timestamping after-the-fact (everything's done beforehand)
 }
 
-/*
-static void insert_sorted(float arr[], float new, unsigned end) {
-	unsigned insert_at = 0;
-	while ((insert_at < end) && (new > arr[insert_at])) {
-		insert_at++;
-	}
-	if (insert_at == end) {
-		arr[insert_at] = new;
-	} else {
-		while (insert_at <= end) {
-			float temp = arr[insert_at];
-			arr[insert_at] = new;
-			new = temp;
-			insert_at++;
-		}
-	}
-}
-*/
 
 #define RX_PKT_BUF_LEN	64
 _Static_assert(RX_PKT_BUF_LEN >= sizeof(struct pp_tag_poll), "RX_PKT_BUF_LEN too small");
