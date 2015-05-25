@@ -47,7 +47,7 @@ static struct pp_tag_poll pp_tag_poll_pkt;
 
 
 
-static void insert_sorted(double arr[], double new, unsigned end) {
+static void insert_sorted(int arr[], int new, unsigned end) {
 	unsigned insert_at = 0;
 	while ((insert_at < end) && (new >= arr[insert_at])) {
 		insert_at++;
@@ -56,7 +56,7 @@ static void insert_sorted(double arr[], double new, unsigned end) {
 		arr[insert_at] = new;
 	} else {
 		while (insert_at <= end) {
-			double temp = arr[insert_at];
+			int temp = arr[insert_at];
 			arr[insert_at] = new;
 			new = temp;
 			insert_at++;
@@ -116,7 +116,7 @@ static void compute_results() {
 		double anc_tag_dw_offset = tRF - tSF*anchor_over_tag - tTOF;
 
 #ifdef SORT_MEASUREMENTS
-		double dists[NUM_MEASUREMENTS] = {0};
+		int dists_times_100[NUM_MEASUREMENTS] = {0};
 #endif
 		for (j=0; j < NUM_MEASUREMENTS; j++) {
 			double AA = (double)(global_anchor_TOAs[i][j]);
@@ -124,7 +124,7 @@ static void compute_results() {
 			double ToF = AA - PS*anchor_over_tag - anc_tag_dw_offset;
 			double dist = dwtime_to_dist(ToF, i+1, j);
 #ifdef SORT_MEASUREMENTS
-			insert_sorted(dists, dist, j);
+			insert_sorted(dists_times_100, (int)(dist*100), j);
 #else // SORT_MEASUREMENTS
 #ifdef DW_DEBUG
 			int64_t dist_times_1000000 = (int64_t)(dist*1000000);
@@ -144,24 +144,23 @@ static void compute_results() {
 			const unsigned bot = NUM_MEASUREMENTS*TARGET_PERCENTILE;
 			const unsigned top = NUM_MEASUREMENTS*TARGET_PERCENTILE+1;
 			unsigned idx = 0;
-			while (dists[idx] < -50) {
+			while (dists_times_100[idx] < -50) {
 				idx++;
 				if ((idx+top) == NUM_MEASUREMENTS) break;
 			}
 			if ((idx+top) == NUM_MEASUREMENTS) {
 				printf("--- ");
 			} else {
-				double perc =
-					dists[idx+bot] +
-					dists[idx+top] * (NUM_MEASUREMENTS*TARGET_PERCENTILE - (double) bot);
-				int dist_times_100 = (int)(perc*100);
-				printf("%d.%d ", dist_times_100/100, dist_times_100%100);
+				int perc =
+					dists_times_100[idx+bot] +
+					dists_times_100[idx+top] * (NUM_MEASUREMENTS*TARGET_PERCENTILE - (float) bot);
+				printf("%d.%d ", perc/100, perc%100);
 			}
 			DEBUG_B6_HIGH;
 		}
 #else  // REPORT_PERCENTILE_ONLY
 		for (j=0; j < NUM_MEASUREMENTS; j++) {
-			int dist_times_100 = (int)(dists[j]*100);
+			int dist_times_100 = dists_times_100[j];
 			printf("%d.%d ", dist_times_100/100, dist_times_100%100);
 		}
 #endif // !REPORT_PERCENTILE_ONLY
