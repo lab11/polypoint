@@ -9,7 +9,7 @@
 // #define STARTUP_CONF_VERBOSE 0
 // #define UART_CONF_ENABLE 0
 
-#define WATCHDOG_CONF_ENABLE 0
+#define WATCHDOG_CONF_ENABLE 1
 #define LPM_CONF_ENABLE 0
 
 #endif /* PROJECT_CONF_H_ */

@@ -6,6 +6,7 @@
 #include "dw1000.h"
 #include "dev/ssi.h"
 #include "cpu/cc2538/lpm.h"
+#include "dev/watchdog.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -261,6 +262,7 @@ PROCESS_THREAD(polypoint_anchor, ev, data) {
 
 
 	dw1000_init();
+	dwt_forcetrxoff();
 	printf("Inited the DW1000 driver (setup SPI)\r\n");
 
 	leds_off(LEDS_ALL);
@@ -309,6 +311,8 @@ PROCESS_THREAD(polypoint_anchor, ev, data) {
 
 	app_init();
 	rtimer_init();
+	watchdog_init();	// Contiki default sets watchdog to 1 s
+	watchdog_start();
 
 	//Reset measurements
 	memset(pp_anc_final_pkt.TOAs, 0, sizeof(pp_anc_final_pkt.TOAs));
@@ -381,6 +385,9 @@ PROCESS_THREAD(polypoint_anchor, ev, data) {
 
 				// Shouldn't be needed, but doesn't hurt
 				set_subsequence_settings(0, ANCHOR);
+
+				// Tickle the watchdog
+				watchdog_periodic();
 
 				// Go for receiving
 				dwt_rxenable(0);

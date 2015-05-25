@@ -39,6 +39,11 @@
 #define TX_ANTENNA_DELAY 0
 
 
+#ifdef DW_DEBUG
+#if WATCHDOG_CONF_ENABLE
+#error Debug will be too slow for the watchdog
+#endif
+#endif
 
 /****************************************************** MEASURED TIMES */
 // n.b. RTIMER_SECOND on this platform has ~33 us precision
