@@ -7,6 +7,7 @@
 #include "dw1000.h"
 #include "dev/ssi.h"
 #include "cpu/cc2538/lpm.h"
+#include "dbg.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -80,7 +81,8 @@ static void compute_results() {
 #ifdef REPORT_PERCENTILE_ONLY
 		// Shortcut the whole thing if we didn't rx a final from this anc
 		if (!global_received_final_from[i]) {
-			printf("XXX ");
+			const unsigned char* s = (unsigned char*) "X ";
+			dbg_send_bytes(s, 2);
 			continue;
 		}
 #else
@@ -157,7 +159,8 @@ static void compute_results() {
 				if ((idx+top) == NUM_MEASUREMENTS) break;
 			}
 			if ((idx+top) == NUM_MEASUREMENTS) {
-				printf("--- ");
+				const unsigned char* s = (unsigned char*) "- ";
+				dbg_send_bytes(s, 2);
 			} else {
 				int perc =
 					dists_times_100[idx+bot] +
