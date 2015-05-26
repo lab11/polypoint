@@ -9,6 +9,13 @@
 #include "cpu/cc2538/lpm.h"
 #include "dbg.h"
 
+#include "net/rime/broadcast.h"
+#include "net/ip/uip.h"
+#include "net/ip/uip-udp-packet.h"
+#include "net/ip/uiplib.h"
+#include "net/ipv6/uip-ds6-route.h"
+#include "net/ipv6/uip-ds6-nbr.h"
+
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
@@ -16,6 +23,20 @@
 #include <math.h>
 
 #include "pp_oneway_common.h"
+
+//#define DEBUG_NET 1
+#if DEBUG_NET
+#include <stdio.h>
+#define PRINTF(...) printf(__VA_ARGS__)
+#define PRINT6ADDR(addr) PRINTF(" %02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x ", ((uint8_t *)addr)[0], ((uint8_t *)addr)[1], ((uint8_t *)addr)[2], ((uint8_t *)addr)[3], ((uint8_t *)addr)[4], ((uint8_t *)addr)[5], ((uint8_t *)addr)[6], ((uint8_t *)addr)[7], ((uint8_t *)addr)[8], ((uint8_t *)addr)[9], ((uint8_t *)addr)[10], ((uint8_t *)addr)[11], ((uint8_t *)addr)[12], ((uint8_t *)addr)[13], ((uint8_t *)addr)[14], ((uint8_t *)addr)[15])
+#define PRINTLLADDR(lladdr) PRINTF(" %02x:%02x:%02x:%02x:%02x:%02x ",lladdr->addr[0], lladdr->addr[1], lladdr->addr[2], lladdr->addr[3],lladdr->addr[4], lladdr->addr[5])
+#else
+#define PRINTF(...)
+#define PRINT6ADDR(addr)
+#endif
+
+#define ADDR_ALL_ROUTERS "ff02::2"
+#define MAX_IPv6_PKT     127
 
 /*---------------------------------------------------------------------------*/
 PROCESS(polypoint_tag, "Polypoint-tag");
@@ -48,6 +69,7 @@ static bool global_received_final_from[NUM_ANCHORS] = {0};
 
 static struct pp_tag_poll pp_tag_poll_pkt;
 
+static struct uip_udp_conn *client_conn;
 
 
 static void insert_sorted(int arr[], int new, unsigned end) {
@@ -75,6 +97,11 @@ static double dwtime_to_dist(double dwtime, unsigned anchor_id, unsigned subseq)
 }
 
 static void compute_results() {
+#ifdef REPORT_PERCENTILE_ONLY
+	static char pkt[MAX_IPv6_PKT];
+	unsigned pkt_offset = 0;
+#endif
+
 	unsigned i;
 	for(i=0; i < NUM_ANCHORS; i++){
 		unsigned j;
@@ -82,7 +109,11 @@ static void compute_results() {
 		// Shortcut the whole thing if we didn't rx a final from this anc
 		if (!global_received_final_from[i]) {
 			const unsigned char* s = (unsigned char*) "X ";
+#ifdef REPORT_PERCENTILE_VIA_UART
 			dbg_send_bytes(s, 2);
+#endif
+			memcpy(pkt+pkt_offset, s, 2);
+			pkt_offset += 2;
 			continue;
 		}
 #else
@@ -162,12 +193,19 @@ static void compute_results() {
 			if (dists_times_100[top] == MAX_VALID_RANGE_IN_CM) {
 				// Not enough valid ranges
 				const unsigned char* s = (unsigned char*) "- ";
+#ifdef REPORT_PERCENTILE_VIA_UART
 				dbg_send_bytes(s, 2);
+#endif
+				memcpy(pkt+pkt_offset, s, 2);
+				pkt_offset += 2;
 			} else {
 				int perc =
 					dists_times_100[bot] +
 					dists_times_100[top] * (NUM_MEASUREMENTS*TARGET_PERCENTILE - (float) bot);
+#ifdef REPORT_PERCENTILE_VIA_UART
 				printf("%d.%d ", perc/100, perc%100);
+#endif
+				pkt_offset += sprintf(pkt, "%d.%d ", perc/100, perc%100);
 			}
 			DEBUG_B6_HIGH;
 		}
@@ -180,10 +218,17 @@ static void compute_results() {
 #endif // SORT_MEASUREMENTS
 	}
 #ifdef REPORT_PERCENTILE_ONLY
+#ifdef REPORT_PERCENTILE_VIA_UART
 	printf("\r\n");
+#endif
+	pkt[pkt_offset++] = '!';
 #else
 	printf("\r\ndone\r\n");
 #endif
+
+	// Send measurement over radio
+	PRINTF("(pkt: %s)\n", pkt);
+	uip_udp_packet_send(client_conn, pkt, pkt_offset);
 }
 
 static void send_pkt(bool is_final){
@@ -407,6 +452,24 @@ PROCESS_THREAD(polypoint_tag, ev, data) {
 	 *     -- sets state to 0
 	 *
 	 */
+
+	static uip_ipaddr_t dest_addr;
+
+	// Setup the destination address
+	uiplib_ipaddrconv(ADDR_ALL_ROUTERS, &dest_addr);
+
+	// Setup a udp "connection"
+	client_conn = udp_new(&dest_addr, UIP_HTONS(3000), NULL);
+	if (client_conn == NULL) {
+		// Too many udp connections
+		// not sure how to exit...stupid contiki
+	}
+	udp_bind(client_conn, UIP_HTONS(3001));
+
+	PRINTF("Created a connection with the server ");
+	PRINT6ADDR(&client_conn->ripaddr);
+	PRINTF(" local/remote port %u/%u\n",
+			UIP_HTONS(client_conn->lport), UIP_HTONS(client_conn->rport));
 
 	app_init();
 	global_round_num = 0;
