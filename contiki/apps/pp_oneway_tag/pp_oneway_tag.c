@@ -98,7 +98,7 @@ static double dwtime_to_dist(double dwtime, unsigned anchor_id, unsigned subseq)
 
 static void compute_results() {
 #ifdef REPORT_PERCENTILE_ONLY
-	static char pkt[MAX_IPv6_PKT];
+	char pkt[MAX_IPv6_PKT] = {0};
 	unsigned pkt_offset = 0;
 #endif
 
@@ -205,7 +205,7 @@ static void compute_results() {
 #ifdef REPORT_PERCENTILE_VIA_UART
 				printf("%d.%d ", perc/100, perc%100);
 #endif
-				pkt_offset += sprintf(pkt, "%d.%d ", perc/100, perc%100);
+				pkt_offset += sprintf(pkt+pkt_offset, "%d.%d ", perc/100, perc%100);
 			}
 			DEBUG_B6_HIGH;
 		}
