@@ -39,6 +39,8 @@ static bool start_of_new_subseq;
 #define ANCHOR_EUI 1
 #endif
 
+_Static_assert(ANCHOR_EUI <= 10, "Invalid ANCHOR_EUI");
+
 /**************
  * GLOBAL STATE
  */
