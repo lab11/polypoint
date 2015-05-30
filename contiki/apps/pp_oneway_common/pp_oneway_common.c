@@ -6,6 +6,7 @@
 #include "dw1000.h"
 #include "dev/ssi.h"
 #include "cpu/cc2538/lpm.h"
+#include "cpu/cc2538/dev/sys-ctrl.h"
 
 #include <stdint.h>
 #include <string.h>
@@ -318,6 +319,9 @@ int app_dw1000_init (
 	REG(SSI0_BASE + SSI_CR1) = 0;
 	REG(SSI0_BASE + SSI_CPSR) = 2;
 	REG(SSI0_BASE + SSI_CR1) |= SSI_CR1_SSE;
+
+        // Quicken up the IO clock speed
+	REG(SYS_CTRL_CLOCK_CTRL) = SYS_CTRL_CLOCK_CTRL_OSC_PD;
 
 	return 0;
 }

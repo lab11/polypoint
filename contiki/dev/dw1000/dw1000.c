@@ -35,13 +35,11 @@ void usleep (int microseconds) {
 void dw1000_irq_callback (uint8_t port, uint8_t pin) {
   // leds_toggle(LEDS_BLUE);
 
-  GPIO_SET_PIN(GPIO_PORT_TO_BASE(GPIO_B_NUM), GPIO_PIN_MASK(6));
   do {
     dwt_isr();
   } while (GPIO_READ_PIN(GPIO_PORT_TO_BASE(DW1000_IRQ_PORT_NUM), GPIO_PIN_MASK(DW1000_IRQ_PIN))); // while IRQ line active
 
 
-  GPIO_CLR_PIN(GPIO_PORT_TO_BASE(GPIO_B_NUM), GPIO_PIN_MASK(6));
 }
 
 void
