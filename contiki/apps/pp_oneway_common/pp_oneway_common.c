@@ -330,7 +330,9 @@ void set_subsequence_settings(uint8_t subseq_num, int role){
 #ifdef DW_DEBUG
 	//printf("radio conf -> %u\r\n", subseq_num);
 #endif
-        dwt_forcetrxoff();
+	if(role == ANCHOR) {
+        	dwt_forcetrxoff();
+	}
 
 	//Change the channel depending on what subsequence number we're at
 	uint32_t chan = (uint32_t)(subseq_num_to_chan(subseq_num, false));

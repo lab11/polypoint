@@ -29,3 +29,5 @@ and the Contiki repo.
 You also need the DecaWave library for controlling the DW1000. To get this you need to email
 DecaWave and ask because they are a backwards EE company that doesn't know how to sell
 their products. Put the code in the `/lib` folder.
+
+NOTE: Software is currently incompatible with newest contiki SPI drivers.  Use contiki commit 038ee9f82b4dc57eeb86f43af48d6491e788c7ed for now.

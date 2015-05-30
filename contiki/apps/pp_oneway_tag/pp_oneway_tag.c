@@ -332,7 +332,17 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 			DEBUG_P("*** ERR: RX Unknown packet type: 0x%X\r\n", packet_type);
 		}
 	} else {
-		DEBUG_P("*** ERR: rxd->event unknown: 0x%X\r\n", rxd->event);
+        	//If an RX error has occurred, we're gonna need to setup the receiver again 
+        	//  (because dwt_rxreset within dwt_isr smashes everything without regard)
+        	if (rxd->event == DWT_SIG_RX_PHR_ERROR ||
+		    rxd->event == DWT_SIG_RX_ERROR || 
+		    rxd->event == DWT_SIG_RX_SYNCLOSS ||
+		    rxd->event == DWT_SIG_RX_SFDTIMEOUT ||
+		    rxd->event == DWT_SIG_RX_PTOTIMEOUT) {
+			set_subsequence_settings(global_subseq_num, TAG);
+		} else {
+			DEBUG_P("*** ERR: rxd->event unknown: 0x%X\r\n", rxd->event);
+		}
 	}
 	DEBUG_B6_LOW;
 }
