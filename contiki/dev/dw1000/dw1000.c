@@ -354,17 +354,17 @@ int portGetTickCount () {
 // "Mutex" functions
 // Disable the DW1000 interrupt if it is on
 decaIrqStatus_t decamutexon (void) {
-  // if (dw1000_irq_onoff == 1) {
-  //   GPIO_DISABLE_INTERRUPT(GPIO_PORT_TO_BASE(DW1000_IRQ_PORT_NUM), GPIO_PIN_MASK(DW1000_IRQ_PIN));
-  //   dw1000_irq_onoff = 0;
-  //   return 1;
-  // }
+  if (dw1000_irq_onoff == 1) {
+    GPIO_DISABLE_INTERRUPT(GPIO_PORT_TO_BASE(DW1000_IRQ_PORT_NUM), GPIO_PIN_MASK(DW1000_IRQ_PIN));
+    dw1000_irq_onoff = 0;
+    return 1;
+  }
   return 0;
 }
 
 void decamutexoff (decaIrqStatus_t s) {
-  // if (s) {
-  //   GPIO_ENABLE_INTERRUPT(GPIO_PORT_TO_BASE(DW1000_IRQ_PORT_NUM), GPIO_PIN_MASK(DW1000_IRQ_PIN));
-  //   dw1000_irq_onoff = 1;
-  // }
+  if (s) {
+    GPIO_ENABLE_INTERRUPT(GPIO_PORT_TO_BASE(DW1000_IRQ_PORT_NUM), GPIO_PIN_MASK(DW1000_IRQ_PIN));
+    dw1000_irq_onoff = 1;
+  }
 }
