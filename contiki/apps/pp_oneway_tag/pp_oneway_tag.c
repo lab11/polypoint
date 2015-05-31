@@ -203,9 +203,9 @@ static void compute_results() {
 					dists_times_100[bot] +
 					(dists_times_100[top] - dists_times_100[bot]) * (NUM_MEASUREMENTS*TARGET_PERCENTILE - (float) bot);
 #ifdef REPORT_PERCENTILE_VIA_UART
-				printf("%d.%d ", perc/100, perc%100);
+				printf("%d.%02d ", perc/100, perc%100);
 #endif
-				pkt_offset += sprintf(pkt+pkt_offset, "%d.%d ", perc/100, perc%100);
+				pkt_offset += sprintf(pkt+pkt_offset, "%d.%02d ", perc/100, perc%100);
 			}
 			DEBUG_B6_HIGH;
 		}
