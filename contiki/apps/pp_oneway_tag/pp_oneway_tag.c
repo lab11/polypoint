@@ -500,9 +500,12 @@ PROCESS_THREAD(polypoint_tag, ev, data) {
 	global_subseq_num = 0;
 	set_subsequence_settings(0, TAG);
 
+	// Tickle the watchdog
+	watchdog_periodic();
+
 	// Kickstart things at the beginning of the loop
 	rtimer_init();
-	rtimer_set(&subsequence_timer, RTIMER_NOW() + RTIMER_SECOND, 1,
+	rtimer_set(&subsequence_timer, RTIMER_NOW() + US_TO_RT(10000), 1,
 			(rtimer_callback_t)subsequence_task, NULL);
 
 	DEBUG_B4_INIT;
