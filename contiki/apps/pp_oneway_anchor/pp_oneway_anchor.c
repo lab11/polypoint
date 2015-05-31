@@ -270,6 +270,10 @@ PROCESS_THREAD(polypoint_anchor, ev, data) {
 
 	leds_on(LEDS_ALL);
 
+	// Watchdog first thing to avoid "purple" state?
+	watchdog_init();	// Contiki default sets watchdog to 1 s
+	watchdog_start();
+
 	//Keep things from going to sleep
 	lpm_set_max_pm(0);
 
@@ -324,8 +328,6 @@ PROCESS_THREAD(polypoint_anchor, ev, data) {
 
 	app_init();
 	rtimer_init();
-	watchdog_init();	// Contiki default sets watchdog to 1 s
-	watchdog_start();
 
 	//Reset measurements
 	memset(pp_anc_final_pkt.TOAs, 0, sizeof(pp_anc_final_pkt.TOAs));
