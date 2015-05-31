@@ -188,9 +188,18 @@ static void compute_results() {
 #ifdef REPORT_PERCENTILE_ONLY
 		{
 			DEBUG_B6_LOW;
-			const unsigned bot = NUM_MEASUREMENTS*TARGET_PERCENTILE;
-			const unsigned top = NUM_MEASUREMENTS*TARGET_PERCENTILE+1;
-			if (dists_times_100[top] == MAX_VALID_RANGE_IN_CM) {
+			unsigned num_valid = 0;
+			int k;
+			for (k=0; k < NUM_MEASUREMENTS; k++) {
+				if (dists_times_100[k] < MAX_VALID_RANGE_IN_CM) {
+					num_valid++;
+				} else {
+					// Can safely break b/c dists_times_100 is sorted
+					break;
+				}
+			}
+
+			if (num_valid < MINIMUM_MEASUREMENTS_PER_ANCHOR) {
 				// Not enough valid ranges
 				const unsigned char* s = (unsigned char*) "- ";
 #ifdef REPORT_PERCENTILE_VIA_UART
@@ -199,6 +208,8 @@ static void compute_results() {
 				memcpy(pkt+pkt_offset, s, 2);
 				pkt_offset += 2;
 			} else {
+				unsigned bot = num_valid*TARGET_PERCENTILE;
+				unsigned top = num_valid*TARGET_PERCENTILE+1;
 				int perc =
 					dists_times_100[bot] +
 					(dists_times_100[top] - dists_times_100[bot]) * (NUM_MEASUREMENTS*TARGET_PERCENTILE - (float) bot);

@@ -37,6 +37,12 @@
 #define NUM_CHANNELS 3
 #define NUM_MEASUREMENTS (NUM_ANTENNAS*NUM_ANTENNAS*NUM_CHANNELS)
 
+// This controls the minimum number of measurements per anchor that must be
+// received for a range event with that anchor to be considered valid. It only
+// affects the REPORT_PERCENTILE_ONLY case
+#define MINIMUM_MEASUREMENTS_PER_ANCHOR 10
+_Static_assert(MINIMUM_MEASUREMENTS_PER_ANCHOR <= NUM_MEASUREMENTS, "Impossible number of measurements");
+
 // Range estimates that fall outside this range are thrown away to speed up processing
 #define MIN_VALID_RANGE_IN_CM -100
 #define MAX_VALID_RANGE_IN_CM (50*100)
