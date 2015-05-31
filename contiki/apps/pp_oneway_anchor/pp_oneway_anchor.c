@@ -204,15 +204,16 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 void app_init() {
 	DEBUG_P("\r\n### APP INIT\r\n");
 
-	int err = app_dw1000_init(ANCHOR, ANCHOR_EUI, app_dw1000_txcallback, app_dw1000_rxcallback);
-	if (err == -1) {
-		leds_on(LEDS_RED);
-		DEBUG_P("--- Err init'ing DW. Trying again\r\n");
-		clock_delay_usec(1e3); // sleep for a millisecond before trying again
-		return app_init();
-	} else {
-		leds_off(LEDS_RED);
-	}
+	int err = 0;
+	do {
+		if (err == -1) {
+			leds_on(LEDS_RED);
+			DEBUG_P("--- Err init'ing DW. Trying again\r\n");
+			clock_delay_usec(1e3); // sleep for a millisecond before trying again
+		}
+		err = app_dw1000_init(ANCHOR, ANCHOR_EUI, app_dw1000_txcallback, app_dw1000_rxcallback);
+	} while (err == -1);
+	leds_off(LEDS_RED);
 
 	// Setup the constants in the outgoing packet
 	pp_anc_final_pkt.header.frameCtrl[0] = 0x41; // data frame, ack req, panid comp
