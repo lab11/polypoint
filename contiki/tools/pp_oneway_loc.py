@@ -104,12 +104,12 @@ def get_measurements(port):
         if line[-1] == '!':
             # If the line ends in ! assume we are in the %ile only case
             meas = []
-            for m in line.split:
+            for m in line.split():
                 if '.' in m:
                     meas.append(parse_measurement(m))
                 else:
                     meas.append(0.0)
-            break
+            yield meas
         elif line[0] == '[':
             raise NotImplementedError("Don't currently parse DW_DEBUG output")
         else:
