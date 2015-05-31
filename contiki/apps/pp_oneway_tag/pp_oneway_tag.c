@@ -155,15 +155,14 @@ static void compute_results() {
 		*/
 
 		// ancTOA = tagSent + twToF + offset
-		double anc_tag_dw_offset = tRF - tSF*anchor_over_tag - tTOF;
 
 #ifdef SORT_MEASUREMENTS
 		int dists_times_100[NUM_MEASUREMENTS] = {0};
 #endif
 		for (j=0; j < NUM_MEASUREMENTS; j++) {
-			double AA = (double)(global_anchor_TOAs[i][j]);
-			double PS = (double)(global_poll_send_times[j]);
-			double ToF = AA - PS*anchor_over_tag - anc_tag_dw_offset;
+			double AA = (double)(global_anchor_TOAs[i][j]-global_anchor_TOAs[i][0]);
+			double PS = (double)(global_poll_send_times[j]-global_poll_send_times[0]);
+			double ToF = AA - PS*anchor_over_tag + tTOF;
 			double dist = dwtime_to_dist(ToF, i+1, j);
 #ifdef SORT_MEASUREMENTS
 			int dist_times_100 = (int)(dist*100);
@@ -202,7 +201,7 @@ static void compute_results() {
 			} else {
 				int perc =
 					dists_times_100[bot] +
-					dists_times_100[top] * (NUM_MEASUREMENTS*TARGET_PERCENTILE - (float) bot);
+					(dists_times_100[top] - dists_times_100[bot]) * (NUM_MEASUREMENTS*TARGET_PERCENTILE - (float) bot);
 #ifdef REPORT_PERCENTILE_VIA_UART
 				printf("%d.%d ", perc/100, perc%100);
 #endif
