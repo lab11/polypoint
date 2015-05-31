@@ -38,16 +38,16 @@ NUM_MEASUREMENTS = NUM_ANTENNAS*NUM_ANTENNAS*NUM_CHANNELS
 #    [15.713-0.055, 25.233-12.338, 1.394]
 #]);
 ANCHOR_POSITIONS = np.matrix([
-    [28.981, 15.296, 2.517],
-    [35.766, 42.256, 1.905],
-    [35.417, 0.054, 2.203],
-    [15.072, 15.213, 2.091],
-    [16.531, 0.054, 2.227],
-    [29.123, 34.708, 2.597],
-    [0.999, 4.027, 2.238],
-    [38.982, 33.845, 2.105],
-    [39.372, 8.606, 1.970],
-    [53.010, -0.076, 2.249]
+    [15.236,    0.502,  2], #1
+    [9.470,     0.502,  2], #2
+    [3.856,     0.502,  2], #3
+    [9.700,     12.526, 2], #8
+    [0.055,     8.228,  2], #5
+    [0.055,     12.955, 2], #6
+    [3.863,     12.526, 2], #7
+    [0.055,     4.063,  2], #4
+    [19.488,    10.957, 2.5], #9
+    [19.488,    8.227,  2.5], #10
 ]);
 
 def location_optimize(x,anchor_ranges,anchor_locations):
@@ -215,7 +215,7 @@ if __name__ == "__main__":
     #Wait for comment indicating restart condition
     tag_position=np.array([0, 0, 0])
     while True:
-            ranges = measurements.next()
+            ranges = np.array(measurements.next()) / 2
 
             #Perform trilateration processing on all received data
             sorted_ranges = np.sort(ranges)
@@ -255,6 +255,7 @@ if __name__ == "__main__":
                 print("SUCCESS: Enough valid ranges to perform localization...")
                 loc_anchor_positions = ANCHOR_POSITIONS[sorted_range_idxs[first_valid_idx:last_valid_idx]]
                 loc_anchor_ranges = sorted_ranges[first_valid_idx:last_valid_idx]
+                print(loc_anchor_positions)
                 print("loc_anchor_ranges = {}".format(loc_anchor_ranges))
                 tag_position = fmin_bfgs(
                     f=location_optimize, 
