@@ -8,6 +8,7 @@
 #include "dev/ssi.h"
 #include "cpu/cc2538/lpm.h"
 #include "dbg.h"
+#include "dev/watchdog.h"
 
 #include "net/rime/broadcast.h"
 #include "net/ip/uip.h"
@@ -421,6 +422,9 @@ PROCESS_THREAD(polypoint_tag, ev, data) {
 
 	leds_on(LEDS_ALL);
 
+	watchdog_init();	// Contiki default sets watchdog to 1 s
+	watchdog_start();
+
 	//Keep things from going to sleep
 	lpm_set_max_pm(0);
 
@@ -563,6 +567,9 @@ PROCESS_THREAD(polypoint_tag, ev, data) {
 				memset(global_received_final_from, 0, sizeof(global_received_final_from));
 
 				global_subseq_num = 0;
+
+				// Tickle the watchdog
+				watchdog_periodic();
 
 #ifdef INTERVAL_DELAY_US
 				rtimer_set(
