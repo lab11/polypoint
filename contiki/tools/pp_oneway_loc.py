@@ -101,8 +101,10 @@ def get_line(port):
                     continue
                 if ':' in line:
                     # Handle timestamp if present
-                    line = line.split(':')[1].strip()
-                yield line.strip()
+                    ts,meas = line.split(':')
+                    yield (ts.strip(), meas.strip())
+                else:
+                    yield line.strip()
             break
         if len(cur_line) == 0:
             continue
@@ -123,6 +125,10 @@ def get_measurements(port):
 
     while True:
         line = lines.next()
+        try:
+            ts, line = line
+        except ValueError:
+            ts = None
 
         if line[-1] == '!':
             # If the line ends in ! assume we are in the %ile only case
@@ -134,7 +140,7 @@ def get_measurements(port):
                     meas.append(parse_measurement(m))
                 else:
                     meas.append(0.0)
-            yield meas
+            yield ts, meas
         elif line[0] == '[':
             raise NotImplementedError("Don't currently parse DW_DEBUG output")
         else:
@@ -179,7 +185,7 @@ def get_measurements(port):
                         else:
                             meas.append(0.0)
 
-                    yield meas
+                    yield ts, meas
                     break
 
 try:
@@ -237,12 +243,19 @@ if __name__ == "__main__":
     else:
         log.info("Reading from serial port at " + args.port)
 
+    # TODO: Make arg
+    ofile = open('log.txt', 'w')
+
     measurements = get_measurements(args.port)
 
     #Wait for comment indicating restart condition
     tag_position=np.array([0, 0, 0])
     while True:
             meas = measurements.next()
+            try:
+                ts, meas = meas
+            except ValueError:
+                ts = None
             ranges = np.array(meas)
 
             #Perform trilateration processing on all received data
@@ -299,5 +312,10 @@ if __name__ == "__main__":
                     args=(loc_anchor_ranges, loc_anchor_positions)
                 )
 
-            print("{} {} {}".format(tag_position[0], tag_position[1], tag_position[2]))
+            if ts:
+                print("{} {} {} {}".format(ts, tag_position[0], tag_position[1], tag_position[2]))
+                ofile.write("{} {} {} {}\n".format(ts, tag_position[0], tag_position[1], tag_position[2]))
+            else:
+                print("{} {} {}".format(tag_position[0], tag_position[1], tag_position[2]))
+                ofile.write("{} {} {}\n".format(tag_position[0], tag_position[1], tag_position[2]))
 
