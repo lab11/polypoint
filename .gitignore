@@ -5,6 +5,9 @@ __pycache__/
 # C extensions
 *.so
 
+# Editor swap files
+*.sw*
+
 # Distribution / packaging
 .Python
 env/
