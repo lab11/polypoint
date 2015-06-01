@@ -240,11 +240,11 @@ if __name__ == "__main__":
                 first_valid_idx = first_valid_idx[0]
             else:
                 first_valid_idx = NUM_ANCHORS
-            last_valid_idx = first_valid_idx + 3
+            last_valid_idx = NUM_ANCHORS
 
             #Make sure we have enough valid ranges to get a good fix on position (3)
             num_valid_anchors = sorted_ranges.size - first_valid_idx
-            print("Seeing {} anchors",NUM_ANCHORS-first_valid_idx)
+            print("Seeing {} anchors (from {}-{})".format(num_valid_anchors, first_valid_idx, last_valid_idx))
             if(num_valid_anchors == 0):
                 print("ERROR: Zero anchors this time... ")
                 print("Guessing last location: {}".format(tag_position))
@@ -262,7 +262,7 @@ if __name__ == "__main__":
                     args=(loc_anchor_ranges, loc_anchor_positions)
                 )
                 tag_position = np.append(tag_position,2)
-                print("Tag position: {}".format(tag_position))
+                #print("Tag position: {}".format(tag_position))
             else:
                 print("SUCCESS: Enough valid ranges to perform localization...")
                 loc_anchor_positions = ANCHOR_POSITIONS[sorted_range_idxs[first_valid_idx:last_valid_idx]]
@@ -274,5 +274,6 @@ if __name__ == "__main__":
                     x0=tag_position,
                     args=(loc_anchor_ranges, loc_anchor_positions)
                 )
-                print("Tag position: {}".format(tag_position))
+                print("Tag position: {} {} {}".format(tag_position[0], tag_position[1], tag_position[2]))
+                #print("Tag position: {}".format(tag_position))
 
