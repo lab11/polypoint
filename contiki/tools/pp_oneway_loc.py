@@ -85,7 +85,11 @@ def get_line(port):
             cur_line = cur_line.decode("utf-8")
             cur_line = cur_line.strip()
         else:
-            cur_line = sys.stdin.readline().strip()
+            # Note: This won't handler EOF correctly:
+            #cur_line = sys.stdin.readline().strip()
+            for line in iter(sys.stdin.readline, ''):
+                yield line.strip()
+            break
         if len(cur_line) == 0:
             continue
         yield cur_line
@@ -110,7 +114,9 @@ def get_measurements(port):
             # If the line ends in ! assume we are in the %ile only case
             meas = []
             for m in line.split():
-                if '.' in m:
+                if m == '!':
+                    break
+                elif '.' in m:
                     meas.append(parse_measurement(m))
                 else:
                     meas.append(0.0)
@@ -220,7 +226,8 @@ if __name__ == "__main__":
     #Wait for comment indicating restart condition
     tag_position=np.array([0, 0, 0])
     while True:
-            ranges = np.array(measurements.next()) / 2
+            meas = measurements.next()
+            ranges = np.array(meas)
 
             #Perform trilateration processing on all received data
             sorted_ranges = np.sort(ranges)
