@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+import logging
+log = logging.getLogger(__name__)
+#logging.basicConfig(level=logging.DEBUG)
+
 import sys
 import argparse
 import os
@@ -140,12 +144,12 @@ def get_measurements(port):
             while True:
                 line = lines.next()
                 if line == 'done':
-                    print("WARN: Premature 'done' message, skipping measurement")
+                    log.warn("WARN: Premature 'done' message, skipping measurement")
                     break
 
                 ranges[i] = map(parse_measurement, line.split())
                 if len(ranges) != NUM_MEASUREMENTS:
-                    print("WARN: Measurement with too few ranges, skipping.  Had", len(ranges))
+                    log.warn("WARN: Measurement with too few ranges, skipping.  Had", len(ranges))
                     break
 
                 i += 1
@@ -154,12 +158,12 @@ def get_measurements(port):
                 if i < 10:
                     expect = 'tagstart {}'.format(i)
                     if line != expect:
-                        print("WARN: expected {} got {}. Skipping measurement".\
+                        log.warn("WARN: expected {} got {}. Skipping measurement".\
                                         format(expect, line))
                         break
                 else:
                     if line != 'done':
-                        print("WARN: expected {} got {}. Skipping measurement".\
+                        log.warn("WARN: expected {} got {}. Skipping measurement".\
                                         format('done', line))
                         break
 
@@ -220,12 +224,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--port', default=port_name,
             help="Specify a port (use '-' for stdin)")
+    parser.add_argument('-a', '--always-report-range', action='store_true', default=False,
+            help="Always print an estimate even if there aren't enough ranges")
     args = parser.parse_args()
 
     if args.port == '-':
-        print("Reading from stdin (probably want ./PolyPointReceive | ./" + sys.argv[0])
+        log.info("Reading from stdin (probably want ./PolyPointReceive | ./" + sys.argv[0])
     else:
-        print("Reading from serial port at " + args.port)
+        log.info("Reading from serial port at " + args.port)
 
     measurements = get_measurements(args.port)
 
@@ -250,36 +256,44 @@ if __name__ == "__main__":
 
             #Make sure we have enough valid ranges to get a good fix on position (3)
             num_valid_anchors = sorted_ranges.size - first_valid_idx
-            print("Seeing {} anchors (from {}-{})".format(num_valid_anchors, first_valid_idx, last_valid_idx))
+            log.debug("Seeing {} anchors (from {}-{})".format(num_valid_anchors, first_valid_idx, last_valid_idx))
             if(num_valid_anchors == 0):
-                print("ERROR: Zero anchors this time... ")
-                print("Guessing last location: {}".format(tag_position))
+                if args.always_report_range:
+                    log.warn("Zero anchors this time... (guessing last)")
+                else:
+                    continue
             elif(num_valid_anchors == 1):
-                print("WARNING: ONLY ONE ANCHOR...")
-                print("Guessing last location: {}".format(tag_position))
+                if args.always_report_range:
+                    log.warn("ONLY ONE ANCHOR... (guessing last)")
+                else:
+                    continue
             elif(num_valid_anchors == 2):
-                print("WARNING: ONLY TWO ANCHORS...")
-                loc_anchor_positions = ANCHOR_POSITIONS[sorted_range_idxs[first_valid_idx:last_valid_idx]]
-                loc_anchor_ranges = sorted_ranges[first_valid_idx:last_valid_idx]
-                print("loc_anchor_ranges = {}".format(loc_anchor_ranges))
-                tag_position = fmin_bfgs(
-                    f=location_optimize, 
-                    x0=tag_position[0:2],
-                    args=(loc_anchor_ranges, loc_anchor_positions)
-                )
-                tag_position = np.append(tag_position,2)
-                #print("Tag position: {}".format(tag_position))
+                if args.always_report_range:
+                    log.debug("WARNING: ONLY TWO ANCHORS...")
+                    loc_anchor_positions = ANCHOR_POSITIONS[sorted_range_idxs[first_valid_idx:last_valid_idx]]
+                    loc_anchor_ranges = sorted_ranges[first_valid_idx:last_valid_idx]
+                    log.debug("loc_anchor_ranges = {}".format(loc_anchor_ranges))
+                    tag_position = fmin_bfgs(
+                        f=location_optimize, 
+                        x0=tag_position[0:2],
+                        args=(loc_anchor_ranges, loc_anchor_positions)
+                    )
+                    tag_position = np.append(tag_position,2)
+                else:
+                    continue
             else:
-                print("SUCCESS: Enough valid ranges to perform localization...")
+                log.debug("SUCCESS: Enough valid ranges to perform localization...")
                 loc_anchor_positions = ANCHOR_POSITIONS[sorted_range_idxs[first_valid_idx:last_valid_idx]]
                 loc_anchor_ranges = sorted_ranges[first_valid_idx:last_valid_idx]
-                print(loc_anchor_positions)
-                print("loc_anchor_ranges = {}".format(loc_anchor_ranges))
+                log.debug(loc_anchor_positions)
+                log.debug("loc_anchor_ranges = {}".format(loc_anchor_ranges))
+                disp = True if log.isEnabledFor(logging.DEBUG) else False
                 tag_position = fmin_bfgs(
+                    disp=disp,
                     f=location_optimize, 
                     x0=tag_position,
                     args=(loc_anchor_ranges, loc_anchor_positions)
                 )
-                print("Tag position: {} {} {}".format(tag_position[0], tag_position[1], tag_position[2]))
-                #print("Tag position: {}".format(tag_position))
+
+            print("{} {} {}".format(tag_position[0], tag_position[1], tag_position[2]))
 
