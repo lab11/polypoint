@@ -496,8 +496,10 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
                     //double dist = (tTOF * (double) DWT_TIME_UNITS) * 0.5;
                     dist *= SPEED_OF_LIGHT;
                     //double range_bias = 0.0;//dwt_getrangebias(global_chan, (float) dist, DWT_PRF_64M);
+#ifndef DW_CAL_TRX_DELAY
                     dist += ANCHOR_CAL_LEN;
                     dist -= txDelayCal[ANCHOR_EUI*NUM_CHANNELS + subseq_num_to_chan(global_subseq_num, true)];
+#endif
                     #ifdef DW_DEBUG
                         printf("dist*100 = %d\r\n", (int)(dist*100));
                         //printf("range_bias*100 = %d\r\n", (int)(range_bias*100));
