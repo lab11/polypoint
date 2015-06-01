@@ -350,6 +350,7 @@ PROCESS_THREAD(polypoint_anchor, ev, data) {
 		PROCESS_YIELD_UNTIL(ev == PROCESS_EVENT_POLL);
 
 		if (! (subsequence_timer_fired ^ substate_timer_fired) ) {
+			leds_toggle(LEDS_GREEN);
 			DEBUG_P("Timer mismatch. Everything's probably fucked.\r\n");
 			DEBUG_P("subsequence_timer: %d\r\n", subsequence_timer_fired);
 			DEBUG_P("   substate_timer: %d\r\n", substate_timer_fired);
