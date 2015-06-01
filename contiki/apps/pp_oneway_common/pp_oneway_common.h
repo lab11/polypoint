@@ -27,7 +27,7 @@
 
 #define ANCHOR_CAL_LEN (0.914-0.18) //0.18 is post-over-air calibration
 
-#define NUM_ANCHORS 10
+#define NUM_ANCHORS 18
 
 #define DW1000_PANID 0xD100
 
@@ -170,7 +170,7 @@ _Static_assert(MINIMUM_MEASUREMENTS_PER_ANCHOR <= NUM_MEASUREMENTS, "Impossible 
 	)
 
 
-extern const double txDelayCal[11*3];
+extern const double txDelayCal[(1+NUM_ANCHORS)*3];
 
 struct ieee154_header {
 	uint8_t frameCtrl[2];                             //  frame control bytes 00-01

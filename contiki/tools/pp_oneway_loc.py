@@ -3,6 +3,7 @@
 import logging
 log = logging.getLogger(__name__)
 #logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig()
 
 import sys
 import argparse
@@ -13,7 +14,7 @@ import traceback
 
 from scipy.optimize import fmin_bfgs
 
-NUM_ANCHORS = 10
+NUM_ANCHORS = 18
 NUM_ANTENNAS = 3
 NUM_CHANNELS = 3
 NUM_MEASUREMENTS = NUM_ANTENNAS*NUM_ANTENNAS*NUM_CHANNELS
@@ -53,6 +54,11 @@ ANCHOR_POSITIONS = np.matrix([
     [0.055,     4.063,  2], # pos4
     [0.055,     8.228,  2], # pos5
 ]);
+
+if NUM_ANCHORS > len(ANCHOR_POSITIONS):
+	log.warn("More anchors than known posistions")
+	log.warn("If a packet is received from an anchor without a known position,")
+	log.warn("this script will currently die")
 
 # Positions not currently occupied by an anchor
 #    [9.700,     12.526, 2],   # pos8
@@ -257,6 +263,8 @@ if __name__ == "__main__":
             except ValueError:
                 ts = None
             ranges = np.array(meas)
+
+            log.debug("got meas: %s", ranges)
 
             #Perform trilateration processing on all received data
             sorted_ranges = np.sort(ranges)
