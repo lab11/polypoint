@@ -88,6 +88,12 @@ def get_line(port):
             # Note: This won't handler EOF correctly:
             #cur_line = sys.stdin.readline().strip()
             for line in iter(sys.stdin.readline, ''):
+                if '#' in line:
+                    # Ignore lines with '# Corrupted packet.'
+                    continue
+                if ':' in line:
+                    # Handle timestamp if present
+                    line = line.split(':')[1].strip()
                 yield line.strip()
             break
         if len(cur_line) == 0:
