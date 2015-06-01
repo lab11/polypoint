@@ -523,6 +523,13 @@ PROCESS_THREAD(polypoint_tag, ev, data) {
 			DEBUG_P("Timer mismatch. Everything's probably fucked.\r\n");
 			DEBUG_P("subsequence_timer: %d\r\n", subsequence_timer_fired);
 			DEBUG_P("   substate_timer: %d\r\n", substate_timer_fired);
+
+			// Trigger self-reset in this case; from ARM:
+			// http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dai0321a/BIHDHCGJ.html
+			asm("DSB;");
+			asm("CPSID I;");
+			REG(0xE000ED0C) = 0x05FA0004;
+			asm("B .");
 		}
 
 		if(global_subseq_num < NUM_MEASUREMENTS) {
