@@ -92,6 +92,10 @@ def get_line(port):
             # Note: This won't handler EOF correctly:
             #cur_line = sys.stdin.readline().strip()
             for line in iter(sys.stdin.readline, ''):
+                if 'Bringing' in line:
+                    continue
+                if 'SIGINT' in line:
+                    continue
                 if '#' in line:
                     # Ignore lines with '# Corrupted packet.'
                     continue
