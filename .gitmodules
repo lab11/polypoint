@@ -1,0 +1,3 @@
+[submodule "contiki/lib/decawave"]
+	path = contiki/lib/decawave
+	url = https://github.com/lab11/dw1000-driver
