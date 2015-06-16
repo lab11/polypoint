@@ -189,6 +189,7 @@ int app_dw1000_init (
 			DWT_INT_RXPTO |
 			DWT_INT_SFDT, 1);
 	*/
+	dwt_setinterrupt(0xFFFFFFFF, 0);
 	dwt_setinterrupt(
 			DWT_INT_TFRS |
 			DWT_INT_RFCG |
@@ -333,7 +334,7 @@ int app_dw1000_init (
 
 	// Make it fast
 	REG(SSI0_BASE + SSI_CR1) = 0;
-	REG(SSI0_BASE + SSI_CPSR) = 2;
+	REG(SSI0_BASE + SSI_CPSR) = 4;
 	REG(SSI0_BASE + SSI_CR1) |= SSI_CR1_SSE;
 
         // Quicken up the IO clock speed
@@ -342,7 +343,7 @@ int app_dw1000_init (
 	return 0;
 }
 
-void set_subsequence_settings(uint8_t subseq_num, int role){
+void set_subsequence_settings(uint8_t subseq_num, int role, bool force_config_reset){
 #ifdef DW_DEBUG
 	//printf("radio conf -> %u\r\n", subseq_num);
 #endif
@@ -353,14 +354,17 @@ void set_subsequence_settings(uint8_t subseq_num, int role){
 	//Change the channel depending on what subsequence number we're at
 	uint32_t chan = (uint32_t)(subseq_num_to_chan(subseq_num, false));
 	global_ranging_config.chan = (uint8_t)chan;
-	dwt_configure(&global_ranging_config, 0);//(DWT_LOADANTDLY | DWT_LOADXTALTRIM));
-	dwt_setsmarttxpower(global_ranging_config.smartPowerEn);
-	global_tx_config.PGdly = pgDelay[global_ranging_config.chan];
-	global_tx_config.power = txPower[global_ranging_config.chan];
-	dwt_configuretxrf(&global_tx_config);
-	dwt_setrxantennadelay(0);
-	dwt_settxantennadelay(0);
-
+	if(force_config_reset) {
+		dwt_configure(&global_ranging_config, 0);//(DWT_LOADANTDLY | DWT_LOADXTALTRIM));
+		dwt_setsmarttxpower(global_ranging_config.smartPowerEn);
+		global_tx_config.PGdly = pgDelay[global_ranging_config.chan];
+		global_tx_config.power = txPower[global_ranging_config.chan];
+		dwt_configuretxrf(&global_tx_config);
+		dwt_setrxantennadelay(0);
+		dwt_settxantennadelay(0);
+	} else {
+		dwt_setchannel(&global_ranging_config, 0);
+	}
 
 	//Change what antenna we're listening on
 	uint8_t ant_sel;

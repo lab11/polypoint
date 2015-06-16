@@ -69,7 +69,7 @@ _Static_assert(MINIMUM_MEASUREMENTS_PER_ANCHOR <= NUM_MEASUREMENTS, "Impossible 
 
 #define ANC_RX_AND_PROCESS_TAG_POLL_US	120  // 16mhz: meas 119.8; 8mhz: 220, measured 213.8 SFD -> done
 
-#define ANC_FINAL_RX_PKT_TIME_US	256  // slow SPI RX @ 16mhz: 427  // 8mhz: 820
+#define ANC_FINAL_RX_PKT_TIME_US	398  // 8mhz: 398; 16mhz: 256
 #define ANC_FINAL_RX_PKT_MEMCPY_TIME_US	 79  // 8mhz: 120
 #define ANC_FINAL_RX_PKT_PRINTF_TIME_US	150
 #define ANC_FINAL_RX_PKT_GUARD_US	100
@@ -146,9 +146,9 @@ _Static_assert(MINIMUM_MEASUREMENTS_PER_ANCHOR <= NUM_MEASUREMENTS, "Impossible 
 	 (uint32_t) ( ((_microsecu) / (double) DWT_TIME_UNITS) / 1e6 )\
 	)
 // uint32_t delay_time = temp + (APP_US_TO_DEVICETIMEU32(TAG_SEND_POLL_DELAY_US) >> 8);
-#define SPI_US_PER_BYTE		0.47	// 1.18 @ 8mhz
-#define SPI_US_BETWEEN_BYTES	0.30	// didn't have this at 8mhz; annoying inconsistent
-#define SPI_SLACK_US		150	// 200 @ 8mhz
+#define SPI_US_PER_BYTE		0.94	// 0.94 @ 8mhz, 0.47 @ 16mhz
+#define SPI_US_BETWEEN_BYTES	0.25	// 0.25 @ 8mhz, 0.30 @ 16mhz
+#define SPI_SLACK_US		200	// 200 @ 8mhz, 150 @ 16mhz
 #define DW_DELAY_FROM_PKT_LEN(_len)\
 	(\
 	 APP_US_TO_DEVICETIMEU32(\
@@ -207,7 +207,7 @@ _Static_assert(offsetof(struct pp_tag_poll, message_type) == offsetof(struct pp_
 
 
 uint8_t subseq_num_to_chan(uint8_t subseq_num, bool return_channel_index);
-void set_subsequence_settings(uint8_t subseq_num, int role);
+void set_subsequence_settings(uint8_t subseq_num, int role, bool force_config_reset);
 int app_dw1000_init (
 		int HACK_role,
 		int HACK_EUI,

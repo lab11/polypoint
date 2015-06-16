@@ -193,7 +193,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 		    rxd->event == DWT_SIG_RX_SYNCLOSS ||
 		    rxd->event == DWT_SIG_RX_SFDTIMEOUT ||
 		    rxd->event == DWT_SIG_RX_PTOTIMEOUT) {
-			set_subsequence_settings(global_subseq_num, ANCHOR);
+			set_subsequence_settings(global_subseq_num, ANCHOR, true);
 		} else {
 			DEBUG_P("*** ERR: rxd->event unknown: 0x%X\r\n", rxd->event);
 		}
@@ -230,38 +230,52 @@ void app_init() {
 
 
 static char subsequence_task(struct rtimer *rt, void* ptr){
+	bool set_timer = true;
 	// (fwd decl'd) static bool start_of_new_subseq;
 	rtimer_clock_t now = RTIMER_NOW();
 	rtimer_clock_t set_to;
-	bool set_timer = true;
 
-	if (start_of_new_subseq) {
-		start_of_new_subseq = false;
-		subseq_start_time = now;
-		subsequence_timer_fired = true;
-
-		if (global_subseq_num < NUM_MEASUREMENTS) {
-			set_to = subseq_start_time + US_TO_RT(POLL_TO_SS_US);
-		} else {
-			set_to = subseq_start_time + US_TO_RT(ALL_ANC_FINAL_US);
-		}
+	if (global_subseq_num < NUM_MEASUREMENTS) {
+		set_to = now + US_TO_RT(POLL_TO_SS_US+SS_TO_SQ_US);
+	} else if(global_subseq_num == NUM_MEASUREMENTS) {
+		set_to = now + US_TO_RT(ALL_ANC_FINAL_US);
 	} else {
-		start_of_new_subseq = true;
-		substate_timer_fired = true;
-
-		if (global_subseq_num < NUM_MEASUREMENTS) {
-			set_to = subseq_start_time + US_TO_RT(POLL_TO_SS_US+SS_TO_SQ_US);
-		} else {
-			set_timer = false;
-		}
-		// Don't set a timer after the round is done, wait for tag
+		set_timer = false;
 	}
 
 	if (set_timer) {
 		rtimer_set(rt, set_to, 1, (rtimer_callback_t)subsequence_task, NULL);
 	}
 
-	process_poll(&polypoint_anchor);
+	if(global_subseq_num < NUM_MEASUREMENTS) {
+		global_subseq_num++; //TODO: Isn't this wrong to do it before?!
+		set_subsequence_settings(global_subseq_num, ANCHOR, false);
+
+		// Go for receiving
+		dwt_rxenable(0);
+	} else if(global_subseq_num == NUM_MEASUREMENTS) {
+		global_subseq_num++; //TODO: Isn't this wrong to do it before?!
+		//NO OP
+	} else {
+		DEBUG_P("reset for next round\r\n");
+		leds_off(LEDS_BLUE);
+
+		global_round_active = false;
+		global_subseq_num = 0;
+
+		//Reset measurements
+		memset(pp_anc_final_pkt.TOAs, 0, sizeof(pp_anc_final_pkt.TOAs));
+
+		// Shouldn't be needed, but doesn't hurt
+		set_subsequence_settings(0, ANCHOR, true);
+
+		// Tickle the watchdog
+		watchdog_periodic();
+
+		// Go for receiving
+		dwt_rxenable(0);
+	}
+
 	return 1;
 }
 
@@ -334,9 +348,9 @@ PROCESS_THREAD(polypoint_anchor, ev, data) {
 
 	// Kickstart things at the beginning of the loop
 	global_subseq_num = 0;
-	set_subsequence_settings(0, ANCHOR);
+	set_subsequence_settings(0, ANCHOR, true);
 		clock_delay_usec(1e3); // sleep for a millisecond before trying again
-	set_subsequence_settings(0, ANCHOR);
+	set_subsequence_settings(0, ANCHOR, true);
 	dwt_rxenable(0);
 
 	DEBUG_B4_INIT;
@@ -349,73 +363,6 @@ PROCESS_THREAD(polypoint_anchor, ev, data) {
 	while(1) {
 		PROCESS_YIELD_UNTIL(ev == PROCESS_EVENT_POLL);
 
-		if (! (subsequence_timer_fired ^ substate_timer_fired) ) {
-			leds_toggle(LEDS_GREEN);
-			DEBUG_P("Timer mismatch. Everything's probably fucked.\r\n");
-			DEBUG_P("subsequence_timer: %d\r\n", subsequence_timer_fired);
-			DEBUG_P("   substate_timer: %d\r\n", substate_timer_fired);
-
-			// Trigger self-reset in this case; from ARM:
-			// http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dai0321a/BIHDHCGJ.html
-			asm("DSB;");
-			asm("CPSID I;");
-			REG(0xE000ED0C) = 0x05FA0004;
-			asm("B .");
-		}
-
-		if(global_subseq_num < NUM_MEASUREMENTS) {
-			if (subsequence_timer_fired) {
-				subsequence_timer_fired = false;
-				DEBUG_B4_LOW;
-				DEBUG_B5_LOW;
-
-				// no-op; will respond to TAG_POLL
-			} else {
-				substate_timer_fired = false;
-				DEBUG_B4_HIGH;
-				DEBUG_B5_LOW;
-
-				global_subseq_num++;
-				if(global_subseq_num < NUM_MEASUREMENTS) {
-					set_subsequence_settings(global_subseq_num, ANCHOR);
-				} else {
-					set_subsequence_settings(0, ANCHOR);
-				}
-
-				// Go for receiving
-				dwt_rxenable(0);
-			}
-		} else {
-			if (subsequence_timer_fired) {
-				subsequence_timer_fired = false;
-				DEBUG_B4_LOW;
-				DEBUG_B5_HIGH;
-
-				// no-op; will respond to TAG_FINAL
-			} else {
-				substate_timer_fired = false;
-				DEBUG_B4_HIGH;
-				DEBUG_B5_HIGH;
-
-				DEBUG_P("reset for next round\r\n");
-				leds_off(LEDS_BLUE);
-
-				global_round_active = false;
-				global_subseq_num = 0;
-
-				//Reset measurements
-				memset(pp_anc_final_pkt.TOAs, 0, sizeof(pp_anc_final_pkt.TOAs));
-
-				// Shouldn't be needed, but doesn't hurt
-				set_subsequence_settings(0, ANCHOR);
-
-				// Tickle the watchdog
-				watchdog_periodic();
-
-				// Go for receiving
-				dwt_rxenable(0);
-			}
-		}
 	}
 
 	PROCESS_END();

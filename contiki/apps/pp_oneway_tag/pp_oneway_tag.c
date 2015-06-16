@@ -44,12 +44,10 @@ PROCESS(polypoint_tag, "Polypoint-tag");
 AUTOSTART_PROCESSES(&polypoint_tag);
 static char subsequence_task(struct rtimer *rt, void* ptr);
 static struct rtimer subsequence_timer;
-static bool subsequence_timer_fired = false;
 /* virtualized in app timer instead
 static char substate_task(struct rtimer *rt, void* ptr);
 static struct rtimer substate_timer;
 */
-static bool substate_timer_fired = false;
 /*---------------------------------------------------------------------------*/
 
 #define TAG_EUI 0
@@ -98,6 +96,7 @@ static double dwtime_to_dist(double dwtime, unsigned anchor_id, unsigned subseq)
 }
 
 static void compute_results() {
+	DEBUG_B6_HIGH;
 #ifdef REPORT_PERCENTILE_ONLY
 	char pkt[MAX_IPv6_PKT] = {0};
 	unsigned pkt_offset = 0;
@@ -240,10 +239,10 @@ static void compute_results() {
 	// Send measurement over radio
 	PRINTF("(pkt: %s)\n", pkt);
 	uip_udp_packet_send(client_conn, pkt, pkt_offset);
+	DEBUG_B6_LOW;
 }
 
 static void send_pkt(bool is_final){
-	DEBUG_B6_HIGH;
 	const uint16_t tx_frame_length = sizeof(struct pp_tag_poll);
 	pp_tag_poll_pkt.header.seqNum++;
 	pp_tag_poll_pkt.message_type = (is_final) ? MSG_TYPE_PP_ONEWAY_TAG_FINAL : MSG_TYPE_PP_ONEWAY_TAG_POLL;
@@ -283,7 +282,6 @@ static void send_pkt(bool is_final){
 		DEBUG_P("Start %lu, goal %lu, now %lu\r\n",
 				temp, delay_time, dwt_readsystimestamphi32());
 	}
-	DEBUG_B6_LOW;
 }
 
 static void send_poll() {
@@ -350,7 +348,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 		    rxd->event == DWT_SIG_RX_SYNCLOSS ||
 		    rxd->event == DWT_SIG_RX_SFDTIMEOUT ||
 		    rxd->event == DWT_SIG_RX_PTOTIMEOUT) {
-			set_subsequence_settings(global_subseq_num, TAG);
+			set_subsequence_settings(global_subseq_num, TAG, true);
 		} else {
 			DEBUG_P("*** ERR: rxd->event unknown: 0x%X\r\n", rxd->event);
 		}
@@ -390,40 +388,58 @@ void app_init(void) {
 
 
 static char subsequence_task(struct rtimer *rt, void* ptr){
-	static bool start_of_new_subseq = true;
-	static rtimer_clock_t subseq_start;
 	rtimer_clock_t now = RTIMER_NOW();
 	rtimer_clock_t set_to;
 
-	bool set_timer = true;
+	DEBUG_B5_HIGH;
 
-	if (start_of_new_subseq) {
-		start_of_new_subseq = false;
-		subseq_start = now;
-		subsequence_timer_fired = true;
-
-		if (global_subseq_num < NUM_MEASUREMENTS) {
-			set_to = subseq_start + US_TO_RT(POLL_TO_SS_US);
-		} else {
-			set_to = subseq_start + US_TO_RT(ALL_ANC_FINAL_US);
-		}
+	if (global_subseq_num < NUM_MEASUREMENTS) {
+		set_to = now + US_TO_RT(POLL_TO_SS_US+SS_TO_SQ_US);
 	} else {
-		start_of_new_subseq = true;
-		substate_timer_fired = true;
+		set_to = now + US_TO_RT(ALL_ANC_FINAL_US);
+	}
+	rtimer_set(rt, set_to, 1, (rtimer_callback_t)subsequence_task, NULL);
 
-		if (global_subseq_num < NUM_MEASUREMENTS) {
-			set_to = subseq_start + US_TO_RT(POLL_TO_SS_US+SS_TO_SQ_US);
+
+	if(global_subseq_num < NUM_MEASUREMENTS) {
+		set_subsequence_settings(global_subseq_num, TAG, false);
+		send_poll();
+		global_subseq_num++;
+	} else {
+		if (global_subseq_num == NUM_MEASUREMENTS) {
+			set_subsequence_settings(0, TAG, false);
+
+			send_final(); // enables rx
+			global_subseq_num++;
+
+			DEBUG_P("In wait period expecting ANC_FINALs\r\n");
+
+			// anchors should begin sending ANC_FINAL
+			// messages during this slot; the rx handler
+			// will fill out the results array
 		} else {
-			set_timer = false;
-			//set_to = subseq_start + US_TO_RT(ALL_ANC_FINAL_US+SS_PRINTF_US);
+			set_subsequence_settings(0, TAG, true);
+			compute_results();
+
+			pp_tag_poll_pkt.roundNum = ++global_round_num;
+
+			memset(global_poll_send_times, 0, sizeof(global_poll_send_times));
+			memset(global_anchor_TOAs, 0, sizeof(global_anchor_TOAs));
+			memset(global_anchor_final_send_times, 0, sizeof(global_anchor_final_send_times));
+			memset(global_final_TOAs, 0, sizeof(global_final_TOAs));
+			memset(global_received_final_from, 0, sizeof(global_received_final_from));
+
+			global_subseq_num = 0;
+
+			// Tickle the watchdog
+			watchdog_periodic();
+
+			// Call the timer function so the next round kickstarts
+			subsequence_task(&subsequence_timer, NULL);
 		}
 	}
+	DEBUG_B5_LOW;
 
-	if (set_timer) {
-		rtimer_set(rt, set_to, 1, (rtimer_callback_t)subsequence_task, NULL);
-	}
-
-	process_poll(&polypoint_tag);
 	return 1;
 }
 
@@ -498,7 +514,7 @@ PROCESS_THREAD(polypoint_tag, ev, data) {
 	app_init();
 	global_round_num = 0;
 	global_subseq_num = 0;
-	set_subsequence_settings(0, TAG);
+	set_subsequence_settings(0, TAG, true);
 
 	// Tickle the watchdog
 	watchdog_periodic();
@@ -518,96 +534,6 @@ PROCESS_THREAD(polypoint_tag, ev, data) {
 	while(1) {
 		PROCESS_YIELD_UNTIL(ev == PROCESS_EVENT_POLL);
 
-		if (! (subsequence_timer_fired ^ substate_timer_fired) ) {
-			leds_toggle(LEDS_GREEN);
-			DEBUG_P("Timer mismatch. Everything's probably fucked.\r\n");
-			DEBUG_P("subsequence_timer: %d\r\n", subsequence_timer_fired);
-			DEBUG_P("   substate_timer: %d\r\n", substate_timer_fired);
-
-			// Trigger self-reset in this case; from ARM:
-			// http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dai0321a/BIHDHCGJ.html
-			asm("DSB;");
-			asm("CPSID I;");
-			REG(0xE000ED0C) = 0x05FA0004;
-			asm("B .");
-		}
-
-		if(global_subseq_num < NUM_MEASUREMENTS) {
-			if (subsequence_timer_fired) {
-				subsequence_timer_fired = false;
-				DEBUG_B4_LOW;
-				DEBUG_B5_LOW;
-
-				if (global_subseq_num < NUM_MEASUREMENTS) {
-					set_subsequence_settings(global_subseq_num, TAG);
-					send_poll();
-				} else {
-				}
-			} else {
-				substate_timer_fired = false;
-				DEBUG_B4_HIGH;
-				DEBUG_B5_LOW;
-
-				global_subseq_num++;
-
-				if (global_subseq_num < NUM_MEASUREMENTS) {
-					set_subsequence_settings(global_subseq_num, TAG);
-				} else {
-					set_subsequence_settings(0, TAG);
-				}
-			}
-		} else {
-			if (subsequence_timer_fired) {
-				subsequence_timer_fired = false;
-				DEBUG_B4_LOW;
-				DEBUG_B5_HIGH;
-
-				send_final(); // enables rx
-
-				DEBUG_P("In wait period expecting ANC_FINALs\r\n");
-
-				// anchors should begin sending ANC_FINAL
-				// messages during this slot; the rx handler
-				// will fill out the results array
-			} else {
-				substate_timer_fired = false;
-				DEBUG_B4_HIGH;
-				DEBUG_B5_HIGH;
-
-				// measure timing
-				DEBUG_B6_HIGH;
-
-				compute_results();
-
-				pp_tag_poll_pkt.roundNum = ++global_round_num;
-
-				memset(global_poll_send_times, 0, sizeof(global_poll_send_times));
-				memset(global_anchor_TOAs, 0, sizeof(global_anchor_TOAs));
-				memset(global_anchor_final_send_times, 0, sizeof(global_anchor_final_send_times));
-				memset(global_final_TOAs, 0, sizeof(global_final_TOAs));
-				memset(global_received_final_from, 0, sizeof(global_received_final_from));
-
-				global_subseq_num = 0;
-
-				// Tickle the watchdog
-				watchdog_periodic();
-
-#ifdef INTERVAL_DELAY_US
-				rtimer_set(
-						&subsequence_timer,
-						RTIMER_NOW() + US_TO_RT(INTERVAL_DELAY_US),
-						1,
-						(rtimer_callback_t)subsequence_task,
-						NULL
-						);
-#else
-				// Call the timer function so the next round kickstarts
-				subsequence_task(&subsequence_timer, NULL);
-#endif
-
-				DEBUG_B6_LOW;
-			}
-		}
 	}
 
 	PROCESS_END();
