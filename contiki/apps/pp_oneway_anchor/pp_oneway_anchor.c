@@ -265,7 +265,8 @@ static char subsequence_task(struct rtimer *rt, void* ptr){
 		// which has heard the most overall transmissions
 		int max_antenna_idx = 0;
 		int8_t max_antenna_val = 0;
-		for(int ii=0; ii < NUM_ANTENNAS; ii++){
+		int ii = 0;
+		for(ii=0; ii < NUM_ANTENNAS; ii++){
 			if(antenna_statistics[ii] > max_antenna_val){
 				max_antenna_idx = ii;
 				max_antenna_val = antenna_statistics[ii];

@@ -116,7 +116,7 @@ static uint8_t subseq_num_to_tag_sel(uint8_t subseq_num){
 #endif
 }
 
-static uint8_t subseq_num_to_anchor_sel(uint8_t subseq_num){
+uint8_t subseq_num_to_anchor_sel(uint8_t subseq_num){
 #ifdef DW_CAL_TRX_DELAY
 	return 0;
 #else

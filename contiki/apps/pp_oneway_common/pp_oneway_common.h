@@ -208,6 +208,7 @@ _Static_assert(offsetof(struct pp_tag_poll, message_type) == offsetof(struct pp_
 
 uint8_t subseq_num_to_chan(uint8_t subseq_num, bool return_channel_index);
 void set_subsequence_settings(uint8_t subseq_num, int role, bool force_config_reset);
+uint8_t subseq_num_to_anchor_sel(uint8_t subseq_num);
 int app_dw1000_init (
 		int HACK_role,
 		int HACK_EUI,
