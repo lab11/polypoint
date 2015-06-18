@@ -32,6 +32,8 @@ static bool substate_timer_fired = false;
 static rtimer_clock_t subseq_start_time;
 static bool start_of_new_subseq;
 
+static int8_t antenna_statistics[NUM_ANTENNAS];
+
 // temp
 #define TAG_EUI 0
 
@@ -99,6 +101,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 			if (!global_round_active) {
 				DEBUG_B4_LOW;
 				DEBUG_B5_LOW;
+				memset(antenna_statistics, 0, sizeof(antenna_statistics));
 				global_round_active = true;
 				start_of_new_subseq = true;
 				substate_timer_fired = true;
@@ -115,8 +118,10 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 						1,
 						(rtimer_callback_t)subsequence_task,
 						NULL);
-				process_poll(&polypoint_anchor);
 			}
+
+			//Keep a running total of the number of packets seen from each antenna
+			antenna_statistics[subseq_num_to_anchor_sel(global_subseq_num)]++;
 		} else if (packet_type == MSG_TYPE_PP_ONEWAY_TAG_FINAL) {
 			if (!global_round_active) {
 				// The first packet we happened to receive was
@@ -248,14 +253,26 @@ static char subsequence_task(struct rtimer *rt, void* ptr){
 	}
 
 	if(global_subseq_num < NUM_MEASUREMENTS) {
-		global_subseq_num++; //TODO: Isn't this wrong to do it before?!
+		global_subseq_num++;
 		set_subsequence_settings(global_subseq_num, ANCHOR, false);
 
 		// Go for receiving
 		dwt_rxenable(0);
 	} else if(global_subseq_num == NUM_MEASUREMENTS) {
-		global_subseq_num++; //TODO: Isn't this wrong to do it before?!
-		//NO OP
+		global_subseq_num++;
+
+		//For the final round, the anchor should be listening to the antenna
+		// which has heard the most overall transmissions
+		int max_antenna_idx = 0;
+		int8_t max_antenna_val = 0;
+		for(int ii=0; ii < NUM_ANTENNAS; ii++){
+			if(antenna_statistics[ii] > max_antenna_val){
+				max_antenna_idx = ii;
+				max_antenna_val = antenna_statistics[ii];
+			}
+		}
+
+		dw1000_choose_antenna(max_antenna_idx);
 	} else {
 		DEBUG_P("reset for next round\r\n");
 		leds_off(LEDS_BLUE);
