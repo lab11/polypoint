@@ -63,6 +63,7 @@ static uint64_t global_poll_send_times[NUM_MEASUREMENTS+1] = {0};
 static uint64_t global_anchor_TOAs[NUM_ANCHORS][NUM_MEASUREMENTS+1] = {{0}};
 static uint64_t global_anchor_final_send_times[NUM_ANCHORS] = {0};
 static uint64_t global_final_TOAs[NUM_ANCHORS] = {0};
+static uint8_t global_anchor_final_antenna[NUM_ANCHORS] = {0};
 
 static bool global_received_final_from[NUM_ANCHORS] = {0};
 
@@ -132,10 +133,11 @@ static void compute_results() {
 		printf("\r\n");
 		*/
 
+		//TODO: This assumes that the anchor antenna increments each subsequence (which it does), but this will break if that's not the case
 		double tRF = (double)(global_anchor_TOAs[i][NUM_MEASUREMENTS]);
-		double tSP = (double)(global_poll_send_times[0]);
+		double tSP = (double)(global_poll_send_times[global_anchor_final_antenna[i]]);
 		double tSF = (double)(global_poll_send_times[NUM_MEASUREMENTS]);
-		double tRP = (double)(global_anchor_TOAs[i][0]);
+		double tRP = (double)(global_anchor_TOAs[i][global_anchor_final_antenna[i]]);
 
 		// Find a multiplier for the crystal offset between tag and anchor
 		double anchor_over_tag = (tRF-tRP)/(tSF-tSP);
@@ -159,8 +161,9 @@ static void compute_results() {
 		int dists_times_100[NUM_MEASUREMENTS] = {0};
 #endif
 		for (j=0; j < NUM_MEASUREMENTS; j++) {
-			double AA = (double)(global_anchor_TOAs[i][j]-global_anchor_TOAs[i][0]);
-			double PS = (double)(global_poll_send_times[j]-global_poll_send_times[0]);
+			//TODO: This assumes that the anchor antenna increments each subsequence (which it does), but this will break if that's not the case
+			double AA = (double)(global_anchor_TOAs[i][j]-global_anchor_TOAs[i][global_anchor_final_antenna[i]]);
+			double PS = (double)(global_poll_send_times[j]-global_poll_send_times[global_anchor_final_antenna[i]]);
 			double ToF = AA - PS*anchor_over_tag + tTOF;
 			double dist = dwtime_to_dist(ToF, i+1, j);
 #ifdef SORT_MEASUREMENTS
@@ -335,6 +338,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 					sizeof(anc_final->TOAs)
 					);
 			global_anchor_final_send_times[anchor_id-1] = ((uint64_t)anc_final->dw_time_sent) << 8;
+			global_anchor_final_antenna[anchor_id-1] = anc_final->final_antenna;
 			global_final_TOAs[anchor_id-1] = timestamp;
 			global_received_final_from[anchor_id-1] = true;
 		} else {
@@ -426,6 +430,7 @@ static char subsequence_task(struct rtimer *rt, void* ptr){
 			memset(global_poll_send_times, 0, sizeof(global_poll_send_times));
 			memset(global_anchor_TOAs, 0, sizeof(global_anchor_TOAs));
 			memset(global_anchor_final_send_times, 0, sizeof(global_anchor_final_send_times));
+			memset(global_anchor_final_antenna, 0, sizeof(global_anchor_final_antenna));
 			memset(global_final_TOAs, 0, sizeof(global_final_TOAs));
 			memset(global_received_final_from, 0, sizeof(global_received_final_from));
 

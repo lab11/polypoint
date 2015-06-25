@@ -266,13 +266,15 @@ static char subsequence_task(struct rtimer *rt, void* ptr){
 		int max_antenna_idx = 0;
 		int8_t max_antenna_val = 0;
 		for(int ii=0; ii < NUM_ANTENNAS; ii++){
-			if(antenna_statistics[ii] > max_antenna_val){
+			//TODO: This assumes that the anchor antenna increments each subsequence (which it does), but this will break if that's not the case
+			if( (antenna_statistics[ii] > max_antenna_val) && (pp_anc_final_pkt.TOAs[ii] > 0) ){
 				max_antenna_idx = ii;
 				max_antenna_val = antenna_statistics[ii];
 			}
 		}
 
 		dw1000_choose_antenna(max_antenna_idx);
+		pp_anc_final_pkt.final_antenna = max_antenna_idx;
 	} else {
 		DEBUG_P("reset for next round\r\n");
 		leds_off(LEDS_BLUE);

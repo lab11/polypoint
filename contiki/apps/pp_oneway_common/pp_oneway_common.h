@@ -196,6 +196,7 @@ struct pp_anc_final {
 	struct ieee154_header header;
 	uint8_t message_type;
 	uint8_t anchor_id;
+	uint8_t final_antenna;
 	uint32_t dw_time_sent;
 	uint64_t TOAs[NUM_MEASUREMENTS+1];
 	struct ieee154_footer footer;
