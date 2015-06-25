@@ -256,6 +256,21 @@ static char subsequence_task(struct rtimer *rt, void* ptr){
 		global_subseq_num++;
 		set_subsequence_settings(global_subseq_num, ANCHOR, false);
 
+		if(global_subseq_num == NUM_MEASUREMENTS){
+			//For the final round, the anchor should be listening to the antenna
+			// which has heard the most overall transmissions
+			int max_antenna_idx = 0;
+			int8_t max_antenna_val = 0;
+			int ii = 0;
+			for(ii=0; ii < NUM_ANTENNAS; ii++){
+				if(antenna_statistics[ii] > max_antenna_val){
+					max_antenna_idx = ii;
+					max_antenna_val = antenna_statistics[ii];
+				}
+			}
+			dw1000_choose_antenna(max_antenna_idx);
+		}
+
 		// Go for receiving
 		dwt_rxenable(0);
 	} else if(global_subseq_num == NUM_MEASUREMENTS) {

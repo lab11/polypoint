@@ -402,46 +402,45 @@ static char subsequence_task(struct rtimer *rt, void* ptr){
 	} else {
 		set_to = now + US_TO_RT(ALL_ANC_FINAL_US);
 	}
-	rtimer_set(rt, set_to, 1, (rtimer_callback_t)subsequence_task, NULL);
+	if (global_subseq_num <= NUM_MEASUREMENTS)
+		rtimer_set(rt, set_to, 1, (rtimer_callback_t)subsequence_task, NULL);
 
 
 	if(global_subseq_num < NUM_MEASUREMENTS) {
 		set_subsequence_settings(global_subseq_num, TAG, false);
 		send_poll();
 		global_subseq_num++;
+	} else if (global_subseq_num == NUM_MEASUREMENTS) {
+		set_subsequence_settings(0, TAG, false);
+
+		send_final(); // enables rx
+		global_subseq_num++;
+
+		DEBUG_P("In wait period expecting ANC_FINALs\r\n");
+
+		// anchors should begin sending ANC_FINAL
+		// messages during this slot; the rx handler
+		// will fill out the results array
 	} else {
-		if (global_subseq_num == NUM_MEASUREMENTS) {
-			set_subsequence_settings(0, TAG, false);
+		set_subsequence_settings(0, TAG, true);
+		compute_results();
 
-			send_final(); // enables rx
-			global_subseq_num++;
+		pp_tag_poll_pkt.roundNum = ++global_round_num;
 
-			DEBUG_P("In wait period expecting ANC_FINALs\r\n");
+		memset(global_poll_send_times, 0, sizeof(global_poll_send_times));
+		memset(global_anchor_TOAs, 0, sizeof(global_anchor_TOAs));
+		memset(global_anchor_final_send_times, 0, sizeof(global_anchor_final_send_times));
+		memset(global_anchor_final_antenna, 0, sizeof(global_anchor_final_antenna));
+		memset(global_final_TOAs, 0, sizeof(global_final_TOAs));
+		memset(global_received_final_from, 0, sizeof(global_received_final_from));
 
-			// anchors should begin sending ANC_FINAL
-			// messages during this slot; the rx handler
-			// will fill out the results array
-		} else {
-			set_subsequence_settings(0, TAG, true);
-			compute_results();
+		global_subseq_num = 0;
 
-			pp_tag_poll_pkt.roundNum = ++global_round_num;
+		// Tickle the watchdog
+		watchdog_periodic();
 
-			memset(global_poll_send_times, 0, sizeof(global_poll_send_times));
-			memset(global_anchor_TOAs, 0, sizeof(global_anchor_TOAs));
-			memset(global_anchor_final_send_times, 0, sizeof(global_anchor_final_send_times));
-			memset(global_anchor_final_antenna, 0, sizeof(global_anchor_final_antenna));
-			memset(global_final_TOAs, 0, sizeof(global_final_TOAs));
-			memset(global_received_final_from, 0, sizeof(global_received_final_from));
-
-			global_subseq_num = 0;
-
-			// Tickle the watchdog
-			watchdog_periodic();
-
-			// Call the timer function so the next round kickstarts
-			subsequence_task(&subsequence_timer, NULL);
-		}
+		// Call the timer function so the next round kickstarts
+		subsequence_task(&subsequence_timer, NULL);
 	}
 	DEBUG_B5_LOW;
 
