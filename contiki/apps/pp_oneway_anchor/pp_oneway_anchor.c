@@ -21,7 +21,6 @@ PROCESS(polypoint_anchor, "Polypoint-anchor");
 AUTOSTART_PROCESSES(&polypoint_anchor);
 static char subsequence_task(struct rtimer *rt, void* ptr);
 static struct rtimer subsequence_timer;
-static bool subsequence_timer_fired = false;
 /* virtualized in app timer instead
 static char substate_task(struct rtimer *rt, void* ptr);
 static struct rtimer substate_timer;
@@ -29,7 +28,6 @@ static struct rtimer substate_timer;
 static bool substate_timer_fired = false;
 /*---------------------------------------------------------------------------*/
 // (fwd decl)
-static rtimer_clock_t subseq_start_time;
 static bool start_of_new_subseq;
 
 static int8_t antenna_statistics[NUM_ANTENNAS];
@@ -278,9 +276,10 @@ static char subsequence_task(struct rtimer *rt, void* ptr){
 
 		//For the final round, the anchor should be listening to the antenna
 		// which has heard the most overall transmissions
+		int ii = 0;
 		int max_antenna_idx = 0;
 		int8_t max_antenna_val = 0;
-		for(int ii=0; ii < NUM_ANTENNAS; ii++){
+		for(ii=0; ii < NUM_ANTENNAS; ii++){
 			//TODO: This assumes that the anchor antenna increments each subsequence (which it does), but this will break if that's not the case
 			if( (antenna_statistics[ii] > max_antenna_val) && (pp_anc_final_pkt.TOAs[ii] > 0) ){
 				max_antenna_idx = ii;
