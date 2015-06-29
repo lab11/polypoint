@@ -1,0 +1,360 @@
+Cmp-Mod V01 Created by Cvpcb (after 2015-may-01 BZR unknown)-product   date = Mon 29 Jun 2015 08:44:43 AM EDT
+
+BeginCmp
+TimeStamp = /558CF40D;
+Reference = C1;
+ValeurCmp = 10pF;
+IdModule  = Capacitors_SMD:C_0201;
+EndCmp
+
+BeginCmp
+TimeStamp = /558CFB37;
+Reference = C2;
+ValeurCmp = 0.1uF;
+IdModule  = Capacitors_SMD:C_0201;
+EndCmp
+
+BeginCmp
+TimeStamp = /558CF4EE;
+Reference = C3;
+ValeurCmp = 10pF;
+IdModule  = Capacitors_SMD:C_0201;
+EndCmp
+
+BeginCmp
+TimeStamp = /558CFBB1;
+Reference = C4;
+ValeurCmp = 4.7uF;
+IdModule  = Capacitors_SMD:C_0603;
+EndCmp
+
+BeginCmp
+TimeStamp = /558CF562;
+Reference = C5;
+ValeurCmp = 330pF;
+IdModule  = Capacitors_SMD:C_0201;
+EndCmp
+
+BeginCmp
+TimeStamp = /558CFC1D;
+Reference = C6;
+ValeurCmp = 0.1uF;
+IdModule  = Capacitors_SMD:C_0201;
+EndCmp
+
+BeginCmp
+TimeStamp = /558CF84F;
+Reference = C7;
+ValeurCmp = 330pF;
+IdModule  = Capacitors_SMD:C_0201;
+EndCmp
+
+BeginCmp
+TimeStamp = /558CFC8B;
+Reference = C8;
+ValeurCmp = 100pF;
+IdModule  = Capacitors_SMD:C_0201;
+EndCmp
+
+BeginCmp
+TimeStamp = /5547E0AB;
+Reference = C9;
+ValeurCmp = 12pF;
+IdModule  = Capacitors_SMD:C_0201;
+EndCmp
+
+BeginCmp
+TimeStamp = /5547E314;
+Reference = C10;
+ValeurCmp = 12pF;
+IdModule  = Capacitors_SMD:C_0201;
+EndCmp
+
+BeginCmp
+TimeStamp = /5547E360;
+Reference = C11;
+ValeurCmp = 12pF;
+IdModule  = Capacitors_SMD:C_0201;
+EndCmp
+
+BeginCmp
+TimeStamp = /558CF8AF;
+Reference = C12;
+ValeurCmp = 0.01uF;
+IdModule  = Capacitors_SMD:C_0201;
+EndCmp
+
+BeginCmp
+TimeStamp = /558CFCFF;
+Reference = C13;
+ValeurCmp = 0.1uF;
+IdModule  = Capacitors_SMD:C_0201;
+EndCmp
+
+BeginCmp
+TimeStamp = /558CF90D;
+Reference = C14;
+ValeurCmp = 0.1uF;
+IdModule  = Capacitors_SMD:C_0201;
+EndCmp
+
+BeginCmp
+TimeStamp = /558CFD71;
+Reference = C15;
+ValeurCmp = 0.1uF;
+IdModule  = Capacitors_SMD:C_0201;
+EndCmp
+
+BeginCmp
+TimeStamp = /5547DB97;
+Reference = C16;
+ValeurCmp = 12pF;
+IdModule  = Capacitors_SMD:C_0201;
+EndCmp
+
+BeginCmp
+TimeStamp = /5547DBEF;
+Reference = C17;
+ValeurCmp = 12pF;
+IdModule  = Capacitors_SMD:C_0201;
+EndCmp
+
+BeginCmp
+TimeStamp = /558CF993;
+Reference = C18;
+ValeurCmp = 0.1uF;
+IdModule  = Capacitors_SMD:C_0201;
+EndCmp
+
+BeginCmp
+TimeStamp = /558CFDF7;
+Reference = C19;
+ValeurCmp = 0.1uF;
+IdModule  = Capacitors_SMD:C_0201;
+EndCmp
+
+BeginCmp
+TimeStamp = /558CFA01;
+Reference = C20;
+ValeurCmp = 0.1uF;
+IdModule  = Capacitors_SMD:C_0201;
+EndCmp
+
+BeginCmp
+TimeStamp = /558CFE77;
+Reference = C21;
+ValeurCmp = 0.1uF;
+IdModule  = Capacitors_SMD:C_0201;
+EndCmp
+
+BeginCmp
+TimeStamp = /558CE021;
+Reference = C22;
+ValeurCmp = 4.7uF;
+IdModule  = Capacitors_SMD:C_0603;
+EndCmp
+
+BeginCmp
+TimeStamp = /558CFA69;
+Reference = C23;
+ValeurCmp = 0.1uF;
+IdModule  = Capacitors_SMD:C_0201;
+EndCmp
+
+BeginCmp
+TimeStamp = /558CFEF1;
+Reference = C24;
+ValeurCmp = 0.1uF;
+IdModule  = Capacitors_SMD:C_0201;
+EndCmp
+
+BeginCmp
+TimeStamp = /5547DA4F;
+Reference = C25;
+ValeurCmp = C_Small;
+IdModule  = Capacitors_SMD:C_0201;
+EndCmp
+
+BeginCmp
+TimeStamp = /5547D9F9;
+Reference = C26;
+ValeurCmp = C_Small;
+IdModule  = Capacitors_SMD:C_0201;
+EndCmp
+
+BeginCmp
+TimeStamp = /558CFACF;
+Reference = C27;
+ValeurCmp = 0.1uF;
+IdModule  = Capacitors_SMD:C_0201;
+EndCmp
+
+BeginCmp
+TimeStamp = /558CFF77;
+Reference = C28;
+ValeurCmp = 0.1uF;
+IdModule  = Capacitors_SMD:C_0201;
+EndCmp
+
+BeginCmp
+TimeStamp = /558CFFF9;
+Reference = C29;
+ValeurCmp = 0.1uF;
+IdModule  = Capacitors_SMD:C_0201;
+EndCmp
+
+BeginCmp
+TimeStamp = /5547EA2B;
+Reference = C30;
+ValeurCmp = 27pF;
+IdModule  = Capacitors_SMD:C_0201;
+EndCmp
+
+BeginCmp
+TimeStamp = /5547E97F;
+Reference = C31;
+ValeurCmp = 820pF;
+IdModule  = Capacitors_SMD:C_0201;
+EndCmp
+
+BeginCmp
+TimeStamp = /5547EADD;
+Reference = C32;
+ValeurCmp = 12pF;
+IdModule  = Capacitors_SMD:C_0201;
+EndCmp
+
+BeginCmp
+TimeStamp = /558CE8A7;
+Reference = C33;
+ValeurCmp = 10uF;
+IdModule  = Capacitors_SMD:C_0603;
+EndCmp
+
+BeginCmp
+TimeStamp = /5547E9CF;
+Reference = C34;
+ValeurCmp = 1.2pF;
+IdModule  = Capacitors_SMD:C_0201;
+EndCmp
+
+BeginCmp
+TimeStamp = /5547E927;
+Reference = C35;
+ValeurCmp = 18pF;
+IdModule  = Capacitors_SMD:C_0201;
+EndCmp
+
+BeginCmp
+TimeStamp = /5547EA83;
+Reference = C36;
+ValeurCmp = 12pF;
+IdModule  = Capacitors_SMD:C_0201;
+EndCmp
+
+BeginCmp
+TimeStamp = /5547C296;
+Reference = C37;
+ValeurCmp = 12pF;
+IdModule  = Capacitors_SMD:C_0402;
+EndCmp
+
+BeginCmp
+TimeStamp = /5547C2FB;
+Reference = C38;
+ValeurCmp = 12pF;
+IdModule  = Capacitors_SMD:C_0402;
+EndCmp
+
+BeginCmp
+TimeStamp = /55478778;
+Reference = J1;
+ValeurCmp = TC2030-JLINK-NL;
+IdModule  = polypoint:TC2030;
+EndCmp
+
+BeginCmp
+TimeStamp = /558DE56D;
+Reference = R1;
+ValeurCmp = 11k;
+IdModule  = Resistors_SMD:R_0201;
+EndCmp
+
+BeginCmp
+TimeStamp = /558DD9A4;
+Reference = R2;
+ValeurCmp = 11k;
+IdModule  = Resistors_SMD:R_0201;
+EndCmp
+
+BeginCmp
+TimeStamp = /5547F07F;
+Reference = R3;
+ValeurCmp = 16k;
+IdModule  = Resistors_SMD:R_0201;
+EndCmp
+
+BeginCmp
+TimeStamp = /5547EC9B;
+Reference = R4;
+ValeurCmp = 270;
+IdModule  = Resistors_SMD:R_0201;
+EndCmp
+
+BeginCmp
+TimeStamp = /5547F0C7;
+Reference = R5;
+ValeurCmp = 11k;
+IdModule  = Resistors_SMD:R_0201;
+EndCmp
+
+BeginCmp
+TimeStamp = /55477E70;
+Reference = T1;
+ValeurCmp = HHM1595A1;
+IdModule  = polypoint:HHM1595A1;
+EndCmp
+
+BeginCmp
+TimeStamp = /5547956A;
+Reference = U1;
+ValeurCmp = STM32F031G4U6;
+IdModule  = polypoint:UFQFPN-28;
+EndCmp
+
+BeginCmp
+TimeStamp = /55426D68;
+Reference = U2;
+ValeurCmp = LXDC2HL;
+IdModule  = polypoint:LXDC2HL;
+EndCmp
+
+BeginCmp
+TimeStamp = /554269C5;
+Reference = U3;
+ValeurCmp = DW1000;
+IdModule  = polypoint:QFN-48-EP-6x6mm;
+EndCmp
+
+BeginCmp
+TimeStamp = /55477DFF;
+Reference = U4;
+ValeurCmp = SKY13317;
+IdModule  = polypoint:MLPQ-UT-8-1.5X1.5mm;
+EndCmp
+
+BeginCmp
+TimeStamp = /55478BB4;
+Reference = X1;
+ValeurCmp = CRYSTAL_SMD_4;
+IdModule  = polypoint:FA-128;
+EndCmp
+
+BeginCmp
+TimeStamp = /554269EA;
+Reference = X2;
+ValeurCmp = CRYSTAL_SMD_4;
+IdModule  = polypoint:FA-128;
+EndCmp
+
+EndListe
