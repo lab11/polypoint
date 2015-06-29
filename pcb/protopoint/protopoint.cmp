@@ -1,4 +1,4 @@
-Cmp-Mod V01 Created by Cvpcb (after 2015-may-01 BZR unknown)-product   date = Mon 29 Jun 2015 08:44:43 AM EDT
+Cmp-Mod V01 Created by Cvpcb (after 2015-may-01 BZR unknown)-product   date = Mon 29 Jun 2015 10:33:32 AM EDT
 
 BeginCmp
 TimeStamp = /558CF40D;
@@ -341,6 +341,13 @@ TimeStamp = /55477DFF;
 Reference = U4;
 ValeurCmp = SKY13317;
 IdModule  = polypoint:MLPQ-UT-8-1.5X1.5mm;
+EndCmp
+
+BeginCmp
+TimeStamp = /5591621C;
+Reference = U5;
+ValeurCmp = ProtoPoint_Module;
+IdModule  = polypoint:ProtoPoint_Module_Castellated;
 EndCmp
 
 BeginCmp

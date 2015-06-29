@@ -2004,4 +2004,15 @@ F 3 "" H 2600 1200 60  0000 C CNN
 $EndComp
 Wire Wire Line
 	2350 1200 2600 1200
+$Comp
+L ProtoPoint_Module U5
+U 1 1 5591621C
+P 6250 5800
+F 0 "U5" H 6250 5800 60  0000 C CNN
+F 1 "ProtoPoint_Module" H 6250 5050 60  0000 C CNN
+F 2 "polypoint:ProtoPoint_Module_Castellated" H 5750 6300 60  0001 C CNN
+F 3 "" H 5750 6300 60  0000 C CNN
+	1    6250 5800
+	1    0    0    -1  
+$EndComp
 $EndSCHEMATC
