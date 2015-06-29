@@ -37,22 +37,26 @@
   )
 
   (setup
-    (last_trace_width 0.25)
-    (trace_clearance 0.2)
+    (last_trace_width 0.1016)
+    (user_trace_width 0.1016)
+    (user_trace_width 0.254)
+    (user_trace_width 0.508)
+    (trace_clearance 0.1016)
     (zone_clearance 0.508)
     (zone_45_only no)
-    (trace_min 0.2)
+    (trace_min 0.1016)
     (segment_width 0.2)
     (edge_width 0.1)
-    (via_size 0.6)
-    (via_drill 0.4)
-    (via_min_size 0.4)
-    (via_min_drill 0.3)
+    (via_size 0.4064)
+    (via_drill 0.2032)
+    (via_min_size 0.4064)
+    (via_min_drill 0.2032)
+    (user_via 0.4064 0.2032)
     (uvia_size 0.3)
     (uvia_drill 0.1)
     (uvias_allowed no)
-    (uvia_min_size 0.2)
-    (uvia_min_drill 0.1)
+    (uvia_min_size 0)
+    (uvia_min_drill 0)
     (pcb_text_width 0.3)
     (pcb_text_size 1.5 1.5)
     (mod_edge_width 0.15)
@@ -211,10 +215,10 @@
   (net 117 "Net-(U5-Pad51)")
 
   (net_class Default "This is the default net class."
-    (clearance 0.2)
-    (trace_width 0.25)
-    (via_dia 0.6)
-    (via_drill 0.4)
+    (clearance 0.1016)
+    (trace_width 0.1016)
+    (via_dia 0.4064)
+    (via_drill 0.2032)
     (uvia_dia 0.3)
     (uvia_drill 0.1)
     (add_net /ANT_SEL0)
@@ -366,7 +370,7 @@
   )
 
   (module Capacitors_SMD:C_0201 placed (layer F.Cu) (tedit 5415D524) (tstamp 55914D08)
-    (at 35.9664 26.5176 90)
+    (at 36.068 27.305 90)
     (descr "Capacitor SMD 0201, reflow soldering, AVX (see smccp.pdf)")
     (tags "capacitor 0201")
     (path /558CFB37)
@@ -424,7 +428,7 @@
   )
 
   (module Capacitors_SMD:C_0603 placed (layer F.Cu) (tedit 5415D631) (tstamp 55914D14)
-    (at 33.782 26.797 180)
+    (at 33.909 27.2415 180)
     (descr "Capacitor SMD 0603, reflow soldering, AVX (see smccp.pdf)")
     (tags "capacitor 0603")
     (path /558CFBB1)
@@ -482,7 +486,7 @@
   )
 
   (module Capacitors_SMD:C_0201 placed (layer F.Cu) (tedit 5415D524) (tstamp 55914D20)
-    (at 38.2524 26.5176 90)
+    (at 38.354 27.305 90)
     (descr "Capacitor SMD 0201, reflow soldering, AVX (see smccp.pdf)")
     (tags "capacitor 0201")
     (path /558CFC1D)
@@ -714,7 +718,7 @@
   )
 
   (module Capacitors_SMD:C_0201 placed (layer F.Cu) (tedit 5415D524) (tstamp 55914D50)
-    (at 37.4904 26.5176 90)
+    (at 37.592 27.305 90)
     (descr "Capacitor SMD 0201, reflow soldering, AVX (see smccp.pdf)")
     (tags "capacitor 0201")
     (path /558CF90D)
@@ -743,7 +747,7 @@
   )
 
   (module Capacitors_SMD:C_0201 placed (layer F.Cu) (tedit 5415D524) (tstamp 55914D56)
-    (at 33.655 30.988 180)
+    (at 33.655 30.353 180)
     (descr "Capacitor SMD 0201, reflow soldering, AVX (see smccp.pdf)")
     (tags "capacitor 0201")
     (path /558CFD71)
@@ -1004,7 +1008,7 @@
   )
 
   (module Capacitors_SMD:C_0201 placed (layer F.Cu) (tedit 5415D524) (tstamp 55914D8C)
-    (at 39.0144 26.5176 90)
+    (at 39.116 27.305 90)
     (descr "Capacitor SMD 0201, reflow soldering, AVX (see smccp.pdf)")
     (tags "capacitor 0201")
     (path /558CFEF1)
@@ -1091,7 +1095,7 @@
   )
 
   (module Capacitors_SMD:C_0201 placed (layer F.Cu) (tedit 5415D524) (tstamp 55914D9E)
-    (at 36.7284 26.5176 90)
+    (at 36.83 27.305 90)
     (descr "Capacitor SMD 0201, reflow soldering, AVX (see smccp.pdf)")
     (tags "capacitor 0201")
     (path /558CFACF)
@@ -1120,7 +1124,7 @@
   )
 
   (module Capacitors_SMD:C_0201 placed (layer F.Cu) (tedit 5415D524) (tstamp 55914DA4)
-    (at 31.877 31.496 180)
+    (at 33.655 31.115 180)
     (descr "Capacitor SMD 0201, reflow soldering, AVX (see smccp.pdf)")
     (tags "capacitor 0201")
     (path /558CFF77)
@@ -1178,7 +1182,7 @@
   )
 
   (module Capacitors_SMD:C_0201 placed (layer F.Cu) (tedit 5415D524) (tstamp 55914DB0)
-    (at 28.829 31.877 180)
+    (at 30.861 31.623 180)
     (descr "Capacitor SMD 0201, reflow soldering, AVX (see smccp.pdf)")
     (tags "capacitor 0201")
     (path /5547EA2B)
@@ -1236,7 +1240,7 @@
   )
 
   (module Capacitors_SMD:C_0201 placed (layer F.Cu) (tedit 5415D524) (tstamp 55914DBC)
-    (at 28.3718 28.8798 90)
+    (at 28.956 28.575 90)
     (descr "Capacitor SMD 0201, reflow soldering, AVX (see smccp.pdf)")
     (tags "capacitor 0201")
     (path /5547EADD)
@@ -1294,7 +1298,7 @@
   )
 
   (module Capacitors_SMD:C_0201 placed (layer F.Cu) (tedit 5415D524) (tstamp 55914DC8)
-    (at 30.226 31.0515 180)
+    (at 30.861 30.734 180)
     (descr "Capacitor SMD 0201, reflow soldering, AVX (see smccp.pdf)")
     (tags "capacitor 0201")
     (path /5547E9CF)
@@ -1352,7 +1356,7 @@
   )
 
   (module Capacitors_SMD:C_0201 placed (layer F.Cu) (tedit 5415D524) (tstamp 55914DD4)
-    (at 32.0294 28.8798 270)
+    (at 33.02 28.575 270)
     (descr "Capacitor SMD 0201, reflow soldering, AVX (see smccp.pdf)")
     (tags "capacitor 0201")
     (path /5547EA83)
@@ -1439,7 +1443,7 @@
   )
 
   (module polypoint:TC2030 placed (layer F.Cu) (tedit 553ED0D9) (tstamp 55914DED)
-    (at 20.066 47.498)
+    (at 55.88 37.338)
     (path /55478778)
     (fp_text reference J1 (at 0 -2.55) (layer F.SilkS)
       (effects (font (size 1 1) (thickness 0.15)))
@@ -1523,7 +1527,7 @@
   )
 
   (module Resistors_SMD:R_0201 placed (layer F.Cu) (tedit 5415CC07) (tstamp 55914DFF)
-    (at 30.226 31.877 180)
+    (at 32.258 31.623 180)
     (descr "Resistor SMD 0201, reflow soldering, Vishay (see crcw0201e3.pdf)")
     (tags "resistor 0201")
     (path /5547F07F)
@@ -1581,7 +1585,7 @@
   )
 
   (module Resistors_SMD:R_0201 placed (layer F.Cu) (tedit 5415CC07) (tstamp 55914E0B)
-    (at 33.655 30.1625 180)
+    (at 32.258 30.353 180)
     (descr "Resistor SMD 0201, reflow soldering, Vishay (see crcw0201e3.pdf)")
     (tags "resistor 0201")
     (path /5547F0C7)
@@ -1734,7 +1738,7 @@
   )
 
   (module polypoint:QFN-48-EP-6x6mm placed (layer F.Cu) (tedit 5591383A) (tstamp 55914E9A)
-    (at 38.481 31.242)
+    (at 38.608 31.877)
     (path /554269C5)
     (fp_text reference U3 (at 0 5.08) (layer F.SilkS)
       (effects (font (size 1 1) (thickness 0.15)))
@@ -1937,7 +1941,7 @@
   )
 
   (module polypoint:FA-128 placed (layer F.Cu) (tedit 553EDF57) (tstamp 55914EC4)
-    (at 30.2006 28.8798 90)
+    (at 30.988 28.575 90)
     (path /554269EA)
     (fp_text reference X2 (at 0 -2.5 90) (layer F.SilkS)
       (effects (font (size 1 1) (thickness 0.15)))
