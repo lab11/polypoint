@@ -1043,7 +1043,7 @@ Wire Wire Line
 	6450 2500 6450 2350
 Text Label 9500 3750 0    60   ~ 0
 ~DW_RST
-Text Label 3450 2450 0    60   ~ 0
+Text Label 3450 1950 0    60   ~ 0
 ~DW_RST
 $Comp
 L V3P3 #PWR038
@@ -1830,7 +1830,7 @@ Wire Wire Line
 	4500 4850 4500 4750
 Text Label 8550 4600 0    60   ~ 0
 DW_WAKEUP
-Text Label 3450 2650 0    60   ~ 0
+Text Label 3450 2050 0    60   ~ 0
 DW_WAKEUP
 Text Label 1950 3750 0    60   ~ 0
 DW_SS
@@ -2084,4 +2084,12 @@ Text Label 3350 5700 1    60   ~ 0
 I2C_SCL
 Text Label 3250 5700 1    60   ~ 0
 I2C_SDA
+Connection ~ 5550 3550
+Connection ~ 5550 3950
+Text Label 10850 5350 0    60   ~ 0
+RF0
+Text Label 10850 5450 0    60   ~ 0
+RF1
+Text Label 10850 5550 0    60   ~ 0
+RF2
 $EndSCHEMATC
