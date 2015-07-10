@@ -463,12 +463,6 @@ F 3 "" H 9400 5400 60  0000 C CNN
 	1    9400 5400
 	1    0    0    -1  
 $EndComp
-Text Label 9200 2350 0    60   ~ 0
-ANT_SEL0
-Text Label 9200 2450 0    60   ~ 0
-ANT_SEL1
-Text Label 9200 2850 0    60   ~ 0
-ANT_SEL2
 Text Label 9550 5350 0    60   ~ 0
 ANT_SEL0
 Text Label 9550 5450 0    60   ~ 0
@@ -616,11 +610,7 @@ Wire Wire Line
 Wire Wire Line
 	1250 2950 1850 2950
 Wire Wire Line
-	1850 3450 1800 3450
-Wire Wire Line
-	1800 3450 1800 3750
-Wire Wire Line
-	1800 3750 1950 3750
+	1250 3450 1850 3450
 Wire Wire Line
 	8550 4600 8350 4600
 Wire Wire Line
@@ -691,14 +681,6 @@ Wire Wire Line
 	9350 5300 9400 5300
 Wire Wire Line
 	9400 5300 9400 5400
-Wire Wire Line
-	8450 2450 9200 2450
-Wire Wire Line
-	8350 2450 8350 2350
-Wire Wire Line
-	8350 2350 9200 2350
-Wire Wire Line
-	9200 2850 9050 2850
 Wire Wire Line
 	9350 5200 10000 5200
 Wire Wire Line
@@ -1673,12 +1655,12 @@ $EndComp
 $Comp
 L VDDDIG #PWR069
 U 1 1 558DA7DE
-P 1700 4750
-F 0 "#PWR069" H 1700 4600 50  0001 C CNN
-F 1 "VDDDIG" H 1700 4900 50  0000 C CNN
-F 2 "" H 1700 4750 60  0000 C CNN
-F 3 "" H 1700 4750 60  0000 C CNN
-	1    1700 4750
+P 1900 4750
+F 0 "#PWR069" H 1900 4600 50  0001 C CNN
+F 1 "VDDDIG" H 1900 4900 50  0000 C CNN
+F 2 "" H 1900 4750 60  0000 C CNN
+F 3 "" H 1900 4750 60  0000 C CNN
+	1    1900 4750
 	1    0    0    -1  
 $EndComp
 $Comp
@@ -1818,8 +1800,6 @@ Text Label 8550 4600 0    60   ~ 0
 DW_WAKEUP
 Text Label 3450 2050 0    60   ~ 0
 DW_WAKEUP
-Text Label 1950 3750 0    60   ~ 0
-DW_SS
 $Comp
 L R_Small R2
 U 1 1 558DD9A4
@@ -2032,17 +2012,17 @@ Text Label 3950 6050 0    60   ~ 0
 GPIO1
 Text Label 3550 5700 1    60   ~ 0
 GPIO2
-Text Label 3450 5700 1    60   ~ 0
+Text Label 3250 5700 1    60   ~ 0
 GPIO3
-Text Label 3450 2350 0    60   ~ 0
+Text Label 3450 2550 0    60   ~ 0
 GPIO7
-Text Label 3450 2250 0    60   ~ 0
+Text Label 3450 2450 0    60   ~ 0
 GPIO6
 Text Label 1250 1950 0    60   ~ 0
 GPIO0
 Text Label 1250 2050 0    60   ~ 0
 GPIO1
-Text Label 3450 2550 0    60   ~ 0
+Text Label 3450 2650 0    60   ~ 0
 GPIO2
 Text Label 1250 2250 0    60   ~ 0
 GPIO3
@@ -2068,7 +2048,7 @@ Text Label 8550 4500 0    60   ~ 0
 ~SPI1_SS
 Text Label 3350 5700 1    60   ~ 0
 I2C_SCL
-Text Label 3250 5700 1    60   ~ 0
+Text Label 3450 5700 1    60   ~ 0
 I2C_SDA
 Connection ~ 5550 3550
 Connection ~ 5550 3950
@@ -2078,26 +2058,24 @@ Text Label 10850 5450 0    60   ~ 0
 RF1
 Text Label 10850 5550 0    60   ~ 0
 RF2
+Text Label 1250 3450 0    60   ~ 0
+ANT_SEL2
+Text Label 3450 2250 0    60   ~ 0
+ANT_SEL1
+Text Label 3450 2350 0    60   ~ 0
+ANT_SEL0
 $Comp
-L VDDREG #PWR089
-U 1 1 559D4C91
+L VDDDIG #PWR090
+U 1 1 55A035B2
 P 8550 4850
-F 0 "#PWR089" H 8550 4700 50  0001 C CNN
-F 1 "VDDREG" V 8550 5000 50  0000 L CNN
+F 0 "#PWR090" H 8550 4700 50  0001 C CNN
+F 1 "VDDDIG" V 8550 5000 50  0000 L CNN
 F 2 "" H 8550 4850 60  0000 C CNN
 F 3 "" H 8550 4850 60  0000 C CNN
 	1    8550 4850
 	0    1    1    0   
 $EndComp
-$Comp
-L VDDREG #PWR?
-U 1 1 559D56AB
-P 2050 4750
-F 0 "#PWR?" H 2050 4600 50  0001 C CNN
-F 1 "VDDREG" H 2050 4900 50  0000 C CNN
-F 2 "" H 2050 4750 60  0000 C CNN
-F 3 "" H 2050 4750 60  0000 C CNN
-	1    2050 4750
-	1    0    0    -1  
-$EndComp
+Wire Wire Line
+	1700 4750 2050 4750
+Connection ~ 1900 4750
 $EndSCHEMATC
