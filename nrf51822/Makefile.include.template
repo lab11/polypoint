@@ -1,0 +1,3 @@
+SOFTDEVICE ?= $(HOME)/code/nrf/s110_nrf51_8.0.0_softdevice.hex
+SDK_PATH ?= $(HOME)/code/nrf/sdk9/
+
