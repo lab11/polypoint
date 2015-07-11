@@ -99,6 +99,10 @@ void CPAL_I2C_TXTC_UserCallback(CPAL_InitTypeDef* pDevInitStruct)
   */
 void CPAL_I2C_RXTC_UserCallback(CPAL_InitTypeDef* pDevInitStruct)
 {
+
+
+  INTERRUPT_PORT->BRR = INTERRUPT_PIN; // clear
+
   // uint8_t result = 0xFF, i = 0;
 
   // /* Activate the mode receiver only */

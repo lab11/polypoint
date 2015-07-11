@@ -16,6 +16,19 @@ CPAL_TransferTypeDef txStructure;
 
 uint32_t i2c_interface_init () {
 
+	// Enabled the Interrupt pin
+	GPIO_InitTypeDef  GPIO_InitStructure;
+	RCC_AHBPeriphClockCmd(INTERRUPT_CLK, ENABLE);
+
+	GPIO_InitStructure.GPIO_Pin = INTERRUPT_PIN;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+	GPIO_Init(INTERRUPT_PORT, &GPIO_InitStructure);
+	INTERRUPT_PORT->BRR = INTERRUPT_PIN; // clear
+
+
 	/* Start CPAL communication configuration ***********************************/
 	/* Initialize local Reception structures */
 	rxStructure.wNumData = BUFFER_SIZE;   /* Maximum Number of data to be received */
@@ -50,15 +63,23 @@ uint32_t i2c_interface_init () {
 
 
 uint32_t i2c_interface_send (uint16_t address, uint8_t length, uint8_t* buf) {
+	uint32_t ret;
 
-	txStructure.wNumData = length;
-	txStructure.wAddr1   = address;
-	txStructure.wAddr2   = 0;
-	txStructure.pbBuffer = buf;
+	rxStructure.wNumData = BUFFER_SIZE;       /* Maximum Number of data to be received */
+	rxStructure.pbBuffer = txBuffer;        /* Common Rx buffer for all received data */
 
-	I2C1_DevStructure.CPAL_Mode = CPAL_MODE_MASTER;
+	/* Reconfigure device for slave receiver mode */
+	I2C1_DevStructure.CPAL_Mode = CPAL_MODE_SLAVE;
 	I2C1_DevStructure.CPAL_State = CPAL_STATE_READY;
 
-	/* Start writing data in master mode */
-	return CPAL_I2C_Write(&I2C1_DevStructure);
+
+
+	// INTERRUPT_PORT->BSRR = INTERRUPT_PIN; // set
+
+	/* Start waiting for data to be received in slave mode */
+	ret = CPAL_I2C_Read(&I2C1_DevStructure);
+
+	INTERRUPT_PORT->BSRR = INTERRUPT_PIN; // set
+
+	return ret;
 }

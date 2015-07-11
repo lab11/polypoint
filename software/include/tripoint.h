@@ -21,8 +21,14 @@
 
 /******************************************************************************/
 // I2C
+/********************************************************************************/
+#define INTERRUPT_PIN GPIO_Pin_5
+#define INTERRUPT_PORT GPIOB
+#define INTERRUPT_CLK RCC_AHBPeriph_GPIOB
+
+// I2C
 /******************************************************************************/
-#define I2C_OWN_ADDRESS 0x74
+#define I2C_OWN_ADDRESS 0xe8
 #define I2C_TIMING              0x00731012
 
 

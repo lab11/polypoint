@@ -20,10 +20,10 @@ extern uint8_t MAC_ADDR[6];
 #define BOOTLOADER_CTRL_PIN  3
 #define BOOTLOADER_CTRL_PULL NRF_GPIO_PIN_PULLUP
 
-
-
 #define I2C_SCL_PIN   1
 #define I2C_SDA_PIN   7
+
+#define TRIPOINT_INTERRUPT_PIN 8
 
 #define RX_PIN_NUMBER  28
 #define TX_PIN_NUMBER  29
