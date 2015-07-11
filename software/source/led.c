@@ -10,7 +10,7 @@ const uint32_t GPIO_CLK[LEDn] = {LED1_GPIO_CLK, LED2_GPIO_CLK};
 
 void led_init (uint8_t led)
 {
-  GPIO_InitTypeDef  GPIO_InitStructure;
+  GPIO_InitTypeDef GPIO_InitStructure;
 
   /* Enable the GPIO_LED Clock */
   RCC_AHBPeriphClockCmd(GPIO_CLK[led], ENABLE);
@@ -27,12 +27,12 @@ void led_init (uint8_t led)
 
 void led_on (uint8_t led)
 {
-  GPIO_PORT[led]->BRR = GPIO_PIN[led];
+  GPIO_PORT[led]->BSRR = GPIO_PIN[led];
 }
 
 void led_off (uint8_t led)
 {
-  GPIO_PORT[led]->BSRR = GPIO_PIN[led];
+  GPIO_PORT[led]->BRR = GPIO_PIN[led];
 }
 
 void led_toggle (uint8_t led)

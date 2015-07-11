@@ -1,31 +1,8 @@
-/**
-  ******************************************************************************
-  * @file    I2C/I2C_TwoBoards/stm32f0xx_i2c_cpal_usercallback.c
-  * @author  MCD Application Team
-  * @version V1.4.0
-  * @date    24-July-2014
-  * @brief   This file provides all the CPAL UserCallback functions.
-  ******************************************************************************
-  * @attention
-  *
-  * <h2><center>&copy; COPYRIGHT 2014 STMicroelectronics</center></h2>
-  *
-  * Licensed under MCD-ST Liberty SW License Agreement V2, (the "License");
-  * You may not use this file except in compliance with the License.
-  * You may obtain a copy of the License at:
-  *
-  *        http://www.st.com/software_license_agreement_liberty_v2
-  *
-  * Unless required by applicable law or agreed to in writing, software
-  * distributed under the License is distributed on an "AS IS" BASIS,
-  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  * See the License for the specific language governing permissions and
-  * limitations under the License.
-  *
-  ******************************************************************************
-  */
+
 
 #include "stm32f0xx_i2c_cpal.h"
+
+#include "board.h"
 
 /* Includes ------------------------------------------------------------------*/
 // #include "main.h"
@@ -66,6 +43,8 @@
   */
 uint32_t CPAL_TIMEOUT_UserCallback(CPAL_InitTypeDef* pDevInitStruct)
 {
+
+  led_toggle(LED1);
   // /* Update CPAL states */
   // pDevInitStruct->CPAL_State = CPAL_STATE_READY;
   // pDevInitStruct->wCPAL_DevError = CPAL_I2C_ERR_NONE ;
@@ -98,6 +77,7 @@ uint32_t CPAL_TIMEOUT_UserCallback(CPAL_InitTypeDef* pDevInitStruct)
   */
 void CPAL_I2C_TXTC_UserCallback(CPAL_InitTypeDef* pDevInitStruct)
 {
+  // led_toggle(LED1);
   // STM_EVAL_LEDOff(LED3);
   // STM_EVAL_LEDToggle(LED2);
 
