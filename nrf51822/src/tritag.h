@@ -22,8 +22,8 @@ extern uint8_t MAC_ADDR[6];
 
 
 
-#define I2C_SCL_PIN   7
-#define I2C_SDA_PIN   8
+#define I2C_SCL_PIN   1
+#define I2C_SDA_PIN   7
 
 #define RX_PIN_NUMBER  28
 #define TX_PIN_NUMBER  29
