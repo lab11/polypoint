@@ -55,6 +55,23 @@ int main () {
 	return 0;
 }
 
+
+void decawave_done (dw1000_cb_e evt, uint32_t err) {
+	if (err) {
+		// do something
+	}
+
+	switch (evt) {
+		case DW1000_INIT_DONE:
+			led_toggle(LED2);
+			break;
+
+		default:
+			break;
+	}
+}
+
+
 void TIM17_IRQHandler(void) {
 
 	if (TIM_GetITStatus(TIM17, TIM_IT_Update) != RESET) {
@@ -68,7 +85,7 @@ void TIM17_IRQHandler(void) {
 		// 	led_on(LED2);
 		// }
 
-		dw1000_init();
+		dw1000_init(decawave_done);
 
 		/* Clear Timer interrupt pending bit */
 		TIM_ClearITPendingBit(TIM17, TIM_IT_Update);
