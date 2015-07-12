@@ -2,11 +2,15 @@
 #include "stm32f0xx_i2c_cpal.h"
 
 #include "board.h"
+#include "i2c_interface.h"
 
 #define BUFFER_SIZE 128
 uint8_t rxBuffer[BUFFER_SIZE];
 uint8_t txBuffer[BUFFER_SIZE];
 
+
+// Save a callback to use when data comes in from i2c for the main application
+static i2c_interface_callback callback;
 
 
 /* CPAL local transfer structures */
@@ -14,7 +18,10 @@ CPAL_TransferTypeDef rxStructure;
 CPAL_TransferTypeDef txStructure;
 
 
-uint32_t i2c_interface_init () {
+uint32_t i2c_interface_init (i2c_interface_callback cb) {
+
+	// Save callback
+	callback = cb;
 
 	// Enabled the Interrupt pin
 	GPIO_InitTypeDef  GPIO_InitStructure;
@@ -62,6 +69,8 @@ uint32_t i2c_interface_init () {
 }
 
 uint32_t i2c_interface_listen () {
+	uint32_t ret;
+
 	// Setup the listen buffer
 	rxStructure.wNumData = BUFFER_SIZE;      // Maximum Number of data to be received
 	rxStructure.pbBuffer = txBuffer;         // Common Rx buffer for all received data
@@ -80,7 +89,7 @@ uint32_t i2c_interface_send (uint16_t address, uint8_t length, uint8_t* buf) {
 	uint32_t ret;
 
 	rxStructure.wNumData = BUFFER_SIZE;       /* Maximum Number of data to be received */
-	rxStructure.pbBuffer = txBuffer;        /* Common Rx buffer for all received data */
+	rxStructure.pbBuffer = rxBuffer;        /* Common Rx buffer for all received data */
 
 	/* Reconfigure device for slave receiver mode */
 	I2C1_DevStructure.CPAL_Mode = CPAL_MODE_SLAVE;
@@ -137,7 +146,14 @@ uint32_t CPAL_TIMEOUT_UserCallback(CPAL_InitTypeDef* pDevInitStruct)
   */
 void CPAL_I2C_RXTC_UserCallback(CPAL_InitTypeDef* pDevInitStruct)
 {
-led_toggle(LED1);
+// led_toggle(LED1);
+
+	// Keep listening
+	i2c_interface_listen();
+
+	// Tell the main code about what we just got
+	callback(rxBuffer[0], rxBuffer+1);
+
 
   // INTERRUPT_PORT->BRR = INTERRUPT_PIN; // clear
 

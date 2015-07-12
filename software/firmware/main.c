@@ -54,6 +54,27 @@ static void error () {
 }
 
 
+void i2c_callback (uint8_t opcode, uint8_t* data) {
+	led_toggle(LED1);
+}
+
+
+void decawave_done (dw1000_cb_e evt, uint32_t err) {
+	if (err) {
+		// do something
+	}
+
+	switch (evt) {
+		case DW1000_INIT_DONE:
+			state = STATE_DW1000_INIT_DONE;
+
+			break;
+
+		default:
+			break;
+	}
+}
+
 int main () {
 	uint32_t err;
 
@@ -62,15 +83,15 @@ int main () {
 	led_off(LED1);
 	led_off(LED2);
 
-	err = i2c_interface_init();
-	if (err) {
-		// do something
-		led_on(LED2);
-	}
+	// err = i2c_interface_init();
+	// if (err) {
+	// 	// do something
+	// 	led_on(LED2);
+	// }
 
 	// TIM17_Config(10000);
 
-	dw1000_init(decawave_done);
+	// dw1000_init(decawave_done);
 
 
 	while (1) {
@@ -83,7 +104,7 @@ int main () {
 
 				// Setup CPAL, the manager that provides an I2C interface
 				// for the chip.
-				err = i2c_interface_init();
+				err = i2c_interface_init(i2c_callback);
 				if (err) error();
 
 				// Setup the DW1000 decawave chip
@@ -134,21 +155,7 @@ int main () {
 }
 
 
-void decawave_done (dw1000_cb_e evt, uint32_t err) {
-	if (err) {
-		// do something
-	}
 
-	switch (evt) {
-		case DW1000_INIT_DONE:
-			state = STATE_DW1000_INIT_DONE;
-
-			break;
-
-		default:
-			break;
-	}
-}
 
 
 void TIM17_IRQHandler(void) {

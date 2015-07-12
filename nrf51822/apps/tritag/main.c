@@ -67,7 +67,7 @@ static ble_app_t app;
 
 static ble_gap_adv_params_t m_adv_params;
 
-// static app_timer_id_t  characteristic_timer;
+static app_timer_id_t  test_timer;
 
 
 
@@ -288,9 +288,9 @@ static void sys_evt_dispatch(uint32_t sys_evt)
 }
 
 
-// static void timer_handler (void* p_context) {
-//     cstm.num_value++;
-// }
+static void timer_handler (void* p_context) {
+    tripoint_start_ranging();
+}
 
 
 /*******************************************************************************
@@ -322,14 +322,13 @@ static void timers_init(void) {
 
     APP_TIMER_INIT(APP_TIMER_PRESCALER, APP_TIMER_MAX_TIMERS, APP_TIMER_OP_QUEUE_SIZE, false);
 
-    // err_code = app_timer_create(&characteristic_timer,
-    //                             APP_TIMER_MODE_REPEATED,
-    //                             timer_handler);
-    // APP_ERROR_CHECK(err_code);
+    err_code = app_timer_create(&test_timer,
+                                APP_TIMER_MODE_REPEATED,
+                                timer_handler);
+    APP_ERROR_CHECK(err_code);
 
-    // // Start timer to update characteristic
-    // err_code = app_timer_start(characteristic_timer, UPDATE_RATE, NULL);
-    // APP_ERROR_CHECK(err_code);
+    err_code = app_timer_start(test_timer, UPDATE_RATE, NULL);
+    APP_ERROR_CHECK(err_code);
 }
 
 // initialize advertising
