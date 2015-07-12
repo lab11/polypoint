@@ -1,5 +1,7 @@
 #include "stm32f0xx_spi.h"
 #include "stm32f0xx_dma.h"
+#include "stm32f0xx_exti.h"
+#include "stm32f0xx_syscfg.h"
 
 #include "board.h"
 #include "dw1000.h"
@@ -17,6 +19,8 @@ static void setup () {
 
 	GPIO_InitTypeDef GPIO_InitStructure;
 	SPI_InitTypeDef SPI_InitStructure;
+	EXTI_InitTypeDef EXTI_InitStructure;
+	NVIC_InitTypeDef NVIC_InitStructure;
 
 	// Enable the SPI peripheral
 	RCC_APB2PeriphClockCmd(SPI1_CLK, ENABLE);
@@ -69,6 +73,49 @@ static void setup () {
 	SPI_InitStructure.SPI_CRCPolynomial     = 7;
 	SPI_InitStructure.SPI_Mode              = SPI_Mode_Master;
 	SPI_Init(SPI1, &SPI_InitStructure);
+
+
+	// Setup interrupt from the DW1000
+	 // Enable GPIOA clock
+	RCC_AHBPeriphClockCmd(DW_INTERRUPT_CLK, ENABLE);
+
+	 // Configure PA0 pin as input floating
+	GPIO_InitStructure.GPIO_Pin = DW_INTERRUPT_PIN;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+	GPIO_Init(DW_INTERRUPT_PORT, &GPIO_InitStructure);
+
+	 // Enable SYSCFG clock
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
+	 // Connect EXTIx Line to DW Int pin
+	SYSCFG_EXTILineConfig(DW_INTERRUPT_EXTI_PORT, DW_INTERRUPT_EXTI_PIN);
+
+	 // Configure EXTIx line
+	EXTI_InitStructure.EXTI_Line = DW_INTERRUPT_EXTI_LINE;
+	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
+	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising;
+	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
+	EXTI_Init(&EXTI_InitStructure);
+
+	 // Enable and set EXTIx Interrupt
+	NVIC_InitStructure.NVIC_IRQChannel = DW_INTERRUPT_EXTI_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPriority = 0x00;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
+
+
+	// Setup reset pin. Make it input unless we need it
+	RCC_AHBPeriphClockCmd(DW_RESET_CLK, ENABLE);
+
+	// Configure PC10 and PC11 in output pushpull mode
+	GPIO_InitStructure.GPIO_Pin = DW_RESET_PIN;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+	GPIO_Init(DW_RESET_PORT, &GPIO_InitStructure);
+
+
 
 	// Pre-populate DMA fields that don't need to change
 	DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t) SPI1_DR_ADDRESS;
@@ -139,6 +186,23 @@ void DMA1_Channel2_3_IRQHandler(void) {
 		// return success
 		callback(callback_event, 0);
 	}
+}
+
+
+/**
+  * @brief  This function handles External line 2 to 3 interrupt request.
+  * @param  None
+  * @retval None
+  */
+void EXTI2_3_IRQHandler(void) {
+
+
+  if(EXTI_GetITStatus(EXTI_Line2) != RESET) {
+    led_toggle(LED2);
+
+    // Clear the EXTI line 2 pending bit
+    EXTI_ClearITPendingBit(EXTI_Line2);
+  }
 }
 
 static void spi_transfer (dw1000_callback cb, dw1000_cb_e evt) {

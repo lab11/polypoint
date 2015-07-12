@@ -21,7 +21,7 @@
 
 
 /******************************************************************************/
-// INTERRUPT
+// INTERRUPT TO HOST DEVICE
 /********************************************************************************/
 #define INTERRUPT_PIN GPIO_Pin_5
 #define INTERRUPT_PORT GPIOB
@@ -86,6 +86,27 @@
 #define SPI1_NSS_GPIO_CLK                RCC_AHBPeriph_GPIOA
 #define SPI1_NSS_SOURCE                  GPIO_PinSource15
 #define SPI1_NSS_AF                      GPIO_AF_0
+
+
+/******************************************************************************/
+// INTERRUPT FROM DECAWAVE
+/********************************************************************************/
+#define DW_INTERRUPT_PIN GPIO_Pin_2
+#define DW_INTERRUPT_PORT GPIOA
+#define DW_INTERRUPT_CLK RCC_AHBPeriph_GPIOA
+#define DW_INTERRUPT_EXTI_LINE EXTI_Line2
+#define DW_INTERRUPT_EXTI_IRQn EXTI2_3_IRQn
+#define DW_INTERRUPT_EXTI_PORT EXTI_PortSourceGPIOA
+#define DW_INTERRUPT_EXTI_PIN EXTI_PinSource2
+
+/******************************************************************************/
+// DECAWAVE RESET
+/********************************************************************************/
+#define DW_RESET_PIN GPIO_Pin_0
+#define DW_RESET_PORT GPIOB
+#define DW_RESET_CLK RCC_AHBPeriph_GPIOB
+
+
 
 
 

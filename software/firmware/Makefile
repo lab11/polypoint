@@ -13,6 +13,8 @@ APPLICATION_SRCS += stm32f0xx_misc.c
 APPLICATION_SRCS += stm32f0xx_tim.c
 APPLICATION_SRCS += stm32f0xx_spi.c
 APPLICATION_SRCS += stm32f0xx_pwr.c
+APPLICATION_SRCS += stm32f0xx_exti.c
+APPLICATION_SRCS += stm32f0xx_syscfg.c
 
 APPLICATION_SRCS += stm32f0xx_i2c_cpal.c
 APPLICATION_SRCS += stm32f0xx_i2c_cpal_hal.c
