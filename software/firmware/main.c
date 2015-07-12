@@ -1,11 +1,24 @@
 
 #include "stm32f0xx_tim.h"
+#include "stm32f0xx_pwr.h"
 
 #include "tripoint.h"
 #include "led.h"
 
 #include "i2c_interface.h"
 #include "dw1000.h"
+
+
+typedef enum {
+	STATE_START,
+	STATE_IDLE,
+	STATE_DW1000_INIT_DONE,
+} state_e;
+
+
+state_e state = STATE_START;
+
+
 
 static void TIM17_Config(uint32_t Period) {
   /* TIM17 is used to generate periodic interrupts. At each interrupt
@@ -36,6 +49,11 @@ static void TIM17_Config(uint32_t Period) {
 }
 
 
+static void error () {
+	led_on(LED2);
+}
+
+
 int main () {
 	uint32_t err;
 
@@ -44,13 +62,73 @@ int main () {
 	led_off(LED1);
 	led_off(LED2);
 
-	// err = i2c_interface_init();
-	// if (err) {
-	// 	// do something
-	// 	led_on(LED2);
-	// }
+	err = i2c_interface_init();
+	if (err) {
+		// do something
+		led_on(LED2);
+	}
 
-	TIM17_Config(10000);
+	// TIM17_Config(10000);
+
+	dw1000_init(decawave_done);
+
+
+	while (1) {
+
+
+
+		switch (state) {
+			case STATE_START: {
+				state = STATE_IDLE;
+
+				// Setup CPAL, the manager that provides an I2C interface
+				// for the chip.
+				err = i2c_interface_init();
+				if (err) error();
+
+				// Setup the DW1000 decawave chip
+				dw1000_init(decawave_done);
+				break;
+			}
+
+
+			case STATE_DW1000_INIT_DONE: {
+				state = STATE_IDLE;
+
+				// Now wait for commands from the host chip
+				i2c_interface_listen();
+
+
+				// uint8_t buf[5] = {4, 5, 6, 7, 8};
+				// uint32_t err;
+
+				// led_toggle(LED2);
+
+				// err = i2c_interface_send(0x74, 5, buf);
+				// if (err) {
+				// 	led_on(LED1);
+				// }
+
+
+				break;
+			}
+
+
+
+			default:
+				break;
+		}
+
+
+		PWR_EnterSleepMode(PWR_SLEEPEntry_WFI);
+
+
+
+
+
+	}
+
+
 
 	return 0;
 }
@@ -63,7 +141,8 @@ void decawave_done (dw1000_cb_e evt, uint32_t err) {
 
 	switch (evt) {
 		case DW1000_INIT_DONE:
-			led_toggle(LED2);
+			state = STATE_DW1000_INIT_DONE;
+
 			break;
 
 		default:
@@ -76,8 +155,7 @@ void TIM17_IRQHandler(void) {
 
 	if (TIM_GetITStatus(TIM17, TIM_IT_Update) != RESET) {
 
-		uint8_t buf[5] = {4, 5, 6, 7, 8};
-		uint32_t err;
+
 
 		// led_toggle(LED1);
 		// err = i2c_interface_send(0x74, 5, buf);
@@ -85,7 +163,7 @@ void TIM17_IRQHandler(void) {
 		// 	led_on(LED2);
 		// }
 
-		dw1000_init(decawave_done);
+		// dw1000_init(decawave_done);
 
 		/* Clear Timer interrupt pending bit */
 		TIM_ClearITPendingBit(TIM17, TIM_IT_Update);

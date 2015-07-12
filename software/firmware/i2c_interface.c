@@ -50,7 +50,7 @@ uint32_t i2c_interface_init () {
 	I2C1_DevStructure.CPAL_Dev = 0;
 	I2C1_DevStructure.CPAL_Mode = CPAL_MODE_SLAVE;
 	I2C1_DevStructure.wCPAL_Options =  CPAL_OPT_NO_MEM_ADDR | CPAL_OPT_DMATX_TCIT | CPAL_OPT_DMARX_TCIT;
-	I2C1_DevStructure.CPAL_ProgModel = CPAL_PROGMODEL_DMA;
+	I2C1_DevStructure.CPAL_ProgModel = CPAL_PROGMODEL_INTERRUPT;
 	I2C1_DevStructure.pCPAL_I2C_Struct->I2C_Timing = I2C_TIMING;
 	I2C1_DevStructure.pCPAL_I2C_Struct->I2C_OwnAddress1 = I2C_OWN_ADDRESS;
 	I2C1_DevStructure.pCPAL_TransferRx = &rxStructure;
@@ -59,6 +59,20 @@ uint32_t i2c_interface_init () {
 	/* Initialize CPAL device with the selected parameters */
 	return CPAL_I2C_Init(&I2C1_DevStructure);
 
+}
+
+uint32_t i2c_interface_listen () {
+	// Setup the listen buffer
+	rxStructure.wNumData = BUFFER_SIZE;      // Maximum Number of data to be received
+	rxStructure.pbBuffer = txBuffer;         // Common Rx buffer for all received data
+
+	// Reconfigure device for slave receiver mode
+	I2C1_DevStructure.CPAL_Mode = CPAL_MODE_SLAVE;
+	I2C1_DevStructure.CPAL_State = CPAL_STATE_READY;
+
+	// Start waiting for data to be received in slave mode
+	ret = CPAL_I2C_Read(&I2C1_DevStructure);
+	return ret;
 }
 
 
@@ -93,7 +107,7 @@ uint32_t i2c_interface_send (uint16_t address, uint8_t length, uint8_t* buf) {
 uint32_t CPAL_TIMEOUT_UserCallback(CPAL_InitTypeDef* pDevInitStruct)
 {
 
-  led_toggle(LED1);
+  led_toggle(LED2);
   // /* Update CPAL states */
   // pDevInitStruct->CPAL_State = CPAL_STATE_READY;
   // pDevInitStruct->wCPAL_DevError = CPAL_I2C_ERR_NONE ;
@@ -123,9 +137,9 @@ uint32_t CPAL_TIMEOUT_UserCallback(CPAL_InitTypeDef* pDevInitStruct)
   */
 void CPAL_I2C_RXTC_UserCallback(CPAL_InitTypeDef* pDevInitStruct)
 {
+led_toggle(LED1);
 
-
-  INTERRUPT_PORT->BRR = INTERRUPT_PIN; // clear
+  // INTERRUPT_PORT->BRR = INTERRUPT_PIN; // clear
 
   // uint8_t result = 0xFF, i = 0;
 
