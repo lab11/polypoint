@@ -3,6 +3,7 @@
 
 #include "stm32f0xx.h"
 
+
 /******************************************************************************/
 // LEDS
 /******************************************************************************/
@@ -53,6 +54,8 @@
 #define SPI1_RX_DMA_CHANNEL              DMA1_Channel2
 #define SPI1_RX_DMA_FLAG_TC              DMA1_FLAG_TC2
 #define SPI1_RX_DMA_FLAG_GL              DMA1_FLAG_GL2
+#define SPI1_DMA_IRQn                    DMA1_Channel2_3_IRQn
+
 
 #define DMA1_CLK                         RCC_AHBPeriph_DMA1
 

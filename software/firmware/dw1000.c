@@ -100,6 +100,8 @@ static void setup () {
 
 static void setup_dma (uint32_t length, uint8_t* rx, uint8_t* tx) {
 
+	NVIC_InitTypeDef NVIC_InitStructure;
+
 	// DMA channel Rx of SPI Configuration
 	DMA_InitStructure.DMA_BufferSize = length;
 	DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t) rx;
@@ -114,10 +116,66 @@ static void setup_dma (uint32_t length, uint8_t* rx, uint8_t* tx) {
 	DMA_InitStructure.DMA_Priority = DMA_Priority_High;
 	DMA_Init(SPI1_TX_DMA_CHANNEL, &DMA_InitStructure);
 
+	// Enable DMA1 Channel1 Transfer Complete interrupt
+	// DMA_ITConfig(SPI1_RX_DMA_CHANNEL, DMA_IT_TC, ENABLE);
+
+	// Enable DMA1 channel1 IRQ Channel
+	NVIC_InitStructure.NVIC_IRQChannel = SPI1_DMA_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
+
 }
 
 void TimeOut_UserCallback () {
 	// led_toggle(LED1);
+}
+
+/**
+  * @brief  This function handles DMA1 Channel 1 interrupt request.
+  * @param  None
+  * @retval None
+  */
+void DMA1_Channel2_3_IRQHandler(void)
+{
+
+
+  /* Test on DMA1 Channel2 Transfer Complete interrupt */
+  if(DMA_GetITStatus(DMA1_IT_TC2))
+  {
+    /* DMA1 finished the transfer of SrcBuffer */
+    // EndOfTransfer = 1;
+    // led_toggle(LED2);
+
+    /* Clear DMA1 Channel1 Half Transfer, Transfer Complete and Global interrupt pending bits */
+    DMA_ClearITPendingBit(DMA1_IT_GL2);
+  }
+
+  if (DMA_GetITStatus(DMA1_IT_TC3)== SET)
+  {
+
+  	led_toggle(LED2);
+
+    // TxStatus = 1;
+    DMA_ClearITPendingBit(DMA1_IT_TC3);
+
+
+    /* Clear DMA1 global flags */
+    DMA_ClearFlag(SPI1_TX_DMA_FLAG_GL);
+    DMA_ClearFlag(SPI1_RX_DMA_FLAG_GL);
+
+    /* Disable the DMA channels */
+    DMA_Cmd(SPI1_RX_DMA_CHANNEL, DISABLE);
+    DMA_Cmd(SPI1_TX_DMA_CHANNEL, DISABLE);
+
+    /* Disable the SPI peripheral */
+    SPI_Cmd(SPI1, DISABLE);
+
+    /* Disable the SPI Rx and Tx DMA requests */
+    SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Rx, DISABLE);
+    SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Tx, DISABLE);
+
+  }
 }
 
 static void spi_transfer () {
@@ -133,6 +191,9 @@ static void spi_transfer () {
 
 	// Enable NSS output for master mode
 	SPI_SSOutputCmd(SPI1, ENABLE);
+
+	// Enable DMA1 Channel1 Transfer Complete interrupt
+	DMA_ITConfig(SPI1_TX_DMA_CHANNEL, DMA_IT_TC, ENABLE);
 
 	// Enable the DMA channels
 	DMA_Cmd(SPI1_RX_DMA_CHANNEL, ENABLE);
@@ -150,59 +211,62 @@ static void spi_transfer () {
 
 
 
+
+
+
 /* Enable the DMA channels */
-    DMA_Cmd(SPI1_RX_DMA_CHANNEL, ENABLE);
-    DMA_Cmd(SPI1_TX_DMA_CHANNEL, ENABLE);
+    // DMA_Cmd(SPI1_RX_DMA_CHANNEL, ENABLE);
+    // DMA_Cmd(SPI1_TX_DMA_CHANNEL, ENABLE);
 
     /* Wait the SPI DMA transfers complete or time out */
     // while (DMA_GetFlagStatus(SPI1_RX_DMA_FLAG_TC) == RESET)
     // {}
 
-    TimeOut = USER_TIMEOUT;
-    while ((DMA_GetFlagStatus(SPI1_TX_DMA_FLAG_TC) == RESET)&&(TimeOut != 0x00))
-    {}
-    if(TimeOut == 0)
-    {
-      TimeOut_UserCallback();
-    }
+    // TimeOut = USER_TIMEOUT;
+    // while ((DMA_GetFlagStatus(SPI1_TX_DMA_FLAG_TC) == RESET)&&(TimeOut != 0x00))
+    // {}
+    // if(TimeOut == 0)
+    // {
+    //   TimeOut_UserCallback();
+    // }
 
-    /* The BSY flag can be monitored to ensure that the SPI communication is complete.
-    This is required to avoid corrupting the last transmission before disabling
-    the SPI or entering the Stop mode. The software must first wait until TXE=1
-    and then until BSY=0.*/
-    TimeOut = USER_TIMEOUT;
-    while ((SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_TXE) == RESET)&&(TimeOut != 0x00))
-    {}
-    if(TimeOut == 0)
-    {
-      TimeOut_UserCallback();
-    }
+    // /* The BSY flag can be monitored to ensure that the SPI communication is complete.
+    // This is required to avoid corrupting the last transmission before disabling
+    // the SPI or entering the Stop mode. The software must first wait until TXE=1
+    // and then until BSY=0.*/
+    // TimeOut = USER_TIMEOUT;
+    // while ((SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_TXE) == RESET)&&(TimeOut != 0x00))
+    // {}
+    // if(TimeOut == 0)
+    // {
+    //   TimeOut_UserCallback();
+    // }
 
-    TimeOut = USER_TIMEOUT;
-    while ((SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_BSY) == SET)&&(TimeOut != 0x00))
-    {}
-    if(TimeOut == 0)
-    {
-      TimeOut_UserCallback();
-    }
+    // TimeOut = USER_TIMEOUT;
+    // while ((SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_BSY) == SET)&&(TimeOut != 0x00))
+    // {}
+    // if(TimeOut == 0)
+    // {
+    //   TimeOut_UserCallback();
+    // }
 
-    /* Clear DMA1 global flags */
-    DMA_ClearFlag(SPI1_TX_DMA_FLAG_GL);
-    DMA_ClearFlag(SPI1_RX_DMA_FLAG_GL);
+    // /* Clear DMA1 global flags */
+    // DMA_ClearFlag(SPI1_TX_DMA_FLAG_GL);
+    // DMA_ClearFlag(SPI1_RX_DMA_FLAG_GL);
 
-    /* Disable the DMA channels */
-    DMA_Cmd(SPI1_RX_DMA_CHANNEL, DISABLE);
-    DMA_Cmd(SPI1_TX_DMA_CHANNEL, DISABLE);
+    // /* Disable the DMA channels */
+    // DMA_Cmd(SPI1_RX_DMA_CHANNEL, DISABLE);
+    // DMA_Cmd(SPI1_TX_DMA_CHANNEL, DISABLE);
 
-    /* Disable the SPI peripheral */
-    SPI_Cmd(SPI1, DISABLE);
+    // /* Disable the SPI peripheral */
+    // SPI_Cmd(SPI1, DISABLE);
 
-    /* Disable the SPI Rx and Tx DMA requests */
-    SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Rx, DISABLE);
-    SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Tx, DISABLE);
+    // /* Disable the SPI Rx and Tx DMA requests */
+    // SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Rx, DISABLE);
+    // SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Tx, DISABLE);
 
 
-	led_toggle(LED2);
+	// led_toggle(LED2);
 
 
 
