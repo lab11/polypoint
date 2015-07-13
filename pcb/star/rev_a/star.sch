@@ -2179,77 +2179,6 @@ nRF24LE1, nRF51822-QFAA/AB, with integrated harmonic filter</description>
 <library name="connector">
 <description>&lt;b&gt;LAB11&lt;/b&gt; - Connectors for various cable types.</description>
 <packages>
-<package name="USB_MICRO_B-HIROSE-ZX62R-B-5P">
-<description>Hirose Electric Co Ltd ZX62R-B-5P&lt;br&gt;
-CONN RCPT MICRO USB B SMD R/A&lt;br&gt;&lt;br&gt;
-Round side is up.</description>
-<smd name="1" x="1.3" y="4.125" dx="0.4" dy="1.35" layer="1"/>
-<smd name="2" x="0.65" y="4.125" dx="0.4" dy="1.35" layer="1"/>
-<smd name="3" x="0" y="4.125" dx="0.4" dy="1.35" layer="1"/>
-<smd name="4" x="-0.65" y="4.125" dx="0.4" dy="1.35" layer="1"/>
-<smd name="5" x="-1.3" y="4.125" dx="0.4" dy="1.35" layer="1"/>
-<smd name="P$1" x="3.1" y="3.8" dx="2.1" dy="2" layer="1"/>
-<smd name="P$2" x="-3.1" y="3.8" dx="2.1" dy="2" layer="1"/>
-<smd name="P$3" x="-4.1" y="1.45" dx="1.6" dy="1.9" layer="1"/>
-<smd name="P$4" x="-0.85" y="1.45" dx="1.2" dy="1.9" layer="1"/>
-<smd name="P$5" x="0.85" y="1.45" dx="1.2" dy="1.9" layer="1"/>
-<smd name="P$6" x="4.1" y="1.45" dx="1.6" dy="1.9" layer="1"/>
-<wire x1="-5.08" y1="0" x2="-2.8" y2="0" width="0" layer="20"/>
-<wire x1="-2.8" y1="0" x2="-2.8" y2="1.499" width="0" layer="20"/>
-<wire x1="-2.8" y1="1.499" x2="-2.419" y2="1.88" width="0" layer="20" curve="-90"/>
-<wire x1="-2.419" y1="1.88" x2="-2.331" y2="1.88" width="0" layer="20"/>
-<wire x1="-2.331" y1="1.88" x2="-1.95" y2="1.499" width="0" layer="20" curve="-90"/>
-<wire x1="-1.95" y1="1.499" x2="-1.95" y2="0" width="0" layer="20"/>
-<wire x1="-1.95" y1="0" x2="1.95" y2="0" width="0" layer="20"/>
-<wire x1="1.95" y1="0" x2="1.95" y2="1.499" width="0" layer="20"/>
-<wire x1="1.95" y1="1.499" x2="2.331" y2="1.88" width="0" layer="20" curve="-90"/>
-<wire x1="2.331" y1="1.88" x2="2.419" y2="1.88" width="0" layer="20"/>
-<wire x1="2.419" y1="1.88" x2="2.8" y2="1.499" width="0" layer="20" curve="-90"/>
-<wire x1="2.8" y1="1.499" x2="2.8" y2="0" width="0" layer="20"/>
-<wire x1="2.8" y1="0" x2="5.08" y2="0" width="0" layer="20"/>
-<wire x1="-3.75" y1="-0.6" x2="-3.75" y2="4.4" width="0.127" layer="21"/>
-<wire x1="-3.75" y1="4.4" x2="3.75" y2="4.4" width="0.127" layer="21"/>
-<wire x1="3.75" y1="4.4" x2="3.75" y2="-0.6" width="0.127" layer="21"/>
-<wire x1="-3.75" y1="-0.6" x2="-3.7" y2="-0.6" width="0.127" layer="21"/>
-<wire x1="-3.7" y1="-0.6" x2="3.7" y2="-0.6" width="0.127" layer="21"/>
-<wire x1="3.7" y1="-0.6" x2="3.75" y2="-0.6" width="0.127" layer="21"/>
-<wire x1="-3.7" y1="-0.6" x2="-4.1" y2="-1.1" width="0.127" layer="21"/>
-<wire x1="3.7" y1="-0.6" x2="4.1" y2="-1.1" width="0.127" layer="21"/>
-<text x="0" y="5.1" size="1.016" layer="25" font="vector" ratio="12" align="bottom-center">&gt;NAME</text>
-<text x="0" y="-1.9" size="1.016" layer="27" font="vector" ratio="12" align="bottom-center">&gt;VALUE</text>
-<wire x1="-5.08" y1="0" x2="-2.8" y2="0" width="0" layer="107"/>
-<wire x1="-2.8" y1="0" x2="-2.8" y2="1.499" width="0" layer="107"/>
-<wire x1="-2.8" y1="1.499" x2="-2.419" y2="1.88" width="0" layer="107" curve="-90"/>
-<wire x1="-2.419" y1="1.88" x2="-2.331" y2="1.88" width="0" layer="107"/>
-<wire x1="-2.331" y1="1.88" x2="-1.95" y2="1.499" width="0" layer="107" curve="-90"/>
-<wire x1="-1.95" y1="1.499" x2="-1.95" y2="0" width="0" layer="107"/>
-<wire x1="-1.95" y1="0" x2="1.95" y2="0" width="0" layer="107"/>
-<wire x1="1.95" y1="0" x2="1.95" y2="1.499" width="0" layer="107"/>
-<wire x1="1.95" y1="1.499" x2="2.331" y2="1.88" width="0" layer="107" curve="-90"/>
-<wire x1="2.331" y1="1.88" x2="2.419" y2="1.88" width="0" layer="107"/>
-<wire x1="2.419" y1="1.88" x2="2.8" y2="1.499" width="0" layer="107" curve="-90"/>
-<wire x1="2.8" y1="1.499" x2="2.8" y2="0" width="0" layer="107"/>
-<wire x1="2.8" y1="0" x2="5.08" y2="0" width="0" layer="107"/>
-<wire x1="-5.08" y1="0" x2="-2.8" y2="0" width="0" layer="46"/>
-<wire x1="-2.8" y1="0" x2="-2.8" y2="1.499" width="0" layer="46"/>
-<wire x1="-2.8" y1="1.499" x2="-2.419" y2="1.88" width="0" layer="46" curve="-90"/>
-<wire x1="-2.419" y1="1.88" x2="-2.331" y2="1.88" width="0" layer="46"/>
-<wire x1="-2.331" y1="1.88" x2="-1.95" y2="1.499" width="0" layer="46" curve="-90"/>
-<wire x1="-1.95" y1="1.499" x2="-1.95" y2="0" width="0" layer="46"/>
-<wire x1="-1.95" y1="0" x2="1.95" y2="0" width="0" layer="46"/>
-<wire x1="1.95" y1="0" x2="1.95" y2="1.499" width="0" layer="46"/>
-<wire x1="1.95" y1="1.499" x2="2.331" y2="1.88" width="0" layer="46" curve="-90"/>
-<wire x1="2.331" y1="1.88" x2="2.419" y2="1.88" width="0" layer="46"/>
-<wire x1="2.419" y1="1.88" x2="2.8" y2="1.499" width="0" layer="46" curve="-90"/>
-<wire x1="2.8" y1="1.499" x2="2.8" y2="0" width="0" layer="46"/>
-<wire x1="2.8" y1="0" x2="5.08" y2="0" width="0" layer="46"/>
-</package>
-<package name="BATTERY_FLAT_PAD">
-<smd name="P" x="-1.5" y="0" dx="2" dy="2" layer="1"/>
-<smd name="M" x="1.5" y="0" dx="2" dy="2" layer="1"/>
-<text x="-2" y="1" size="1.27" layer="25">+</text>
-<text x="1.5" y="1" size="1.27" layer="25">-</text>
-</package>
 <package name="TC2030-IDC">
 <description>Tag Connect TC2030-IDC</description>
 <smd name="1" x="-1.27" y="-0.635" dx="0.7874" dy="0.7874" layer="1" roundness="100" cream="no"/>
@@ -2340,6 +2269,38 @@ Round side is up.</description>
 <wire x1="3.556" y1="0.7747" x2="3.556" y2="-0.7747" width="0.127" layer="21"/>
 <wire x1="3.556" y1="-0.7747" x2="2.286" y2="-2.0447" width="0.127" layer="21" curve="-90"/>
 </package>
+<package name="USB_MICRO_B-HIROSE-ZX62-B-5PA(11)">
+<smd name="5" x="1.3" y="4.125" dx="0.4" dy="1.35" layer="1"/>
+<smd name="4" x="0.65" y="4.125" dx="0.4" dy="1.35" layer="1"/>
+<smd name="3" x="0" y="4.125" dx="0.4" dy="1.35" layer="1"/>
+<smd name="2" x="-0.65" y="4.125" dx="0.4" dy="1.35" layer="1"/>
+<smd name="1" x="-1.3" y="4.125" dx="0.4" dy="1.35" layer="1"/>
+<smd name="P$1" x="3.1" y="3.8" dx="2.1" dy="2" layer="1"/>
+<smd name="P$2" x="-3.1" y="3.8" dx="2.1" dy="2" layer="1"/>
+<smd name="P$3" x="-4" y="1.45" dx="1.8" dy="1.9" layer="1"/>
+<smd name="P$4" x="-1.2" y="1.45" dx="1.9" dy="1.9" layer="1"/>
+<smd name="P$5" x="1.2" y="1.45" dx="1.9" dy="1.9" layer="1"/>
+<smd name="P$6" x="4" y="1.45" dx="1.8" dy="1.9" layer="1"/>
+<wire x1="-5.08" y1="0" x2="5.08" y2="0" width="0" layer="20"/>
+<wire x1="-3.75" y1="-0.6" x2="-3.75" y2="4.4" width="0.127" layer="21"/>
+<wire x1="-3.75" y1="4.4" x2="3.75" y2="4.4" width="0.127" layer="21"/>
+<wire x1="3.75" y1="4.4" x2="3.75" y2="-0.6" width="0.127" layer="21"/>
+<wire x1="-3.75" y1="-0.6" x2="-3.7" y2="-0.6" width="0.127" layer="21"/>
+<wire x1="-3.7" y1="-0.6" x2="3.7" y2="-0.6" width="0.127" layer="21"/>
+<wire x1="3.7" y1="-0.6" x2="3.75" y2="-0.6" width="0.127" layer="21"/>
+<wire x1="-3.7" y1="-0.6" x2="-4.1" y2="-1.1" width="0.127" layer="21"/>
+<wire x1="3.7" y1="-0.6" x2="4.1" y2="-1.1" width="0.127" layer="21"/>
+<text x="0" y="5.1" size="1.016" layer="25" font="vector" ratio="12" align="bottom-center">&gt;NAME</text>
+<text x="0" y="-1.9" size="1.016" layer="27" font="vector" ratio="12" align="bottom-center">&gt;VALUE</text>
+<wire x1="-5.08" y1="0" x2="5.08" y2="0" width="0" layer="107"/>
+<wire x1="-5.08" y1="0" x2="5.08" y2="0" width="0" layer="46"/>
+</package>
+<package name="BATTERY_HOLE">
+<text x="-1.5" y="1.25" size="1.27" layer="25" align="bottom-center">+</text>
+<text x="1.5" y="1.25" size="1.27" layer="25" align="bottom-center">-</text>
+<pad name="N" x="1.5" y="0" drill="1.1" diameter="2" shape="octagon"/>
+<pad name="P" x="-1.5" y="0" drill="1.1" diameter="2" shape="octagon"/>
+</package>
 </packages>
 <symbols>
 <symbol name="USB-B-MICRO">
@@ -2378,47 +2339,6 @@ Round side is up.</description>
 </symbol>
 </symbols>
 <devicesets>
-<deviceset name="MICRO_USB_B_HIROSE_ZX62R-B-5P" prefix="J">
-<description>USB Micro B Connector&lt;br&gt;
-Rounded side is up.</description>
-<gates>
-<gate name="G$1" symbol="USB-B-MICRO" x="0" y="0"/>
-</gates>
-<devices>
-<device name="" package="USB_MICRO_B-HIROSE-ZX62R-B-5P">
-<connects>
-<connect gate="G$1" pin="+5V" pad="1"/>
-<connect gate="G$1" pin="D+" pad="3"/>
-<connect gate="G$1" pin="D-" pad="2"/>
-<connect gate="G$1" pin="GND" pad="5"/>
-<connect gate="G$1" pin="ID" pad="4"/>
-</connects>
-<technologies>
-<technology name="">
-<attribute name="DIGIKEY" value="H11574CT-ND" constant="no"/>
-<attribute name="MOUSER" value="798-ZX62R-B-5P" constant="no"/>
-<attribute name="NEWARK" value="69W0714" constant="no"/>
-</technology>
-</technologies>
-</device>
-</devices>
-</deviceset>
-<deviceset name="BAT_FLAT_PAD">
-<gates>
-<gate name="G$1" symbol="BAT" x="0" y="0"/>
-</gates>
-<devices>
-<device name="" package="BATTERY_FLAT_PAD">
-<connects>
-<connect gate="G$1" pin="+" pad="P"/>
-<connect gate="G$1" pin="-" pad="M"/>
-</connects>
-<technologies>
-<technology name=""/>
-</technologies>
-</device>
-</devices>
-</deviceset>
 <deviceset name="TC2030-JLINK" prefix="J">
 <gates>
 <gate name="G$1" symbol="JLINK-SWD-TC" x="0" y="0"/>
@@ -2445,6 +2365,47 @@ Rounded side is up.</description>
 <connect gate="G$1" pin="SWDIO" pad="2"/>
 <connect gate="G$1" pin="SWO" pad="6"/>
 <connect gate="G$1" pin="VCC" pad="1"/>
+</connects>
+<technologies>
+<technology name=""/>
+</technologies>
+</device>
+</devices>
+</deviceset>
+<deviceset name="MICRO_USB_B_HIROSE_ZX62-B-5PA(11)">
+<description>Connector Receptacle USB - micro B 2.0 5 Position Surface Mount, Right Angle, Horizontal &lt;br/&gt;&lt;br/&gt;
+Bottom Mount</description>
+<gates>
+<gate name="G$1" symbol="USB-B-MICRO" x="0" y="0"/>
+</gates>
+<devices>
+<device name="" package="USB_MICRO_B-HIROSE-ZX62-B-5PA(11)">
+<connects>
+<connect gate="G$1" pin="+5V" pad="1"/>
+<connect gate="G$1" pin="D+" pad="3"/>
+<connect gate="G$1" pin="D-" pad="2"/>
+<connect gate="G$1" pin="GND" pad="5"/>
+<connect gate="G$1" pin="ID" pad="4"/>
+</connects>
+<technologies>
+<technology name="">
+<attribute name="DIGIKEY" value="H11634CT-ND" constant="no"/>
+<attribute name="MOUSER" value="798-ZX62-B-5PA11" constant="no"/>
+<attribute name="NEWARK" value="86P8793" constant="no"/>
+</technology>
+</technologies>
+</device>
+</devices>
+</deviceset>
+<deviceset name="BAT_HOLE">
+<gates>
+<gate name="G$1" symbol="BAT" x="0" y="0"/>
+</gates>
+<devices>
+<device name="" package="BATTERY_HOLE">
+<connects>
+<connect gate="G$1" pin="+" pad="P"/>
+<connect gate="G$1" pin="-" pad="N"/>
 </connects>
 <technologies>
 <technology name=""/>
@@ -3229,6 +3190,93 @@ Standard schematic elements and footprints for 5mm, 3mm, 1206, and 0603 sized LE
 </deviceset>
 </devicesets>
 </library>
+<library name="tripoint">
+<packages>
+<package name="TRIPOINT">
+<wire x1="-15.875" y1="9.17143125" x2="15.875" y2="9.17143125" width="0.127" layer="21"/>
+<wire x1="15.875" y1="9.17143125" x2="0" y2="-18.33676875" width="0.127" layer="21"/>
+<wire x1="0" y1="-18.33676875" x2="-15.875" y2="9.17143125" width="0.127" layer="21"/>
+<smd name="P$1" x="0" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
+<smd name="P$2" x="1.5875" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
+<smd name="P$3" x="3.175" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
+<smd name="P$4" x="4.7625" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
+<smd name="P$5" x="6.35" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
+<smd name="P$6" x="7.9375" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
+<smd name="P$7" x="9.525" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
+<smd name="P$8" x="11.1125" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
+<smd name="P$9" x="12.7" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
+<smd name="P$10" x="-1.5875" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
+<smd name="P$11" x="-3.175" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
+<smd name="P$12" x="-4.7625" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
+<smd name="P$13" x="-6.35" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
+<smd name="P$14" x="-7.9375" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
+<smd name="P$15" x="-9.525" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
+<smd name="P$16" x="-11.1125" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
+<smd name="P$17" x="-12.7" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
+<smd name="P$18" x="7.9375" y="-4.58266875" dx="1.27" dy="1.905" layer="1" rot="R60"/>
+<smd name="P$19" x="8.73125" y="-3.207765625" dx="1.27" dy="1.905" layer="1" rot="R60"/>
+<smd name="P$20" x="9.525" y="-1.8328625" dx="1.27" dy="1.905" layer="1" rot="R60"/>
+<smd name="P$21" x="10.31875" y="-0.4579625" dx="1.27" dy="1.905" layer="1" rot="R60"/>
+<smd name="P$22" x="11.1125" y="0.916940625" dx="1.27" dy="1.905" layer="1" rot="R60"/>
+<smd name="P$23" x="11.90625" y="2.29184375" dx="1.27" dy="1.905" layer="1" rot="R60"/>
+<smd name="P$24" x="12.7" y="3.66674375" dx="1.27" dy="1.905" layer="1" rot="R60"/>
+<smd name="P$25" x="13.49375" y="5.041646875" dx="1.27" dy="1.905" layer="1" rot="R60"/>
+<smd name="P$26" x="14.2875" y="6.41655" dx="1.27" dy="1.905" layer="1" rot="R60"/>
+<smd name="P$27" x="7.14375" y="-5.95756875" dx="1.27" dy="1.905" layer="1" rot="R60"/>
+<smd name="P$28" x="6.35" y="-7.332471875" dx="1.27" dy="1.905" layer="1" rot="R60"/>
+<smd name="P$29" x="5.55625" y="-8.707375" dx="1.27" dy="1.905" layer="1" rot="R60"/>
+<smd name="P$30" x="4.7625" y="-10.082275" dx="1.27" dy="1.905" layer="1" rot="R60"/>
+<smd name="P$31" x="3.96875" y="-11.457178125" dx="1.27" dy="1.905" layer="1" rot="R60"/>
+<smd name="P$32" x="3.175" y="-12.832078125" dx="1.27" dy="1.905" layer="1" rot="R60"/>
+<smd name="P$33" x="2.38125" y="-14.20698125" dx="1.27" dy="1.905" layer="1" rot="R60"/>
+<smd name="P$34" x="1.5875" y="-15.581884375" dx="1.27" dy="1.905" layer="1" rot="R60"/>
+<smd name="P$35" x="-7.9375" y="-4.58266875" dx="1.27" dy="1.905" layer="1" rot="R120"/>
+<smd name="P$36" x="-8.73125" y="-3.207765625" dx="1.27" dy="1.905" layer="1" rot="R120"/>
+<smd name="P$37" x="-9.525" y="-1.8328625" dx="1.27" dy="1.905" layer="1" rot="R120"/>
+<smd name="P$38" x="-10.31875" y="-0.4579625" dx="1.27" dy="1.905" layer="1" rot="R120"/>
+<smd name="P$39" x="-11.1125" y="0.916940625" dx="1.27" dy="1.905" layer="1" rot="R120"/>
+<smd name="P$40" x="-11.90625" y="2.29184375" dx="1.27" dy="1.905" layer="1" rot="R120"/>
+<smd name="P$41" x="-12.7" y="3.66674375" dx="1.27" dy="1.905" layer="1" rot="R120"/>
+<smd name="P$42" x="-13.49375" y="5.041646875" dx="1.27" dy="1.905" layer="1" rot="R120"/>
+<smd name="P$43" x="-14.2875" y="6.41655" dx="1.27" dy="1.905" layer="1" rot="R120"/>
+<smd name="P$44" x="-7.14375" y="-5.95756875" dx="1.27" dy="1.905" layer="1" rot="R120"/>
+<smd name="P$45" x="-6.35" y="-7.332471875" dx="1.27" dy="1.905" layer="1" rot="R120"/>
+<smd name="P$46" x="-5.556253125" y="-8.707375" dx="1.27" dy="1.905" layer="1" rot="R120"/>
+<smd name="P$47" x="-4.7625" y="-10.082275" dx="1.27" dy="1.905" layer="1" rot="R120"/>
+<smd name="P$48" x="-3.96875" y="-11.457178125" dx="1.27" dy="1.905" layer="1" rot="R120"/>
+<smd name="P$49" x="-3.175" y="-12.832078125" dx="1.27" dy="1.905" layer="1" rot="R120"/>
+<smd name="P$50" x="-2.38125" y="-14.20698125" dx="1.27" dy="1.905" layer="1" rot="R120"/>
+<smd name="P$51" x="-1.5875" y="-15.581884375" dx="1.27" dy="1.905" layer="1" rot="R120"/>
+<text x="0" y="10.23823125" size="1.016" layer="25" font="vector" ratio="12" align="bottom-center">&gt;NAME</text>
+</package>
+</packages>
+<symbols>
+<symbol name="TRIPOINT">
+<pin name="P$1" x="7.62" y="0" length="middle" rot="R180"/>
+<wire x1="2.54" y1="5.08" x2="-5.08" y2="5.08" width="0.254" layer="94"/>
+<wire x1="-5.08" y1="5.08" x2="-5.08" y2="-5.08" width="0.254" layer="94"/>
+<wire x1="-5.08" y1="-5.08" x2="2.54" y2="-5.08" width="0.254" layer="94"/>
+<wire x1="2.54" y1="-5.08" x2="2.54" y2="5.08" width="0.254" layer="94"/>
+</symbol>
+</symbols>
+<devicesets>
+<deviceset name="TRIPOINT" prefix="U">
+<gates>
+<gate name="G$1" symbol="TRIPOINT" x="0" y="0"/>
+</gates>
+<devices>
+<device name="" package="TRIPOINT">
+<connects>
+<connect gate="G$1" pin="P$1" pad="P$1"/>
+</connects>
+<technologies>
+<technology name=""/>
+</technologies>
+</device>
+</devices>
+</deviceset>
+</devicesets>
+</library>
 </libraries>
 <attributes>
 </attributes>
@@ -3243,7 +3291,6 @@ Standard schematic elements and footprints for 5mm, 3mm, 1206, and 0603 sized LE
 <part name="A1" library="chips" deviceset="TAIYO-YUDEN-AH086M" device=""/>
 <part name="A2" library="chips" deviceset="TAIYO-YUDEN-AH086M" device=""/>
 <part name="A3" library="chips" deviceset="TAIYO-YUDEN-AH086M" device=""/>
-<part name="J1" library="connector" deviceset="MICRO_USB_B_HIROSE_ZX62R-B-5P" device=""/>
 <part name="GND4" library="supply1" deviceset="GND" device=""/>
 <part name="X1" library="crystals" deviceset="EPSON-FA-128" device=""/>
 <part name="C3" library="passives" deviceset="CAPACITOR" device="" value="12pF"/>
@@ -3287,13 +3334,11 @@ Standard schematic elements and footprints for 5mm, 3mm, 1206, and 0603 sized LE
 <part name="C4" library="passives" deviceset="CAPACITOR" device="" value="0.1uF"/>
 <part name="C17" library="passives" deviceset="CAPACITOR" device="" value="0.47uF"/>
 <part name="C15" library="passives" deviceset="CAPACITOR" device="" value="0.1uF"/>
-<part name="U$1" library="connector" deviceset="BAT_FLAT_PAD" device=""/>
 <part name="SUPPLY14" library="supply1" deviceset="GND" device=""/>
 <part name="SUPPLY1" library="supply1" deviceset="GND" device=""/>
 <part name="SUPPLY3" library="supply1" deviceset="GND" device=""/>
 <part name="SUPPLY4" library="supply1" deviceset="GND" device=""/>
 <part name="SUPPLY7" library="supply1" deviceset="GND" device=""/>
-<part name="U$2" library="connector" deviceset="BAT_FLAT_PAD" device=""/>
 <part name="J2" library="connector" deviceset="TC2030-JLINK" device="-NL"/>
 <part name="P+4" library="supply1" deviceset="VCC" device=""/>
 <part name="GND5" library="supply1" deviceset="GND" device=""/>
@@ -3306,6 +3351,14 @@ Standard schematic elements and footprints for 5mm, 3mm, 1206, and 0603 sized LE
 <part name="R3" library="passives" deviceset="RESISTOR" device="0402_RES" value="1k"/>
 <part name="D2" library="SparkFun-LED" deviceset="LED" device="0603"/>
 <part name="P+5" library="supply1" deviceset="VCC" device=""/>
+<part name="J3" library="connector" deviceset="MICRO_USB_B_HIROSE_ZX62-B-5PA(11)" device=""/>
+<part name="FRAME3" library="frames" deviceset="LETTER_L" device=""/>
+<part name="U3" library="tripoint" deviceset="TRIPOINT" device=""/>
+<part name="U$3" library="connector" deviceset="BAT_HOLE" device=""/>
+<part name="U$4" library="connector" deviceset="BAT_HOLE" device=""/>
+<part name="J4" library="connector" deviceset="TC2030-JLINK" device="-NL"/>
+<part name="P+6" library="supply1" deviceset="VCC" device=""/>
+<part name="GND1" library="supply1" deviceset="GND" device=""/>
 </parts>
 <sheets>
 <sheet>
@@ -3314,10 +3367,6 @@ Standard schematic elements and footprints for 5mm, 3mm, 1206, and 0603 sized LE
 <instances>
 <instance part="FRAME1" gate="G$1" x="0" y="0"/>
 <instance part="FRAME1" gate="G$2" x="147.32" y="0"/>
-<instance part="A1" gate="G$1" x="147.32" y="142.24"/>
-<instance part="A2" gate="G$1" x="162.56" y="142.24"/>
-<instance part="A3" gate="G$1" x="175.26" y="142.24"/>
-<instance part="J1" gate="G$1" x="48.26" y="78.74" rot="MR0"/>
 <instance part="U2" gate="G$1" x="114.3" y="78.74"/>
 <instance part="R12" gate="G$1" x="91.44" y="86.36" rot="R90"/>
 <instance part="C18" gate="G$1" x="73.66" y="81.28"/>
@@ -3334,15 +3383,16 @@ Standard schematic elements and footprints for 5mm, 3mm, 1206, and 0603 sized LE
 <attribute name="NAME" x="167.132" y="65.913" size="1.778" layer="95" rot="R180"/>
 <attribute name="VALUE" x="168.91" y="63.119" size="1.778" layer="96" rot="R180"/>
 </instance>
-<instance part="U$1" gate="G$1" x="124.46" y="106.68"/>
 <instance part="SUPPLY14" gate="1" x="137.16" y="96.52"/>
 <instance part="SUPPLY1" gate="1" x="99.06" y="53.34"/>
 <instance part="SUPPLY3" gate="1" x="68.58" y="53.34"/>
 <instance part="SUPPLY4" gate="1" x="152.4" y="53.34"/>
 <instance part="SUPPLY7" gate="1" x="160.02" y="53.34"/>
-<instance part="U$2" gate="G$1" x="124.46" y="121.92"/>
 <instance part="D1" gate="G$1" x="91.44" y="76.2"/>
 <instance part="SUPPLY2" gate="1" x="139.7" y="53.34"/>
+<instance part="J3" gate="G$1" x="48.26" y="78.74" rot="MR0"/>
+<instance part="U$3" gate="G$1" x="124.46" y="134.62"/>
+<instance part="U$4" gate="G$1" x="124.46" y="147.32"/>
 </instances>
 <busses>
 </busses>
@@ -3375,13 +3425,13 @@ Standard schematic elements and footprints for 5mm, 3mm, 1206, and 0603 sized LE
 </segment>
 <segment>
 <pinref part="SUPPLY14" gate="1" pin="GND"/>
-<pinref part="U$1" gate="G$1" pin="-"/>
-<wire x1="137.16" y1="99.06" x2="137.16" y2="104.14" width="0.1524" layer="91"/>
-<wire x1="137.16" y1="104.14" x2="134.62" y2="104.14" width="0.1524" layer="91"/>
-<pinref part="U$2" gate="G$1" pin="-"/>
-<wire x1="134.62" y1="119.38" x2="137.16" y2="119.38" width="0.1524" layer="91"/>
-<wire x1="137.16" y1="119.38" x2="137.16" y2="104.14" width="0.1524" layer="91"/>
-<junction x="137.16" y="104.14"/>
+<wire x1="137.16" y1="132.08" x2="137.16" y2="99.06" width="0.1524" layer="91"/>
+<pinref part="U$4" gate="G$1" pin="-"/>
+<wire x1="134.62" y1="144.78" x2="137.16" y2="144.78" width="0.1524" layer="91"/>
+<wire x1="137.16" y1="144.78" x2="137.16" y2="132.08" width="0.1524" layer="91"/>
+<pinref part="U$3" gate="G$1" pin="-"/>
+<wire x1="134.62" y1="132.08" x2="137.16" y2="132.08" width="0.1524" layer="91"/>
+<junction x="137.16" y="132.08"/>
 </segment>
 <segment>
 <pinref part="C18" gate="G$1" pin="2"/>
@@ -3389,11 +3439,11 @@ Standard schematic elements and footprints for 5mm, 3mm, 1206, and 0603 sized LE
 <wire x1="73.66" y1="66.04" x2="68.58" y2="66.04" width="0.1524" layer="91"/>
 <pinref part="SUPPLY3" gate="1" pin="GND"/>
 <wire x1="68.58" y1="66.04" x2="68.58" y2="55.88" width="0.1524" layer="91"/>
-<pinref part="J1" gate="G$1" pin="GND"/>
-<wire x1="55.88" y1="73.66" x2="60.96" y2="73.66" width="0.1524" layer="91"/>
 <wire x1="60.96" y1="73.66" x2="60.96" y2="66.04" width="0.1524" layer="91"/>
 <wire x1="60.96" y1="66.04" x2="68.58" y2="66.04" width="0.1524" layer="91"/>
 <junction x="68.58" y="66.04"/>
+<pinref part="J3" gate="G$1" pin="GND"/>
+<wire x1="55.88" y1="73.66" x2="60.96" y2="73.66" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="R14" gate="G$1" pin="1"/>
@@ -3426,9 +3476,6 @@ Standard schematic elements and footprints for 5mm, 3mm, 1206, and 0603 sized LE
 <segment>
 <pinref part="C18" gate="G$1" pin="1"/>
 <wire x1="73.66" y1="93.98" x2="73.66" y2="83.82" width="0.1524" layer="91"/>
-<pinref part="J1" gate="G$1" pin="+5V"/>
-<wire x1="55.88" y1="83.82" x2="60.96" y2="83.82" width="0.1524" layer="91"/>
-<wire x1="60.96" y1="83.82" x2="60.96" y2="93.98" width="0.1524" layer="91"/>
 <wire x1="60.96" y1="93.98" x2="73.66" y2="93.98" width="0.1524" layer="91"/>
 <junction x="73.66" y="93.98"/>
 <pinref part="U2" gate="G$1" pin="VCC"/>
@@ -3439,6 +3486,9 @@ Standard schematic elements and footprints for 5mm, 3mm, 1206, and 0603 sized LE
 <wire x1="91.44" y1="93.98" x2="91.44" y2="91.44" width="0.1524" layer="91"/>
 <wire x1="73.66" y1="93.98" x2="91.44" y2="93.98" width="0.1524" layer="91"/>
 <junction x="91.44" y="93.98"/>
+<wire x1="60.96" y1="93.98" x2="60.96" y2="83.82" width="0.1524" layer="91"/>
+<pinref part="J3" gate="G$1" pin="+5V"/>
+<wire x1="60.96" y1="83.82" x2="55.88" y2="83.82" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="!CHRG" class="0">
@@ -3458,7 +3508,6 @@ Standard schematic elements and footprints for 5mm, 3mm, 1206, and 0603 sized LE
 </net>
 <net name="VBAT" class="0">
 <segment>
-<pinref part="U$1" gate="G$1" pin="+"/>
 <pinref part="U2" gate="G$1" pin="BAT"/>
 <pinref part="R15" gate="G$1" pin="2"/>
 <wire x1="129.54" y1="86.36" x2="152.4" y2="86.36" width="0.1524" layer="91"/>
@@ -3470,12 +3519,13 @@ Standard schematic elements and footprints for 5mm, 3mm, 1206, and 0603 sized LE
 <wire x1="152.4" y1="86.36" x2="182.88" y2="86.36" width="0.1524" layer="91"/>
 <junction x="152.4" y="86.36"/>
 <junction x="182.88" y="86.36"/>
-<wire x1="134.62" y1="109.22" x2="152.4" y2="109.22" width="0.1524" layer="91"/>
-<wire x1="152.4" y1="109.22" x2="152.4" y2="86.36" width="0.1524" layer="91"/>
-<pinref part="U$2" gate="G$1" pin="+"/>
-<wire x1="134.62" y1="124.46" x2="152.4" y2="124.46" width="0.1524" layer="91"/>
-<wire x1="152.4" y1="124.46" x2="152.4" y2="109.22" width="0.1524" layer="91"/>
-<junction x="152.4" y="109.22"/>
+<wire x1="152.4" y1="137.16" x2="152.4" y2="86.36" width="0.1524" layer="91"/>
+<pinref part="U$4" gate="G$1" pin="+"/>
+<wire x1="152.4" y1="137.16" x2="152.4" y2="149.86" width="0.1524" layer="91"/>
+<wire x1="152.4" y1="149.86" x2="134.62" y2="149.86" width="0.1524" layer="91"/>
+<pinref part="U$3" gate="G$1" pin="+"/>
+<wire x1="152.4" y1="137.16" x2="134.62" y2="137.16" width="0.1524" layer="91"/>
+<junction x="152.4" y="137.16"/>
 </segment>
 </net>
 <net name="BATIN" class="0">
@@ -3855,6 +3905,41 @@ Standard schematic elements and footprints for 5mm, 3mm, 1206, and 0603 sized LE
 <pinref part="D2" gate="G$1" pin="C"/>
 <wire x1="106.68" y1="99.06" x2="119.38" y2="99.06" width="0.1524" layer="91"/>
 <wire x1="119.38" y1="99.06" x2="119.38" y2="101.6" width="0.1524" layer="91"/>
+</segment>
+</net>
+</nets>
+</sheet>
+<sheet>
+<plain>
+</plain>
+<instances>
+<instance part="FRAME3" gate="G$1" x="0" y="0"/>
+<instance part="FRAME3" gate="G$2" x="147.32" y="0"/>
+<instance part="U3" gate="G$1" x="48.26" y="68.58"/>
+<instance part="A1" gate="G$1" x="81.28" y="93.98"/>
+<instance part="A2" gate="G$1" x="96.52" y="93.98"/>
+<instance part="A3" gate="G$1" x="109.22" y="93.98"/>
+<instance part="J4" gate="G$1" x="142.24" y="142.24"/>
+<instance part="P+6" gate="VCC" x="124.46" y="152.4"/>
+<instance part="GND1" gate="1" x="124.46" y="132.08"/>
+</instances>
+<busses>
+</busses>
+<nets>
+<net name="GND" class="0">
+<segment>
+<pinref part="J4" gate="G$1" pin="GND"/>
+<pinref part="GND1" gate="1" pin="GND"/>
+<wire x1="129.54" y1="137.16" x2="124.46" y2="137.16" width="0.1524" layer="91"/>
+<wire x1="124.46" y1="137.16" x2="124.46" y2="134.62" width="0.1524" layer="91"/>
+</segment>
+</net>
+<net name="VCC" class="0">
+<segment>
+<pinref part="J4" gate="G$1" pin="VCC"/>
+<pinref part="P+6" gate="VCC" pin="VCC"/>
+<wire x1="129.54" y1="147.32" x2="124.46" y2="147.32" width="0.1524" layer="91"/>
+<wire x1="124.46" y1="147.32" x2="124.46" y2="149.86" width="0.1524" layer="91"/>
 </segment>
 </net>
 </nets>
