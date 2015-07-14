@@ -2228,15 +2228,12 @@ To use, set global attributes TITLE, AUTHOR and REV in your schematic.</descript
 <pad name="P$1" x="-4.32" y="1.8" drill="0.7" diameter="1.3"/>
 <pad name="P$2" x="-4.32" y="2.45" drill="0.7" diameter="1.3"/>
 <pad name="P$3" x="-4.32" y="1.15" drill="0.7" diameter="1.3"/>
-<pad name="P$4" x="4.32" y="1.8" drill="0.7" diameter="1.3"/>
-<pad name="P$5" x="4.32" y="2.45" drill="0.7" diameter="1.3"/>
-<pad name="P$6" x="4.32" y="1.15" drill="0.7" diameter="1.3"/>
 <wire x1="-5.207" y1="0" x2="5.207" y2="0" width="0" layer="20"/>
 <pad name="P$7" x="-4.32" y="6.25" drill="0.7" diameter="1.3"/>
 <pad name="P$8" x="-3.72" y="6.25" drill="0.7" diameter="1"/>
 <pad name="P$9" x="-4.32" y="7.45" drill="0.7" diameter="1.3"/>
 <pad name="P$10" x="4.32" y="6.25" drill="0.7" diameter="1.3"/>
-<pad name="P$11" x="3.72" y="6.25" drill="0.7" diameter="1.3"/>
+<pad name="P$11" x="3.72" y="6.25" drill="0.7" diameter="1"/>
 <pad name="P$12" x="4.32" y="7.45" drill="0.7" diameter="1.3"/>
 <smd name="A1" x="-2.625" y="7.55" dx="0.27" dy="0.9" layer="1"/>
 <smd name="A2" x="-2.125" y="7.55" dx="0.27" dy="0.9" layer="1"/>
@@ -2267,6 +2264,40 @@ To use, set global attributes TITLE, AUTHOR and REV in your schematic.</descript
 <wire x1="4.47" y1="-0.12" x2="-4.47" y2="-0.12" width="0.127" layer="21"/>
 <wire x1="-4.47" y1="-0.12" x2="-4.47" y2="8.05" width="0.127" layer="21"/>
 <rectangle x1="-3.9" y1="0" x2="3.9" y2="4.85" layer="41"/>
+<wire x1="-4.67" y1="1.15" x2="-3.97" y2="1.15" width="0" layer="20" curve="180"/>
+<wire x1="-3.97" y1="1.15" x2="-3.97" y2="2.45" width="0" layer="20"/>
+<wire x1="-3.97" y1="2.45" x2="-4.67" y2="2.45" width="0" layer="20" curve="180"/>
+<wire x1="-4.67" y1="2.45" x2="-4.67" y2="1.15" width="0" layer="20"/>
+<rectangle x1="-4.97" y1="1.15" x2="-4.67" y2="2.45" layer="17"/>
+<rectangle x1="-3.97" y1="1.15" x2="-3.67" y2="2.45" layer="17"/>
+<pad name="P$4" x="4.32" y="1.8" drill="0.7" diameter="1.3"/>
+<pad name="P$5" x="4.32" y="2.45" drill="0.7" diameter="1.3"/>
+<pad name="P$6" x="4.32" y="1.15" drill="0.7" diameter="1.3"/>
+<wire x1="3.97" y1="1.15" x2="4.67" y2="1.15" width="0" layer="20" curve="180"/>
+<wire x1="4.67" y1="1.15" x2="4.67" y2="2.45" width="0" layer="20"/>
+<wire x1="4.67" y1="2.45" x2="3.97" y2="2.45" width="0" layer="20" curve="180"/>
+<wire x1="3.97" y1="2.45" x2="3.97" y2="1.15" width="0" layer="20"/>
+<rectangle x1="3.67" y1="1.15" x2="3.97" y2="2.45" layer="17"/>
+<rectangle x1="4.67" y1="1.15" x2="4.97" y2="2.45" layer="17"/>
+<wire x1="-4.67" y1="7.45" x2="-3.97" y2="7.45" width="0" layer="20" curve="-180"/>
+<wire x1="-3.97" y1="7.45" x2="-3.97" y2="6.6" width="0" layer="20"/>
+<wire x1="-3.97" y1="6.6" x2="-3.72" y2="6.6" width="0" layer="20"/>
+<wire x1="-3.72" y1="6.6" x2="-3.72" y2="5.9" width="0" layer="20" curve="-180"/>
+<wire x1="-3.72" y1="5.9" x2="-4.32" y2="5.9" width="0" layer="20"/>
+<wire x1="-4.67" y1="6.25" x2="-4.67" y2="7.45" width="0" layer="20"/>
+<wire x1="-4.67" y1="6.25" x2="-4.32" y2="5.9" width="0" layer="20" curve="90"/>
+<rectangle x1="-4.97" y1="6.25" x2="-4.67" y2="7.45" layer="17"/>
+<rectangle x1="-3.97" y1="6.6" x2="-3.67" y2="7.44" layer="17"/>
+<wire x1="4.67" y1="7.45" x2="3.97" y2="7.45" width="0" layer="20" curve="180"/>
+<wire x1="3.97" y1="7.45" x2="3.97" y2="6.6" width="0" layer="20"/>
+<wire x1="3.97" y1="6.6" x2="3.72" y2="6.6" width="0" layer="20"/>
+<wire x1="3.72" y1="6.6" x2="3.72" y2="5.9" width="0" layer="20" curve="180"/>
+<wire x1="3.72" y1="5.9" x2="4.32" y2="5.9" width="0" layer="20"/>
+<wire x1="4.32" y1="5.9" x2="4.67" y2="6.25" width="0" layer="20" curve="90"/>
+<wire x1="4.67" y1="6.25" x2="4.67" y2="7.45" width="0" layer="20"/>
+<rectangle x1="4.67" y1="6.25" x2="4.97" y2="7.45" layer="17"/>
+<rectangle x1="3.67" y1="6.6" x2="3.97" y2="7.44" layer="17"/>
+<text x="0" y="8.255" size="1.016" layer="25" font="vector" ratio="12" align="bottom-center">&gt;NAME</text>
 </package>
 </packages>
 <symbols>
@@ -3336,8 +3367,220 @@ Basic Inductor/Choke - 0603 and 1206. Footprints are not proven and vary greatly
 </deviceset>
 </devicesets>
 </library>
+<library name="logos">
+<description>&lt;b&gt;LAB11&lt;/b&gt; - Logos for PCBs.</description>
+<packages>
+<package name="UMICH_SOLID_75MIL">
+<description>University of Michigan - Solid block M 0.075 in tall.</description>
+<rectangle x1="0" y1="1.3716" x2="0.8001" y2="1.905" layer="21"/>
+<wire x1="0.8001" y1="1.8923" x2="1.3335" y2="1.1811" width="0.0254" layer="21"/>
+<wire x1="1.3335" y1="1.1811" x2="1.8669" y2="1.8923" width="0.0254" layer="21"/>
+<wire x1="1.3335" y1="0.3429" x2="1.8923" y2="1.0668" width="0.0254" layer="21"/>
+<wire x1="1.3335" y1="0.3429" x2="0.7747" y2="1.0541" width="0.0254" layer="21"/>
+<rectangle x1="0.2032" y1="0.5334" x2="0.7874" y2="1.3716" layer="21"/>
+<rectangle x1="0" y1="0" x2="1.016" y2="0.5334" layer="21"/>
+<rectangle x1="1.651" y1="0" x2="2.667" y2="0.5334" layer="21"/>
+<rectangle x1="1.8796" y1="0.5334" x2="2.4638" y2="1.3716" layer="21"/>
+<rectangle x1="1.8669" y1="1.3716" x2="2.667" y2="1.905" layer="21"/>
+<polygon width="0.0254" layer="21">
+<vertex x="1.8669" y="1.8923"/>
+<vertex x="1.3335" y="1.1811"/>
+<vertex x="0.8001" y="1.8923"/>
+<vertex x="0.8001" y="1.0414"/>
+<vertex x="1.3335" y="0.3683"/>
+<vertex x="1.8796" y="1.0795"/>
+</polygon>
+</package>
+<package name="UMICH_SOLID_200MIL">
+<description>University of Michigan - Solid block M 0.200 in tall.</description>
+<rectangle x1="0" y1="3.6322" x2="2.1336" y2="5.08" layer="21"/>
+<wire x1="2.1336" y1="5.0673" x2="3.5433" y2="3.1623" width="0.0254" layer="21"/>
+<wire x1="3.5433" y1="3.1623" x2="4.9276" y2="5.0673" width="0.0254" layer="21"/>
+<wire x1="4.9657" y1="2.7559" x2="3.5306" y2="0.8763" width="0.0254" layer="21"/>
+<wire x1="3.5306" y1="0.8763" x2="2.1209" y2="2.7559" width="0.0254" layer="21"/>
+<rectangle x1="0.5334" y1="1.4478" x2="2.1082" y2="3.6322" layer="21"/>
+<rectangle x1="0" y1="0" x2="2.6924" y2="1.4478" layer="21"/>
+<rectangle x1="4.3942" y1="0" x2="7.0866" y2="1.4478" layer="21"/>
+<rectangle x1="4.9784" y1="1.4478" x2="6.5532" y2="3.6322" layer="21"/>
+<rectangle x1="4.9276" y1="3.6322" x2="7.0866" y2="5.08" layer="21"/>
+<polygon width="0.0254" layer="21">
+<vertex x="2.1209" y="2.7559"/>
+<vertex x="3.5306" y="0.8763"/>
+<vertex x="5.0165" y="2.8194"/>
+<vertex x="5.0165" y="5.0673"/>
+<vertex x="4.9276" y="5.0673"/>
+<vertex x="3.5433" y="3.1623"/>
+<vertex x="2.1336" y="5.0673"/>
+<vertex x="2.0701" y="5.0673"/>
+<vertex x="2.0701" y="2.7559"/>
+</polygon>
+</package>
+<package name="UMICH_SOLID_500MIL">
+<description>University of Michigan - Solid block M 0.500 in tall.</description>
+<rectangle x1="0" y1="0" x2="6.7056" y2="3.6068" layer="21"/>
+<rectangle x1="1.2954" y1="3.6068" x2="5.2578" y2="9.0932" layer="21"/>
+<rectangle x1="0" y1="9.0932" x2="5.334" y2="12.7" layer="21"/>
+<polygon width="0.0254" layer="21">
+<vertex x="5.334" y="12.6873"/>
+<vertex x="8.8519" y="7.8613"/>
+<vertex x="12.3444" y="12.6873"/>
+<vertex x="12.5603" y="12.6873"/>
+<vertex x="12.5603" y="6.9723"/>
+<vertex x="12.4587" y="6.9723"/>
+<vertex x="8.8392" y="2.1463"/>
+<vertex x="5.2705" y="6.9723"/>
+<vertex x="5.0419" y="6.9723"/>
+<vertex x="5.0546" y="12.6873"/>
+</polygon>
+<rectangle x1="12.573" y1="9.0932" x2="17.7292" y2="12.7" layer="21"/>
+<rectangle x1="12.4714" y1="3.6068" x2="16.4338" y2="9.0932" layer="21"/>
+<rectangle x1="11.0236" y1="0" x2="17.7292" y2="3.6068" layer="21"/>
+</package>
+<package name="UMICH_SOLID_1000MIL">
+<description>University of Michigan - Solid block M 1.000 in tall.</description>
+<rectangle x1="0" y1="0" x2="13.4112" y2="7.2136" layer="21"/>
+<rectangle x1="2.5908" y1="7.2136" x2="10.5156" y2="18.1864" layer="21"/>
+<rectangle x1="0" y1="18.1864" x2="10.668" y2="25.4" layer="21"/>
+<polygon width="0.0508" layer="21">
+<vertex x="10.668" y="25.3746"/>
+<vertex x="17.7038" y="15.7226"/>
+<vertex x="24.6888" y="25.3746"/>
+<vertex x="25.146" y="25.3746"/>
+<vertex x="25.146" y="13.9446"/>
+<vertex x="24.9174" y="13.9446"/>
+<vertex x="17.6784" y="4.2926"/>
+<vertex x="10.541" y="13.9446"/>
+<vertex x="10.1854" y="13.9446"/>
+<vertex x="10.1854" y="25.3746"/>
+</polygon>
+<rectangle x1="22.0472" y1="0" x2="35.4584" y2="7.2136" layer="21"/>
+<rectangle x1="24.9428" y1="7.2136" x2="32.8676" y2="18.1864" layer="21"/>
+<rectangle x1="25.146" y1="18.1864" x2="35.4584" y2="25.4" layer="21"/>
+</package>
+<package name="UMICH_SOLID_350MIL">
+<description>University of Michigan - Solid block M 0.350 in tall.</description>
+<rectangle x1="0" y1="6.3754" x2="3.7338" y2="8.89" layer="21"/>
+<rectangle x1="0.9144" y1="2.5146" x2="3.683" y2="6.3754" layer="21"/>
+<rectangle x1="0" y1="0" x2="4.699" y2="2.5146" layer="21"/>
+<rectangle x1="7.7216" y1="0" x2="12.4206" y2="2.5146" layer="21"/>
+<rectangle x1="8.7376" y1="2.5146" x2="11.5062" y2="6.3754" layer="21"/>
+<rectangle x1="8.6614" y1="6.3754" x2="12.4206" y2="8.89" layer="21"/>
+<polygon width="0.0254" layer="21">
+<vertex x="3.7338" y="8.8773"/>
+<vertex x="6.1976" y="5.5245"/>
+<vertex x="8.6614" y="8.8773"/>
+<vertex x="8.8138" y="8.8773"/>
+<vertex x="8.8138" y="4.8641"/>
+<vertex x="8.7249" y="4.8641"/>
+<vertex x="6.1976" y="1.5113"/>
+<vertex x="3.6957" y="4.8641"/>
+<vertex x="3.5814" y="4.8641"/>
+<vertex x="3.5941" y="8.8773"/>
+</polygon>
+</package>
+<package name="UMICH_SOLID_100MIL">
+<rectangle x1="0" y1="1.8161" x2="1.0541" y2="2.54" layer="21"/>
+<rectangle x1="0.2667" y1="0.7239" x2="1.0541" y2="1.8161" layer="21"/>
+<rectangle x1="0" y1="0" x2="1.3462" y2="0.7239" layer="21"/>
+<rectangle x1="2.1971" y1="0" x2="3.5433" y2="0.7239" layer="21"/>
+<rectangle x1="2.4892" y1="0.7239" x2="3.2766" y2="1.8161" layer="21"/>
+<rectangle x1="2.4892" y1="1.8161" x2="3.5433" y2="2.54" layer="21"/>
+<polygon width="0" layer="21">
+<vertex x="2.4892" y="1.37795"/>
+<vertex x="1.7653" y="0.43815"/>
+<vertex x="1.0541" y="1.37795"/>
+<vertex x="1.0541" y="2.54"/>
+<vertex x="1.7653" y="1.6002"/>
+<vertex x="2.4892" y="2.54"/>
+</polygon>
+</package>
+<package name="UMICH_SOLID_50MIL">
+<rectangle x1="-0.885825" y1="0.27305" x2="-0.358775" y2="0.635" layer="21"/>
+<rectangle x1="-0.752475" y1="-0.27305" x2="-0.358775" y2="0.27305" layer="21"/>
+<rectangle x1="-0.885825" y1="-0.635" x2="-0.212725" y2="-0.27305" layer="21"/>
+<rectangle x1="0.212725" y1="-0.635" x2="0.885825" y2="-0.27305" layer="21"/>
+<rectangle x1="0.358775" y1="-0.27305" x2="0.752475" y2="0.27305" layer="21"/>
+<rectangle x1="0.358775" y1="0.27305" x2="0.885825" y2="0.635" layer="21"/>
+<polygon width="0" layer="21">
+<vertex x="0.358775" y="0.053975"/>
+<vertex x="-0.003175" y="-0.415925"/>
+<vertex x="-0.358775" y="0.053975"/>
+<vertex x="-0.358775" y="0.635"/>
+<vertex x="-0.003175" y="0.1651"/>
+<vertex x="0.358775" y="0.635"/>
+</polygon>
+</package>
+</packages>
+<symbols>
+<symbol name="UMICH_SOLID">
+<rectangle x1="0" y1="7.2644" x2="4.2672" y2="10.16" layer="94"/>
+<rectangle x1="1.0668" y1="2.8956" x2="4.2164" y2="7.2644" layer="94"/>
+<rectangle x1="0" y1="0" x2="5.3848" y2="2.8956" layer="94"/>
+<rectangle x1="8.7884" y1="0" x2="14.1732" y2="2.8956" layer="94"/>
+<rectangle x1="9.9568" y1="2.8956" x2="13.1064" y2="7.2644" layer="94"/>
+<rectangle x1="9.906" y1="7.2644" x2="14.1732" y2="10.16" layer="94"/>
+<polygon width="0.0508" layer="94">
+<vertex x="4.2672" y="10.1346"/>
+<vertex x="7.0866" y="6.3246"/>
+<vertex x="9.906" y="10.1346"/>
+<vertex x="10.0838" y="10.1346"/>
+<vertex x="10.0838" y="5.5626"/>
+<vertex x="9.9568" y="5.5626"/>
+<vertex x="7.0612" y="1.7526"/>
+<vertex x="4.2164" y="5.5626"/>
+<vertex x="4.2418" y="10.1346"/>
+</polygon>
+</symbol>
+</symbols>
+<devicesets>
+<deviceset name="UMICH_SOLID" prefix="LOGO">
+<gates>
+<gate name="G$1" symbol="UMICH_SOLID" x="0" y="0"/>
+</gates>
+<devices>
+<device name="_SMALL" package="UMICH_SOLID_75MIL">
+<technologies>
+<technology name=""/>
+</technologies>
+</device>
+<device name="_MEDIUM" package="UMICH_SOLID_200MIL">
+<technologies>
+<technology name=""/>
+</technologies>
+</device>
+<device name="_HUGE" package="UMICH_SOLID_500MIL">
+<technologies>
+<technology name=""/>
+</technologies>
+</device>
+<device name="_GIANT" package="UMICH_SOLID_1000MIL">
+<technologies>
+<technology name=""/>
+</technologies>
+</device>
+<device name="_LARGE" package="UMICH_SOLID_350MIL">
+<technologies>
+<technology name=""/>
+</technologies>
+</device>
+<device name="_SMALL+" package="UMICH_SOLID_100MIL">
+<technologies>
+<technology name=""/>
+</technologies>
+</device>
+<device name="_TINY" package="UMICH_SOLID_50MIL">
+<technologies>
+<technology name=""/>
+</technologies>
+</device>
+</devices>
+</deviceset>
+</devicesets>
+</library>
 </libraries>
 <attributes>
+<attribute name="AUTHOR" value="Brad Campbell"/>
+<attribute name="REV" value="A"/>
 </attributes>
 <variantdefs>
 </variantdefs>
@@ -3385,6 +3628,11 @@ Basic Inductor/Choke - 0603 and 1206. Footprints are not proven and vary greatly
 <part name="R6" library="passives" deviceset="RESISTOR" device="0402_RES" value="100"/>
 <part name="P+2" library="supply1" deviceset="VCC" device=""/>
 <part name="GND9" library="supply1" deviceset="GND" device=""/>
+<part name="R7" library="passives" deviceset="RESISTOR" device="0402_RES" value="10k"/>
+<part name="R8" library="passives" deviceset="RESISTOR" device="0402_RES" value="10k"/>
+<part name="P+3" library="supply1" deviceset="VCC" device=""/>
+<part name="P+4" library="supply1" deviceset="VCC" device=""/>
+<part name="LOGO1" library="logos" deviceset="UMICH_SOLID" device="_MEDIUM"/>
 </parts>
 <sheets>
 <sheet>
@@ -3395,8 +3643,8 @@ Basic Inductor/Choke - 0603 and 1206. Footprints are not proven and vary greatly
 <instance part="FRAME1" gate="G$2" x="147.32" y="0"/>
 <instance part="E_1" gate="_BASIC" x="30.48" y="165.1"/>
 <instance part="E_1" gate="_GPIO" x="30.48" y="111.76"/>
-<instance part="E_1" gate="_I2C_1" x="91.44" y="165.1"/>
-<instance part="E_1" gate="_I2C_6" x="91.44" y="137.16"/>
+<instance part="E_1" gate="_I2C_1" x="91.44" y="132.08"/>
+<instance part="E_1" gate="_I2C_6" x="91.44" y="116.84"/>
 <instance part="E_1" gate="_I2S" x="91.44" y="101.6"/>
 <instance part="E_1" gate="_SD" x="91.44" y="68.58"/>
 <instance part="E_1" gate="_SPI" x="139.7" y="165.1"/>
@@ -3405,6 +3653,17 @@ Basic Inductor/Choke - 0603 and 1206. Footprints are not proven and vary greatly
 <instance part="E_1" gate="_USB" x="144.78" y="81.28"/>
 <instance part="P+2" gate="VCC" x="25.4" y="172.72"/>
 <instance part="GND9" gate="1" x="25.4" y="124.46"/>
+<instance part="R7" gate="G$1" x="83.82" y="139.7" smashed="yes" rot="R270">
+<attribute name="NAME" x="85.3186" y="143.51" size="1.778" layer="95" rot="R270"/>
+<attribute name="VALUE" x="85.598" y="138.43" size="1.778" layer="96" rot="R270"/>
+</instance>
+<instance part="R8" gate="G$1" x="78.74" y="139.7" smashed="yes" rot="R270">
+<attribute name="NAME" x="75.1586" y="143.51" size="1.778" layer="95" rot="R270"/>
+<attribute name="VALUE" x="75.438" y="138.43" size="1.778" layer="96" rot="R270"/>
+</instance>
+<instance part="P+3" gate="VCC" x="78.74" y="149.86"/>
+<instance part="P+4" gate="VCC" x="83.82" y="149.86"/>
+<instance part="LOGO1" gate="G$1" x="231.14" y="172.72"/>
 </instances>
 <busses>
 </busses>
@@ -3438,6 +3697,16 @@ Basic Inductor/Choke - 0603 and 1206. Footprints are not proven and vary greatly
 <wire x1="27.94" y1="162.56" x2="25.4" y2="162.56" width="0.1524" layer="91"/>
 <junction x="25.4" y="162.56"/>
 </segment>
+<segment>
+<pinref part="R8" gate="G$1" pin="1"/>
+<wire x1="78.74" y1="144.78" x2="78.74" y2="147.32" width="0.1524" layer="91"/>
+<pinref part="P+3" gate="VCC" pin="VCC"/>
+</segment>
+<segment>
+<pinref part="R7" gate="G$1" pin="1"/>
+<wire x1="83.82" y1="144.78" x2="83.82" y2="147.32" width="0.1524" layer="91"/>
+<pinref part="P+4" gate="VCC" pin="VCC"/>
+</segment>
 </net>
 <net name="GND" class="0">
 <segment>
@@ -3465,6 +3734,28 @@ Basic Inductor/Choke - 0603 and 1206. Footprints are not proven and vary greatly
 <pinref part="E_1" gate="_BASIC" pin="GND@6"/>
 <wire x1="27.94" y1="129.54" x2="25.4" y2="129.54" width="0.1524" layer="91"/>
 <junction x="25.4" y="129.54"/>
+</segment>
+</net>
+<net name="SCL" class="0">
+<segment>
+<pinref part="R8" gate="G$1" pin="2"/>
+<wire x1="78.74" y1="134.62" x2="78.74" y2="129.54" width="0.1524" layer="91"/>
+<pinref part="E_1" gate="_I2C_1" pin="GP19_I2C_1_SCL"/>
+<wire x1="78.74" y1="129.54" x2="88.9" y2="129.54" width="0.1524" layer="91"/>
+<wire x1="78.74" y1="129.54" x2="73.66" y2="129.54" width="0.1524" layer="91"/>
+<junction x="78.74" y="129.54"/>
+<label x="73.66" y="129.54" size="1.27" layer="95" rot="R180" xref="yes"/>
+</segment>
+</net>
+<net name="SDA" class="0">
+<segment>
+<pinref part="R7" gate="G$1" pin="2"/>
+<wire x1="83.82" y1="134.62" x2="83.82" y2="132.08" width="0.1524" layer="91"/>
+<pinref part="E_1" gate="_I2C_1" pin="GP20_I2C_1_SDA"/>
+<wire x1="83.82" y1="132.08" x2="88.9" y2="132.08" width="0.1524" layer="91"/>
+<wire x1="83.82" y1="132.08" x2="73.66" y2="132.08" width="0.1524" layer="91"/>
+<junction x="83.82" y="132.08"/>
+<label x="73.66" y="132.08" size="1.27" layer="95" rot="R180" xref="yes"/>
 </segment>
 </net>
 </nets>
