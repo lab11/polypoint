@@ -2013,7 +2013,7 @@ GPIO1
 Text Label 3550 5700 1    60   ~ 0
 GPIO2
 Text Label 3250 5700 1    60   ~ 0
-GPIO3
+INTERRUPT
 Text Label 3450 2550 0    60   ~ 0
 GPIO7
 Text Label 3450 2450 0    60   ~ 0
@@ -2025,7 +2025,7 @@ GPIO1
 Text Label 3450 2650 0    60   ~ 0
 GPIO2
 Text Label 1250 2250 0    60   ~ 0
-GPIO3
+INTERRUPT
 Text Label 1250 2350 0    60   ~ 0
 ~SPI1_SS
 Text Label 1250 2450 0    60   ~ 0
