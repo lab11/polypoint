@@ -2003,27 +2003,17 @@ F 3 "" H 1600 7650 60  0000 C CNN
 	0    -1   -1   0   
 $EndComp
 Text Label 3950 6350 0    60   ~ 0
-GPIO6
-Text Label 3950 6250 0    60   ~ 0
-GPIO7
-Text Label 3950 6150 0    60   ~ 0
 GPIO0
-Text Label 3950 6050 0    60   ~ 0
+Text Label 3950 6250 0    60   ~ 0
 GPIO1
-Text Label 3550 5700 1    60   ~ 0
+Text Label 3950 6150 0    60   ~ 0
 GPIO2
+Text Label 3950 6050 0    60   ~ 0
+GPIO3
+Text Label 3550 5700 1    60   ~ 0
+GPIO4
 Text Label 3250 5700 1    60   ~ 0
 INTERRUPT
-Text Label 3450 2550 0    60   ~ 0
-GPIO7
-Text Label 3450 2450 0    60   ~ 0
-GPIO6
-Text Label 1250 1950 0    60   ~ 0
-GPIO0
-Text Label 1250 2050 0    60   ~ 0
-GPIO1
-Text Label 3450 2650 0    60   ~ 0
-GPIO2
 Text Label 1250 2250 0    60   ~ 0
 INTERRUPT
 Text Label 1250 2350 0    60   ~ 0
@@ -2065,10 +2055,10 @@ ANT_SEL1
 Text Label 3450 2350 0    60   ~ 0
 ANT_SEL0
 $Comp
-L VDDDIG #PWR090
+L VDDDIG #PWR089
 U 1 1 55A035B2
 P 8550 4850
-F 0 "#PWR090" H 8550 4700 50  0001 C CNN
+F 0 "#PWR089" H 8550 4700 50  0001 C CNN
 F 1 "VDDDIG" V 8550 5000 50  0000 L CNN
 F 2 "" H 8550 4850 60  0000 C CNN
 F 3 "" H 8550 4850 60  0000 C CNN
@@ -2078,4 +2068,14 @@ $EndComp
 Wire Wire Line
 	1700 4750 2050 4750
 Connection ~ 1900 4750
+Text Label 3450 2450 0    60   ~ 0
+GPIO0
+Text Label 3450 2550 0    60   ~ 0
+GPIO1
+Text Label 1250 1950 0    60   ~ 0
+GPIO2
+Text Label 1250 2050 0    60   ~ 0
+GPIO3
+Text Label 3450 2650 0    60   ~ 0
+GPIO4
 $EndSCHEMATC
