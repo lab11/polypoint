@@ -1,6 +1,6 @@
 [submodule "contiki/lib/decawave"]
 	path = contiki/lib/decawave
-	url = https://github.com/lab11/dw1000-driver
+	url = git@github.com:lab11/dw1000-driver
 [submodule "software/stm32f0xx-gcc-setup"]
 	path = software/stm32f0xx-gcc-setup
 	url = https://github.com/lab11/stm32f0xx-gcc-setup.git
