@@ -3610,7 +3610,9 @@ Basic Inductor/Choke - 0603 and 1206. Footprints are not proven and vary greatly
 <part name="GND4" library="supply1" deviceset="GND" device=""/>
 <part name="U2" library="chips" deviceset="TPS62065" device=""/>
 <part name="GND5" library="supply1" deviceset="GND" device=""/>
-<part name="L1" library="SparkFun-Passives" deviceset="INDUCTOR" device="1210" value="1uH"/>
+<part name="L1" library="SparkFun-Passives" deviceset="INDUCTOR" device="1210" value="1uH">
+<attribute name="DIGIKEY" value="490-10767-1-ND"/>
+</part>
 <part name="R3" library="passives" deviceset="RESISTOR" device="0402_RES" value="680k"/>
 <part name="R4" library="passives" deviceset="RESISTOR" device="0402_RES" value="120k"/>
 <part name="GND6" library="supply1" deviceset="GND" device=""/>
@@ -3800,7 +3802,9 @@ Basic Inductor/Choke - 0603 and 1206. Footprints are not proven and vary greatly
 <instance part="GND4" gate="1" x="63.5" y="99.06"/>
 <instance part="U2" gate="G$1" x="66.04" y="55.88"/>
 <instance part="GND5" gate="1" x="50.8" y="30.48"/>
-<instance part="L1" gate="G$1" x="88.9" y="63.5" rot="R90"/>
+<instance part="L1" gate="G$1" x="88.9" y="63.5" rot="R90">
+<attribute name="DIGIKEY" x="88.9" y="63.5" size="3.81" layer="96" rot="R90" align="bottom-center" display="off"/>
+</instance>
 <instance part="R3" gate="G$1" x="99.06" y="55.88" smashed="yes" rot="R90">
 <attribute name="NAME" x="102.6414" y="52.07" size="1.778" layer="95" rot="R90"/>
 <attribute name="VALUE" x="102.362" y="57.15" size="1.778" layer="96" rot="R90"/>

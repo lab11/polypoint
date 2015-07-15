@@ -859,7 +859,9 @@ This Sunstone Circuits 2 Layer .DRU has been set to cover our minimum requiremen
 <element name="U2" library="chips" package="S-PWSON-N8" value="TPS62065" x="2.54" y="17.78" rot="MR180">
 <attribute name="DIGIKEY" value="296-39441-1-ND" x="2.54" y="17.78" size="1.778" layer="28" rot="MR180" display="off"/>
 </element>
-<element name="L1" library="SparkFun-Passives" package="1210" value="1uH" x="3.048" y="21.1074" rot="MR180"/>
+<element name="L1" library="SparkFun-Passives" package="1210" value="1uH" x="3.048" y="21.1074" rot="MR180">
+<attribute name="DIGIKEY" value="490-10767-1-ND" x="3.048" y="21.1074" size="1.778" layer="28" rot="MR180" display="off"/>
+</element>
 <element name="R3" library="passives" package="0402_RES" value="680k" x="7.5946" y="21.1836" rot="MR90"/>
 <element name="R4" library="passives" package="0402_RES" value="120k" x="6.5532" y="21.1836" rot="MR270"/>
 <element name="C4" library="passives" package="0402_CAP" value="10pF" x="8.7884" y="21.1582" rot="MR270"/>
