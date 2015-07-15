@@ -1896,8 +1896,6 @@ To use, set global attributes TITLE, AUTHOR and REV in your schematic.</descript
 <smd name="1" x="-0.65" y="-1.05" dx="0.7" dy="0.3" layer="1" rot="R90"/>
 <smd name="2" x="0" y="-1.05" dx="0.7" dy="0.3" layer="1" rot="R90"/>
 <smd name="3" x="0.65" y="-1.05" dx="0.7" dy="0.3" layer="1" rot="R90"/>
-<pad name="TP" x="-0.4" y="0" drill="0.21" diameter="0.4064"/>
-<pad name="TP2" x="0.4" y="0" drill="0.21" diameter="0.4064"/>
 <smd name="TP3" x="0" y="0" dx="1.6" dy="1" layer="1"/>
 <circle x="-0.7" y="-1.6" radius="0.05" width="0.05" layer="21"/>
 <text x="-1.1" y="1.7" size="0.6096" layer="25">&gt;NAME</text>
@@ -2164,7 +2162,7 @@ nRF24LE1, nRF51822-QFAA/AB, with integrated harmonic filter</description>
 <devices>
 <device name="" package="WDFN-6">
 <connects>
-<connect gate="G$1" pin="GND" pad="2 3 4 5 TP TP2 TP3"/>
+<connect gate="G$1" pin="GND" pad="2 3 4 5 TP3"/>
 <connect gate="G$1" pin="IN" pad="1"/>
 <connect gate="G$1" pin="OUT" pad="6"/>
 </connects>
