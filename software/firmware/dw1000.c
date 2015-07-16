@@ -3,22 +3,25 @@
 #include "stm32f0xx_exti.h"
 #include "stm32f0xx_syscfg.h"
 
+#include "deca_device_api.h"
+
 #include "board.h"
 #include "dw1000.h"
 
 
 DMA_InitTypeDef DMA_InitStructure;
+SPI_InitTypeDef SPI_InitStructure;
 
 // Keep track of state to signal the caller when we are done
 dw1000_callback callback;
 dw1000_cb_e     callback_event;
 
 
+
 // Configure SPI + GPIOs for SPI. Also preset some DMA constants.
 static void setup () {
 
 	GPIO_InitTypeDef GPIO_InitStructure;
-	SPI_InitTypeDef SPI_InitStructure;
 	EXTI_InitTypeDef EXTI_InitStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
 
@@ -68,7 +71,7 @@ static void setup () {
 	SPI_InitStructure.SPI_CPOL              = SPI_CPOL_Low;
 	SPI_InitStructure.SPI_CPHA              = SPI_CPHA_1Edge;
 	SPI_InitStructure.SPI_NSS               = SPI_NSS_Hard;
-	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_4;
+	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_16;
 	SPI_InitStructure.SPI_FirstBit          = SPI_FirstBit_MSB;
 	SPI_InitStructure.SPI_CRCPolynomial     = 7;
 	SPI_InitStructure.SPI_Mode              = SPI_Mode_Master;
@@ -90,7 +93,7 @@ static void setup () {
 	 // Connect EXTIx Line to DW Int pin
 	SYSCFG_EXTILineConfig(DW_INTERRUPT_EXTI_PORT, DW_INTERRUPT_EXTI_PIN);
 
-	 // Configure EXTIx line
+	 // Configure EXTIx line for interrupt
 	EXTI_InitStructure.EXTI_Line = DW_INTERRUPT_EXTI_LINE;
 	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
 	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising;
@@ -107,7 +110,7 @@ static void setup () {
 	// Setup reset pin. Make it input unless we need it
 	RCC_AHBPeriphClockCmd(DW_RESET_CLK, ENABLE);
 
-	// Configure PC10 and PC11 in output pushpull mode
+	// Configure reset pin
 	GPIO_InitStructure.GPIO_Pin = DW_RESET_PIN;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
 	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
@@ -228,12 +231,58 @@ static void spi_transfer (dw1000_callback cb, dw1000_cb_e evt) {
 	DMA_Cmd(SPI1_TX_DMA_CHANNEL, ENABLE);
 }
 
+static void dw1000_reset () {
+	GPIO_InitTypeDef GPIO_InitStructure;
+
+	// Make the reset pin output
+	GPIO_InitStructure.GPIO_Pin = DW_RESET_PIN;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+	GPIO_Init(DW_RESET_PORT, &GPIO_InitStructure);
+
+	// Set it low
+	DW_RESET_PORT->BRR = DW_RESET_PIN;
+
+	// Wait for ~100ms
+	{
+		int i;
+		for (i=1000000; i>0; i--) {
+			__NOP();
+		}
+	}
+
+	// Set it back to an input
+	GPIO_InitStructure.GPIO_Pin = DW_RESET_PIN;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+	GPIO_Init(DW_RESET_PORT, &GPIO_InitStructure);
+}
+
 void dw1000_init (dw1000_callback cb) {
+	uint32_t devID;
 
 	uint8_t tx[5] = {5,7,9,11,13};
 	uint8_t rx[5] = {2,4,6,8,10};
 
+	// Do the STM setup that initializes pin and peripherals and whatnot
 	setup();
+
+	// Reset the DW1000...for some reason
+	dw1000_reset();
+
+	// Make sure we can talk to the DW1000
+	devID = dwt_readdevid();
+	if (devID != DWT_DEVICE_ID) {
+// #ifdef DW_DEBUG
+// 		printf("Could not read Device ID from the DW1000\r\n");
+// 		printf("Possible the chip is asleep...\r\n");
+// #endif
+		return;
+	}
 
 	setup_dma(5, rx, tx);
 	spi_transfer(cb, DW1000_INIT_DONE);

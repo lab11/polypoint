@@ -7,3 +7,6 @@
 [submodule "nrf51822/nrf5x-base"]
 	path = nrf51822/nrf5x-base
 	url = https://github.com/lab11/nrf5x-base
+[submodule "software/dw1000-driver"]
+	path = software/dw1000-driver
+	url = git@github.com:lab11/dw1000-driver
