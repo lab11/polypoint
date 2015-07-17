@@ -19,6 +19,10 @@ APPLICATION_SRCS += stm32f0xx_syscfg.c
 APPLICATION_SRCS += stm32f0xx_i2c_cpal.c
 APPLICATION_SRCS += stm32f0xx_i2c_cpal_hal.c
 
+APPLICATION_SRCS += dw1000-platform.c
+APPLICATION_SRCS += deca_device.c
+APPLICATION_SRCS += deca_params_init.c
+
 CFLAGS += -DBOARD=TRIPOINT
 
 #The exact STM part number All CAPS
@@ -36,11 +40,11 @@ TEMPLATE_PATH ?= ../stm32f0xx-gcc-setup/template/
 
 #Any places that you put custom header files
 ###############################################
-LIBRARY_PATHS += ../include
+LIBRARY_PATHS += ../include ../dw1000-driver
 
 #Any places that you put custom source files
 ##############################################
-SOURCE_PATHS += ../source
+SOURCE_PATHS += ../source ../dw1000-driver
 
 ifndef LIBRARY_START_PATH
 $(error An LIBRARY_START_PATH must be defined. Edit Makefile to define a valid LIBRARY_PATH)
