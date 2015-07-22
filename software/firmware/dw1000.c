@@ -1,7 +1,9 @@
+#include <string.h>
 #include "stm32f0xx_spi.h"
 #include "stm32f0xx_dma.h"
 #include "stm32f0xx_exti.h"
 #include "stm32f0xx_syscfg.h"
+#include "led.h"
 
 #include "deca_device_api.h"
 
@@ -16,7 +18,36 @@ SPI_InitTypeDef SPI_InitStructure;
 dw1000_callback callback;
 dw1000_cb_e     callback_event;
 
+decaIrqStatus_t dw1000_irq_onoff = 0;
 
+
+static void usleep(uint32_t uSeconds) {
+	//I think we are running about 48MHz
+	for(volatile uint32_t sec = 0; sec < (uSeconds*48); sec++) {
+
+	}
+}
+
+static void dw1000_interrupt_enable() {
+	NVIC_InitTypeDef NVIC_InitStructure;
+
+	// Enable and set EXTIx Interrupt
+	NVIC_InitStructure.NVIC_IRQChannel = DW_INTERRUPT_EXTI_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPriority = 0x00;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
+}
+
+static void dw1000_interrupt_disable() {
+	NVIC_InitTypeDef NVIC_InitStructure;
+
+	// Enable and set EXTIx Interrupt
+	NVIC_InitStructure.NVIC_IRQChannel = DW_INTERRUPT_EXTI_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPriority = 0x00;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = DISABLE;
+	NVIC_Init(&NVIC_InitStructure);
+
+}
 
 // Configure SPI + GPIOs for SPI. Also preset some DMA constants.
 static void setup () {
@@ -100,11 +131,9 @@ static void setup () {
 	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
 	EXTI_Init(&EXTI_InitStructure);
 
-	 // Enable and set EXTIx Interrupt
-	NVIC_InitStructure.NVIC_IRQChannel = DW_INTERRUPT_EXTI_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPriority = 0x00;
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_Init(&NVIC_InitStructure);
+	
+	dw1000_interrupt_enable();
+		dw1000_irq_onoff = 1;
 
 
 	// Setup reset pin. Make it input unless we need it
@@ -125,11 +154,48 @@ static void setup () {
 	DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
 	DMA_InitStructure.DMA_MemoryDataSize     =  DMA_MemoryDataSize_Byte;
 	DMA_InitStructure.DMA_PeripheralInc      = DMA_PeripheralInc_Disable;
-	DMA_InitStructure.DMA_MemoryInc          = DMA_MemoryInc_Enable;
 	DMA_InitStructure.DMA_Mode               = DMA_Mode_Normal;
 	DMA_InitStructure.DMA_M2M                = DMA_M2M_Disable;
 }
 
+//setup to disable rx - because who cares about rx on a write
+static void setup_dma_write(uint32_t length, uint8_t* tx) {
+
+	DMA_Cmd(SPI1_RX_DMA_CHANNEL, DISABLE);
+
+	// DMA channel Tx of SPI Configuration
+	DMA_InitStructure.DMA_BufferSize = length;
+	DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t) tx;
+	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralDST;
+	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
+	DMA_InitStructure.DMA_Priority = DMA_Priority_High;
+	DMA_Init(SPI1_TX_DMA_CHANNEL, &DMA_InitStructure);
+	DMA_Cmd(SPI1_TX_DMA_CHANNEL, ENABLE);
+
+}
+
+//sets tx to no increment and repeatedly sends 0's
+static void setup_dma_read(uint32_t length, uint8_t* rx) {
+
+	// DMA channel Rx of SPI Configuration
+	DMA_InitStructure.DMA_BufferSize = length;
+	DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t) rx;
+	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralSRC;
+	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
+	DMA_InitStructure.DMA_Priority = DMA_Priority_High;
+	DMA_Init(SPI1_RX_DMA_CHANNEL, &DMA_InitStructure);
+	DMA_Cmd(SPI1_RX_DMA_CHANNEL, ENABLE);
+
+	static uint8_t tx = 0;
+	// DMA channel Tx of SPI Configuration
+	DMA_InitStructure.DMA_BufferSize = length;
+	DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t) &tx;
+	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralDST;
+	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Disable;
+	DMA_InitStructure.DMA_Priority = DMA_Priority_High;
+	DMA_Init(SPI1_TX_DMA_CHANNEL, &DMA_InitStructure);
+	DMA_Cmd(SPI1_TX_DMA_CHANNEL, ENABLE);
+}
 
 static void setup_dma (uint32_t length, uint8_t* rx, uint8_t* tx) {
 
@@ -139,6 +205,7 @@ static void setup_dma (uint32_t length, uint8_t* rx, uint8_t* tx) {
 	DMA_InitStructure.DMA_BufferSize = length;
 	DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t) rx;
 	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralSRC;
+	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
 	DMA_InitStructure.DMA_Priority = DMA_Priority_High;
 	DMA_Init(SPI1_RX_DMA_CHANNEL, &DMA_InitStructure);
 
@@ -210,14 +277,16 @@ void EXTI2_3_IRQHandler(void) {
 
 
 // Blocking SPI transfer
-static void spi_transfer (dw1000_callback cb, dw1000_cb_e evt) {
+//static void spi_transfer (dw1000_callback cb, dw1000_cb_e evt) {
+static void spi_transfer() {
 
-	callback = cb;
-	callback_event = evt;
+	//callback = cb;
+	//callback_event = evt;
 
 	// Enable the SPI Rx and Tx DMA requests
-	SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Rx, ENABLE);
-	SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Tx, ENABLE);
+	//try moving these down to kickoff the spy tranactions
+	//SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Rx, ENABLE);
+	//SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Tx, ENABLE);
 
 	// Enable the SPI peripheral
 	SPI_Cmd(SPI1, ENABLE);
@@ -229,18 +298,21 @@ static void spi_transfer (dw1000_callback cb, dw1000_cb_e evt) {
 	// DMA_ITConfig(SPI1_TX_DMA_CHANNEL, DMA_IT_TC, ENABLE);
 
 	// Enable the DMA channels
-	DMA_Cmd(SPI1_RX_DMA_CHANNEL, ENABLE);
-	DMA_Cmd(SPI1_TX_DMA_CHANNEL, ENABLE);
+	// I'm going to try moving these to the dma setup commands
+	//DMA_Cmd(SPI1_RX_DMA_CHANNEL, ENABLE);
+	//DMA_Cmd(SPI1_TX_DMA_CHANNEL, ENABLE);
+	SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Rx, ENABLE);
+	SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Tx, ENABLE);
 
 	// Wait for everything to finish
-	TimeOut = USER_TIMEOUT;
-	while ((DMA_GetFlagStatus(SPIx_RX_DMA_FLAG_TC) == RESET));
+	uint32_t TimeOut = USER_TIMEOUT;
+	while ((DMA_GetFlagStatus(SPI1_RX_DMA_FLAG_TC) == RESET));
 	/* The BSY flag can be monitored to ensure that the SPI communication is complete.
 	This is required to avoid corrupting the last transmission before disabling
 	the SPI or entering the Stop mode. The software must first wait until TXE=1
 	and then until BSY=0.*/
-	while ((SPI_I2S_GetFlagStatus(SPIx, SPI_I2S_FLAG_TXE) == RESET));
-	while ((SPI_I2S_GetFlagStatus(SPIx, SPI_I2S_FLAG_BSY) == SET));
+	while ((SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_TXE) == RESET));
+	while ((SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_BSY) == SET));
 
 	// End the SPI transaction and DMA
 	// Clear DMA1 global flags
@@ -308,7 +380,52 @@ void dw1000_init (dw1000_callback cb) {
 	}
 
 	setup_dma(5, rx, tx);
-	spi_transfer(cb, DW1000_INIT_DONE);
+	//spi_transfer(cb, DW1000_INIT_DONE);
+	spi_transfer();
+
 }
 
+int readfromspi(uint16_t headerLength,
+				const uint8_t *headerBuffer,
+				uint32_t readlength,
+				uint8_t *readBuffer) {
 
+	setup_dma_write(headerLength, headerBuffer);
+	spi_transfer();
+
+
+	setup_dma_read(readlength, readBuffer);
+	spi_transfer();
+
+	return 0;
+}
+
+int writetospi(uint16_t headerLength,
+				const uint8_t *headerBuffer,
+				uint32_t bodylength,
+				const uint8_t *bodyBuffer) {
+
+	setup_dma_write(headerLength, headerBuffer);
+	spi_transfer();
+
+	setup_dma_write(bodylength, bodyBuffer);
+	spi_transfer();
+	
+	return 0;
+}
+
+decaIrqStatus_t decamutexon() {
+	if(dw1000_irq_onoff == 1) {
+		dw1000_interrupt_disable();
+		dw1000_irq_onoff = 0;
+		return 1;
+	}
+	return 0;
+}
+
+void decamutexoff (decaIrqStatus_t s) {
+	if(s) {
+		dw1000_interrupt_enable();
+		dw1000_irq_onoff = 1;
+	}
+}
