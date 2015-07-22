@@ -150,10 +150,10 @@ static void setup_dma (uint32_t length, uint8_t* rx, uint8_t* tx) {
 	DMA_Init(SPI1_TX_DMA_CHANNEL, &DMA_InitStructure);
 
 	// Enable DMA1 SPI IRQ Channel
-	NVIC_InitStructure.NVIC_IRQChannel = SPI1_DMA_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPriority = 0;
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_Init(&NVIC_InitStructure);
+	// NVIC_InitStructure.NVIC_IRQChannel = SPI1_DMA_IRQn;
+	// NVIC_InitStructure.NVIC_IRQChannelPriority = 0;
+	// NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	// NVIC_Init(&NVIC_InitStructure);
 }
 
 
@@ -164,31 +164,31 @@ static void setup_dma (uint32_t length, uint8_t* rx, uint8_t* tx) {
   */
 void DMA1_Channel2_3_IRQHandler(void) {
 
-	if (DMA_GetITStatus(DMA1_IT_TC3)== SET) {
-		// led_toggle(LED2);
+	// if (DMA_GetITStatus(DMA1_IT_TC3)== SET) {
+	// 	// led_toggle(LED2);
 
-		// Clear the interrupt
-		DMA_ClearITPendingBit(DMA1_IT_TC3);
+	// 	// Clear the interrupt
+	// 	DMA_ClearITPendingBit(DMA1_IT_TC3);
 
-		// End the SPI transaction and DMA
-		// Clear DMA1 global flags
-		DMA_ClearFlag(SPI1_TX_DMA_FLAG_GL);
-		DMA_ClearFlag(SPI1_RX_DMA_FLAG_GL);
+	// 	// End the SPI transaction and DMA
+	// 	// Clear DMA1 global flags
+	// 	DMA_ClearFlag(SPI1_TX_DMA_FLAG_GL);
+	// 	DMA_ClearFlag(SPI1_RX_DMA_FLAG_GL);
 
-		// Disable the DMA channels
-		DMA_Cmd(SPI1_RX_DMA_CHANNEL, DISABLE);
-		DMA_Cmd(SPI1_TX_DMA_CHANNEL, DISABLE);
+	// 	// Disable the DMA channels
+	// 	DMA_Cmd(SPI1_RX_DMA_CHANNEL, DISABLE);
+	// 	DMA_Cmd(SPI1_TX_DMA_CHANNEL, DISABLE);
 
-		// Disable the SPI peripheral
-		SPI_Cmd(SPI1, DISABLE);
+	// 	// Disable the SPI peripheral
+	// 	SPI_Cmd(SPI1, DISABLE);
 
-		// Disable the SPI Rx and Tx DMA requests
-		SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Rx, DISABLE);
-		SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Tx, DISABLE);
+	// 	// Disable the SPI Rx and Tx DMA requests
+	// 	SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Rx, DISABLE);
+	// 	SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Tx, DISABLE);
 
-		// return success
-		callback(callback_event, 0);
-	}
+	// 	// return success
+	// 	callback(callback_event, 0);
+	// }
 }
 
 
@@ -208,6 +208,8 @@ void EXTI2_3_IRQHandler(void) {
   }
 }
 
+
+// Blocking SPI transfer
 static void spi_transfer (dw1000_callback cb, dw1000_cb_e evt) {
 
 	callback = cb;
@@ -224,11 +226,37 @@ static void spi_transfer (dw1000_callback cb, dw1000_cb_e evt) {
 	SPI_SSOutputCmd(SPI1, ENABLE);
 
 	// Enable DMA1 Channel1 Transfer Complete interrupt
-	DMA_ITConfig(SPI1_TX_DMA_CHANNEL, DMA_IT_TC, ENABLE);
+	// DMA_ITConfig(SPI1_TX_DMA_CHANNEL, DMA_IT_TC, ENABLE);
 
 	// Enable the DMA channels
 	DMA_Cmd(SPI1_RX_DMA_CHANNEL, ENABLE);
 	DMA_Cmd(SPI1_TX_DMA_CHANNEL, ENABLE);
+
+	// Wait for everything to finish
+	TimeOut = USER_TIMEOUT;
+	while ((DMA_GetFlagStatus(SPIx_RX_DMA_FLAG_TC) == RESET));
+	/* The BSY flag can be monitored to ensure that the SPI communication is complete.
+	This is required to avoid corrupting the last transmission before disabling
+	the SPI or entering the Stop mode. The software must first wait until TXE=1
+	and then until BSY=0.*/
+	while ((SPI_I2S_GetFlagStatus(SPIx, SPI_I2S_FLAG_TXE) == RESET));
+	while ((SPI_I2S_GetFlagStatus(SPIx, SPI_I2S_FLAG_BSY) == SET));
+
+	// End the SPI transaction and DMA
+	// Clear DMA1 global flags
+	DMA_ClearFlag(SPI1_TX_DMA_FLAG_GL);
+	DMA_ClearFlag(SPI1_RX_DMA_FLAG_GL);
+
+	// Disable the DMA channels
+	DMA_Cmd(SPI1_RX_DMA_CHANNEL, DISABLE);
+	DMA_Cmd(SPI1_TX_DMA_CHANNEL, DISABLE);
+
+	// Disable the SPI peripheral
+	SPI_Cmd(SPI1, DISABLE);
+
+	// Disable the SPI Rx and Tx DMA requests
+	SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Rx, DISABLE);
+	SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Tx, DISABLE);
 }
 
 static void dw1000_reset () {
@@ -246,12 +274,7 @@ static void dw1000_reset () {
 	DW_RESET_PORT->BRR = DW_RESET_PIN;
 
 	// Wait for ~100ms
-	{
-		int i;
-		for (i=1000000; i>0; i--) {
-			__NOP();
-		}
-	}
+	usleep(100000);
 
 	// Set it back to an input
 	GPIO_InitStructure.GPIO_Pin = DW_RESET_PIN;
