@@ -59,7 +59,7 @@ void i2c_callback (uint8_t opcode, uint8_t* data) {
 }
 
 
-void decawave_done (dw1000_cb_e evt, uint32_t err) {
+void decawave_done (dw1000_cb_e evt, dw1000_err_e err) {
 	if (err) {
 		// do something
 	}
@@ -83,20 +83,7 @@ int main () {
 	led_off(LED1);
 	led_off(LED2);
 
-	// err = i2c_interface_init();
-	// if (err) {
-	// 	// do something
-	// 	led_on(LED2);
-	// }
-
-	// TIM17_Config(10000);
-
-	// dw1000_init(decawave_done);
-
-
 	while (1) {
-
-
 
 		switch (state) {
 			case STATE_START: {
