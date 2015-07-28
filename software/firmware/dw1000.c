@@ -130,7 +130,7 @@ static void setup () {
 
 	GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_AF;
 	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-	GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_DOWN;
+	GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_UP;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 
 	// SPI SCK pin configuration
@@ -144,6 +144,11 @@ static void setup () {
 	// SPI MISO pin configuration
 	GPIO_InitStructure.GPIO_Pin = SPI1_MISO_PIN;
 	GPIO_Init(SPI1_MISO_GPIO_PORT, &GPIO_InitStructure);
+
+	GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_AF;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+	GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_UP;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 
 	// SPI NSS pin configuration
 	GPIO_InitStructure.GPIO_Pin = SPI1_NSS_PIN;
@@ -243,15 +248,14 @@ static void setup () {
 //setup to disable rx - because who cares about rx on a write
 static void setup_dma_write(uint32_t length, uint8_t* tx) {
 
-	DMA_Cmd(SPI1_RX_DMA_CHANNEL, DISABLE);
-	/*static uint8_t rx[256];
+	static uint8_t throwAway;
 	DMA_InitStructure.DMA_BufferSize = length;
-	DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t) rx;
+	DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t) &throwAway; 
 	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralSRC;
-	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
+	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Disable;
 	DMA_InitStructure.DMA_Priority = DMA_Priority_High;
 	DMA_Init(SPI1_RX_DMA_CHANNEL, &DMA_InitStructure);
-	DMA_Cmd(SPI1_RX_DMA_CHANNEL, ENABLE);*/
+	DMA_Cmd(SPI1_RX_DMA_CHANNEL, ENABLE);
 
 
 	// DMA channel Tx of SPI Configuration
@@ -566,6 +570,7 @@ void dw1000_init (dw1000_callback cb) {
 	// Make sure we can talk to the DW1000
 	uint32_t devID;
 	devID = dwt_readdevid();
+	volatile uint32_t devComp = DWT_DEVICE_ID;
 	if (devID != DWT_DEVICE_ID) {
 		//if we can't talk to dw1000, return with an error
 		cb(DW1000_INIT_DONE, DW1000_COMM_ERR);
