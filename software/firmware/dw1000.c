@@ -665,10 +665,6 @@ int readfromspi(uint16_t headerLength,
 	setup_dma_read(readlength, readBuffer);
 	spi_transfer();
 
-	if (readBuffer[1] == 0x30) {
-		led_on(LED1);
-	}
-
 	SPI_Cmd(SPI1, DISABLE);
 	return 0;
 }
