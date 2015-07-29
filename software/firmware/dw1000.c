@@ -130,7 +130,7 @@ static void setup () {
 
 	GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_AF;
 	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-	GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_UP;
+	GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_NOPULL;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 
 	// SPI SCK pin configuration
@@ -161,7 +161,7 @@ static void setup () {
 	SPI_InitStructure.SPI_CPOL              = SPI_CPOL_Low;
 	SPI_InitStructure.SPI_CPHA              = SPI_CPHA_1Edge;
 	SPI_InitStructure.SPI_NSS               = SPI_NSS_Hard;
-	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_16;
+	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_32;
 	SPI_InitStructure.SPI_FirstBit          = SPI_FirstBit_MSB;
 	SPI_InitStructure.SPI_CRCPolynomial     = 7;
 	SPI_InitStructure.SPI_Mode              = SPI_Mode_Master;
@@ -248,6 +248,9 @@ static void setup () {
 //setup to disable rx - because who cares about rx on a write
 static void setup_dma_write(uint32_t length, uint8_t* tx) {
 
+	//volatile uint8_t throw = SPI1->DR;
+	//throw = SPI1->SR;
+
 	static uint8_t throwAway;
 	DMA_InitStructure.DMA_BufferSize = length;
 	DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t) &throwAway; 
@@ -271,7 +274,9 @@ static void setup_dma_write(uint32_t length, uint8_t* tx) {
 
 //sets tx to no increment and repeatedly sends 0's
 static void setup_dma_read(uint32_t length, uint8_t* rx) {
-
+	
+	//volatile uint8_t throw = SPI1->DR;
+	//throw = SPI1->SR;
 	// DMA channel Rx of SPI Configuration
 	DMA_InitStructure.DMA_BufferSize = length;
 	DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t) rx;
@@ -389,7 +394,6 @@ static void spi_transfer() {
 	//SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Tx, ENABLE);
 
 	// Enable the SPI peripheral
-	SPI_Cmd(SPI1, ENABLE);
 
 	// Enable NSS output for master mode
 	SPI_SSOutputCmd(SPI1, ENABLE);
@@ -425,7 +429,6 @@ static void spi_transfer() {
 	DMA_Cmd(SPI1_TX_DMA_CHANNEL, DISABLE);
 
 	// Disable the SPI peripheral
-	SPI_Cmd(SPI1, DISABLE);
 
 	// Disable the SPI Rx and Tx DMA requests
 	SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Rx, DISABLE);
@@ -566,6 +569,7 @@ void dw1000_init (dw1000_callback cb) {
 
 	//reset the dw1000...for some reason
 	dw1000_reset();
+	usleep(100);
 
 	// Make sure we can talk to the DW1000
 	uint32_t devID;
@@ -668,13 +672,14 @@ int readfromspi(uint16_t headerLength,
 
 	volatile uint8_t hold = *headerBuffer;
 
+	SPI_Cmd(SPI1, ENABLE);
 	setup_dma_write(headerLength, headerBuffer);
 	spi_transfer();
-
-
+	
 	setup_dma_read(readlength, readBuffer);
 	spi_transfer();
 
+	SPI_Cmd(SPI1, DISABLE);
 	return 0;
 }
 
@@ -685,12 +690,14 @@ int writetospi(uint16_t headerLength,
 
 	volatile uint8_t hold = *headerBuffer;
 
+	SPI_Cmd(SPI1, ENABLE);
 	setup_dma_write(headerLength, headerBuffer);
 	spi_transfer();
 
 	setup_dma_write(bodylength, bodyBuffer);
 	spi_transfer();
 	
+	SPI_Cmd(SPI1, DISABLE);
 	return 0;
 }
 
