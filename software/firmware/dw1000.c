@@ -77,7 +77,8 @@ static dwt_txconfig_t global_tx_config;
 
 static void usleep(uint32_t uSeconds) {
 	//I think we are running about 48MHz
-	for(volatile uint32_t sec = 0; sec < (uSeconds*48); sec++) {
+	// for(volatile uint32_t sec = 0; sec < (uSeconds*48); sec++) {
+	for(volatile uint32_t sec = 0; sec < ((uSeconds*3)/1000); sec++) {
 
 	}
 }
@@ -646,7 +647,6 @@ void dw1000_init (dw1000_callback cb) {
 
 	// Make SPI fast now that the clock has been setup
 	setup_spi_fast();
-	dwt_readdevid();
 
 	cb(DW1000_INIT_DONE, DW1000_NO_ERR);
 }
