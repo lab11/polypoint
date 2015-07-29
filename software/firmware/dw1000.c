@@ -239,7 +239,6 @@ static void setup () {
 	ANT_SEL2_PORT->BRR = ANT_SEL2_PIN;
 
 
-
 	// Pre-populate DMA fields that don't need to change
 	DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t) SPI1_DR_ADDRESS;
 	DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
@@ -262,8 +261,6 @@ static void setup_dma_write(uint32_t length, uint8_t* tx) {
 	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Disable;
 	DMA_InitStructure.DMA_Priority = DMA_Priority_High;
 	DMA_Init(SPI1_RX_DMA_CHANNEL, &DMA_InitStructure);
-	DMA_Cmd(SPI1_RX_DMA_CHANNEL, ENABLE);
-
 
 	// DMA channel Tx of SPI Configuration
 	DMA_InitStructure.DMA_BufferSize = length;
@@ -272,8 +269,6 @@ static void setup_dma_write(uint32_t length, uint8_t* tx) {
 	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
 	DMA_InitStructure.DMA_Priority = DMA_Priority_High;
 	DMA_Init(SPI1_TX_DMA_CHANNEL, &DMA_InitStructure);
-	DMA_Cmd(SPI1_TX_DMA_CHANNEL, ENABLE);
-
 }
 
 //sets tx to no increment and repeatedly sends 0's
@@ -288,7 +283,6 @@ static void setup_dma_read(uint32_t length, uint8_t* rx) {
 	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
 	DMA_InitStructure.DMA_Priority = DMA_Priority_High;
 	DMA_Init(SPI1_RX_DMA_CHANNEL, &DMA_InitStructure);
-	DMA_Cmd(SPI1_RX_DMA_CHANNEL, ENABLE);
 
 	static uint8_t tx = 0;
 	// DMA channel Tx of SPI Configuration
@@ -298,7 +292,6 @@ static void setup_dma_read(uint32_t length, uint8_t* rx) {
 	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Disable;
 	DMA_InitStructure.DMA_Priority = DMA_Priority_High;
 	DMA_Init(SPI1_TX_DMA_CHANNEL, &DMA_InitStructure);
-	DMA_Cmd(SPI1_TX_DMA_CHANNEL, ENABLE);
 }
 
 static void setup_dma (uint32_t length, uint8_t* rx, uint8_t* tx) {
@@ -312,7 +305,6 @@ static void setup_dma (uint32_t length, uint8_t* rx, uint8_t* tx) {
 	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
 	DMA_InitStructure.DMA_Priority = DMA_Priority_High;
 	DMA_Init(SPI1_RX_DMA_CHANNEL, &DMA_InitStructure);
-	// DMA_Cmd(SPI1_RX_DMA_CHANNEL, ENABLE);
 
 	// DMA channel Tx of SPI Configuration
 	DMA_InitStructure.DMA_BufferSize = length;
@@ -321,7 +313,6 @@ static void setup_dma (uint32_t length, uint8_t* rx, uint8_t* tx) {
 	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
 	DMA_InitStructure.DMA_Priority = DMA_Priority_Low;
 	DMA_Init(SPI1_TX_DMA_CHANNEL, &DMA_InitStructure);
-	// DMA_Cmd(SPI1_TX_DMA_CHANNEL, ENABLE);
 
 	// Enable DMA1 SPI IRQ Channel
 	// NVIC_InitStructure.NVIC_IRQChannel = SPI1_DMA_IRQn;
@@ -387,18 +378,6 @@ void EXTI2_3_IRQHandler(void) {
 //static void spi_transfer (dw1000_callback cb, dw1000_cb_e evt) {
 static void spi_transfer() {
 
-	//callback = cb;
-	//callback_event = evt;
-
-	//DMA_Cmd(SPI1_RX_DMA_CHANNEL, ENABLE);
-	//DMA_Cmd(SPI1_TX_DMA_CHANNEL, ENABLE);
-	// Enable the SPI Rx and Tx DMA requests
-	//try moving these down to kickoff the spy tranactions
-	//SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Rx, ENABLE);
-	//SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Tx, ENABLE);
-
-	// Enable the SPI peripheral
-
 	// Enable NSS output for master mode
 	SPI_SSOutputCmd(SPI1, ENABLE);
 
@@ -406,24 +385,15 @@ static void spi_transfer() {
 	//DMA_ITConfig(SPI1_TX_DMA_CHANNEL, DMA_IT_TC, ENABLE);
 
 	// Enable the DMA channels
-	// I'm going to try moving these to the dma setup commands
-	//DMA_Cmd(SPI1_RX_DMA_CHANNEL, ENABLE);
-	//DMA_Cmd(SPI1_TX_DMA_CHANNEL, ENABLE);
 	SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Rx, ENABLE);
 	SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Tx, ENABLE);
-
 	DMA_Cmd(SPI1_RX_DMA_CHANNEL, ENABLE);
 	DMA_Cmd(SPI1_TX_DMA_CHANNEL, ENABLE);
 
 	// Wait for everything to finish
 	//TODO: Implement timeout so we don't get stuck
 	//uint32_t TimeOut = USER_TIMEOUT;
-while ((DMA_GetFlagStatus(SPI1_RX_DMA_FLAG_TC) == RESET)) {
-	// if (DMA_GetFlagStatus(SPI1_RX_DMA_FLAG_HT) == SET) {
-	// 	led_on(LED1);
-	// }
-}
-
+	while ((DMA_GetFlagStatus(SPI1_RX_DMA_FLAG_TC) == RESET));
 	while ((DMA_GetFlagStatus(SPI1_TX_DMA_FLAG_TC) == RESET));
 	/* The BSY flag can be monitored to ensure that the SPI communication is complete.
 	This is required to avoid corrupting the last transmission before disabling
@@ -440,8 +410,6 @@ while ((DMA_GetFlagStatus(SPI1_RX_DMA_FLAG_TC) == RESET)) {
 	// Disable the DMA channels
 	DMA_Cmd(SPI1_RX_DMA_CHANNEL, DISABLE);
 	DMA_Cmd(SPI1_TX_DMA_CHANNEL, DISABLE);
-
-	// Disable the SPI peripheral
 
 	// Disable the SPI Rx and Tx DMA requests
 	SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Rx, DISABLE);
@@ -685,15 +653,11 @@ int readfromspi(uint16_t headerLength,
 
 	volatile uint8_t hold = *headerBuffer;
 
-	uint8_t test[200];
-
 	SPI_Cmd(SPI1, ENABLE);
-	setup_dma(headerLength, test, headerBuffer);
-	// setup_dma_write(headerLength, headerBuffer);
+	setup_dma_write(headerLength, headerBuffer);
 	spi_transfer();
 
-	// setup_dma_read(readlength, readBuffer);
-	setup_dma(readlength, readBuffer, test);
+	setup_dma_read(readlength, readBuffer);
 	spi_transfer();
 
 	if (readBuffer[1] == 0x30) {
