@@ -165,7 +165,6 @@ static void setup () {
 	SPI_InitStructure.SPI_FirstBit          = SPI_FirstBit_MSB;
 	SPI_InitStructure.SPI_CRCPolynomial     = 7;
 	SPI_InitStructure.SPI_Mode              = SPI_Mode_Master;
-	SPI1->CR1 &= 0xCFFF;
 	SPI_Init(SPI1, &SPI_InitStructure);
 
 	// Initialize the FIFO threshold
@@ -246,6 +245,11 @@ static void setup () {
 	DMA_InitStructure.DMA_PeripheralInc      = DMA_PeripheralInc_Disable;
 	DMA_InitStructure.DMA_Mode               = DMA_Mode_Normal;
 	DMA_InitStructure.DMA_M2M                = DMA_M2M_Disable;
+}
+
+static void setup_spi_fast () {
+	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_4;
+	SPI_Init(SPI1, &SPI_InitStructure);
 }
 
 //setup to disable rx - because who cares about rx on a write
@@ -640,8 +644,9 @@ void dw1000_init (dw1000_callback cb) {
 		//printf("tx antenna delay: %u\r\n", antenna_delay);
 	}
 
-	//so that they can switch at runtime
-	//make spi faster?
+	// Make SPI fast now that the clock has been setup
+	setup_spi_fast();
+	dwt_readdevid();
 
 	cb(DW1000_INIT_DONE, DW1000_NO_ERR);
 }
