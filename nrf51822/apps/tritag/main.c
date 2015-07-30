@@ -186,12 +186,14 @@ static void on_ble_evt(ble_evt_t * p_ble_evt) {
     switch (p_ble_evt->header.evt_id) {
         case BLE_GAP_EVT_CONNECTED:
             app.conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
+            led_on(LED_0);
             //advertising_stop();
             break;
 
         case BLE_GAP_EVT_DISCONNECTED:
             app.conn_handle = BLE_CONN_HANDLE_INVALID;
             advertising_start();
+            led_off(LED_0);
             break;
 
         case BLE_GATTS_EVT_WRITE:
