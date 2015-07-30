@@ -69,10 +69,10 @@
 #define SPI1_SCK_SOURCE                  GPIO_PinSource5
 #define SPI1_SCK_AF                      GPIO_AF_0
 
-#define SPI1_MISO_PIN                    GPIO_Pin_4
-#define SPI1_MISO_GPIO_PORT              GPIOB
-#define SPI1_MISO_GPIO_CLK               RCC_AHBPeriph_GPIOB
-#define SPI1_MISO_SOURCE                 GPIO_PinSource4
+#define SPI1_MISO_PIN                    GPIO_Pin_6
+#define SPI1_MISO_GPIO_PORT              GPIOA
+#define SPI1_MISO_GPIO_CLK               RCC_AHBPeriph_GPIOA
+#define SPI1_MISO_SOURCE                 GPIO_PinSource6
 #define SPI1_MISO_AF                     GPIO_AF_0
 
 #define SPI1_MOSI_PIN                    GPIO_Pin_7
@@ -81,10 +81,10 @@
 #define SPI1_MOSI_SOURCE                 GPIO_PinSource7
 #define SPI1_MOSI_AF                     GPIO_AF_0
 
-#define SPI1_NSS_PIN                     GPIO_Pin_15
+#define SPI1_NSS_PIN                     GPIO_Pin_4
 #define SPI1_NSS_GPIO_PORT               GPIOA
 #define SPI1_NSS_GPIO_CLK                RCC_AHBPeriph_GPIOA
-#define SPI1_NSS_SOURCE                  GPIO_PinSource15
+#define SPI1_NSS_SOURCE                  GPIO_PinSource4
 #define SPI1_NSS_AF                      GPIO_AF_0
 
 
@@ -106,7 +106,27 @@
 #define DW_RESET_PORT GPIOB
 #define DW_RESET_CLK RCC_AHBPeriph_GPIOB
 
+/******************************************************************************/
+// DECAWAVE WAKEUP
+/*****************************************************************************/
+#define DW_WAKEUP_PIN GPIO_Pin_1
+#define DW_WAKEUP_PORT GPIOB
+#define DW_WAKEUP_CLK RCC_AHBPeriph_GPIOB
 
+/*****************************************************************************/
+// ANTENNA PINS
+/*****************************************************************************/
+#define ANT_SEL0_PIN	GPIO_Pin_3
+#define ANT_SEL0_PORT	GPIOB
+#define ANT_SEL0_CLK	RCC_AHBPeriph_GPIOB
+
+#define ANT_SEL1_PIN	GPIO_Pin_4
+#define ANT_SEL1_PORT	GPIOB
+#define ANT_SEL1_CLK	RCC_AHBPeriph_GPIOB
+
+#define ANT_SEL2_PIN	GPIO_Pin_15
+#define ANT_SEL2_PORT	GPIOA
+#define ANT_SEL2_CLK	RCC_AHBPeriph_GPIOA
 
 
 

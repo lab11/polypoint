@@ -32,7 +32,7 @@ DEVICE_FAMILY = STM32F051
 
 #The install locations of the STM Standard library
 #################################################
-LIBRARY_START_PATH ?= $(HOME)/code/stm/STM32F0xx_StdPeriph_Lib_V1.5.0/
+LIBRARY_START_PATH ?= $(HOME)/Programs/stm/STM32F0xx_StdPeriph_Lib_V1.5.0/
 
 #The location of the gcc setup template
 ################################################

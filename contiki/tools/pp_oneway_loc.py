@@ -149,16 +149,23 @@ def get_measurements(port):
         except ValueError:
             ts = None
 
-        if line[-1] == '!':
+        if True or line[-1] == '!':
             # If the line ends in ! assume we are in the %ile only case
             meas = []
+            bail = False
             for m in line.split():
                 if m == '!':
                     break
                 elif '.' in m:
-                    meas.append(parse_measurement(m))
+                    try:
+                        meas.append(parse_measurement(m))
+                    except ValueError:
+                        bail = True
+                        break
                 else:
                     meas.append(0.0)
+            if bail:
+                continue
             yield ts, meas
         elif line[0] == '[':
             raise NotImplementedError("Don't currently parse DW_DEBUG output")
@@ -335,8 +342,8 @@ if __name__ == "__main__":
 
             if ts:
                 print("{} {} {} {}".format(ts, tag_position[0], tag_position[1], tag_position[2]))
-                ofile.write("{} {} {} {}\n".format(ts, tag_position[0], tag_position[1], tag_position[2]))
+                ofile.write("{},{},{},{}\n".format(ts, tag_position[0], tag_position[1], tag_position[2]))
             else:
                 print("{} {} {}".format(tag_position[0], tag_position[1], tag_position[2]))
-                ofile.write("{} {} {}\n".format(tag_position[0], tag_position[1], tag_position[2]))
+                ofile.write("{},{},{}\n".format(tag_position[0], tag_position[1], tag_position[2]))
 
