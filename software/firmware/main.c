@@ -71,6 +71,7 @@ void decawave_done (dw1000_cb_e evt, dw1000_err_e err) {
 			case DW1000_INIT_DONE:
 				state = STATE_DW1000_INIT_DONE;
 				led_on(LED1);
+				dw1000_tag_init();
 
 				break;
 

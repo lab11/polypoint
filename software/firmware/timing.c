@@ -10,9 +10,9 @@ void uDelay(uint32_t u) {
 	}
 }
 
-void mDelay(uint32_t u) {
+void mDelay(uint32_t m) {
 	volatile uint32_t i = 0;
-	for(i = 0; i < (SystemCoreClock/MSECOND*9)*u; i++) {
+	for(i = 0; i < (SystemCoreClock/MSECOND*9)*m; i++) {
 	}
 }
 
@@ -50,5 +50,5 @@ void mDelay(uint32_t u) {
 }
 
 void SysTick_Handler(void) {
-	counter++;	
+	counter++;
 }*/

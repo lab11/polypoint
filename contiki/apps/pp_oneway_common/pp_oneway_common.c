@@ -337,7 +337,7 @@ int app_dw1000_init (
 	REG(SSI0_BASE + SSI_CPSR) = 4;
 	REG(SSI0_BASE + SSI_CR1) |= SSI_CR1_SSE;
 
-        // Quicken up the IO clock speed
+	// Quicken up the IO clock speed
 	REG(SYS_CTRL_CLOCK_CTRL) = SYS_CTRL_CLOCK_CTRL_OSC_PD;
 
 	return 0;
