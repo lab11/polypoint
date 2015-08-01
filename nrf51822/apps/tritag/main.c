@@ -404,9 +404,10 @@ static void services_init (void)
 
         memset(&char_md, 0, sizeof(char_md));
 
-        // This characteristic is a read & write
+        // The characteristic properties
         char_md.char_props.read          = 1;
         char_md.char_props.write         = 0;
+        char_md.char_props.notify        = 1;
         char_md.p_char_user_desc         = NULL;
         char_md.p_char_pf                = NULL;
         char_md.p_user_desc_md           = NULL;
