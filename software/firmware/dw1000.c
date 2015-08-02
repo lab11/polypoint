@@ -358,9 +358,9 @@ void EXTI2_3_IRQHandler(void) {
 void dw1000_interrupt_fired () {
 	// Keep calling the decawave interrupt handler as long as the interrupt pin
 	// is asserted.
-	// do {
+	do {
 		dwt_isr();
-	// } while (GPIO_ReadInputDataBit(DW_INTERRUPT_PORT, DW_INTERRUPT_PIN));
+	} while (GPIO_ReadInputDataBit(DW_INTERRUPT_PORT, DW_INTERRUPT_PIN));
 }
 
 
@@ -547,14 +547,6 @@ void dw1000_choose_antenna(uint8_t antenna_number) {
 // Read this node's EUI from the correct address in flash
 void dw1000_read_eui (uint8_t *eui_buf) {
 	memcpy(eui_buf, (uint8_t*) EUI_FLASH_LOCATION, 8);
-	// eui_buf[0] = id;
-	// eui_buf[1] = 0x55;
-	// eui_buf[2] = 0x44;
-	// eui_buf[3] = 'N';
-	// eui_buf[4] = 'P';
-	// eui_buf[5] = 0xe5;
-	// eui_buf[6] = 0x98;
-	// eui_buf[7] = 0xc0;
 }
 
 // First (generic) init of the DW1000
