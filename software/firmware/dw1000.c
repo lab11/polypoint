@@ -68,8 +68,8 @@ static double getTxDelayCal() {
 	return 0;
 }
 
-DMA_InitTypeDef DMA_InitStructure;
-SPI_InitTypeDef SPI_InitStructure;
+static DMA_InitTypeDef DMA_InitStructure;
+static SPI_InitTypeDef SPI_InitStructure;
 
 // Keep track of whether we are a tag or anchor
 dw1000_role_e _my_role = UNDECIDED;
@@ -164,7 +164,7 @@ static void setup () {
 	SPI_InitStructure.SPI_CPOL              = SPI_CPOL_Low;
 	SPI_InitStructure.SPI_CPHA              = SPI_CPHA_1Edge;
 	SPI_InitStructure.SPI_NSS               = SPI_NSS_Hard;
-	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_32;
+	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_64;
 	SPI_InitStructure.SPI_FirstBit          = SPI_FirstBit_MSB;
 	SPI_InitStructure.SPI_CRCPolynomial     = 7;
 	SPI_InitStructure.SPI_Mode              = SPI_Mode_Master;
@@ -250,14 +250,33 @@ static void setup () {
 
 // Functions to configure the SPI speed
 
-static void setup_spi_fast () {
+void dw1000_spi_fast () {
+	// RCC_APB2PeriphClockCmd(SPI1_CLK, DISABLE);
+	// RCC_APB2PeriphClockCmd(SPI1_CLK, ENABLE);
+	// SPI_I2S_DeInit(SPI1);
 	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_4;
 	SPI_Init(SPI1, &SPI_InitStructure);
 }
 
-static void setup_spi_slow () {
-	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_32;
+static void dw1000_spi_slow () {
+	// RCC_APB2PeriphClockCmd(SPI1_CLK, DISABLE);
+	// RCC_APB2PeriphClockCmd(SPI1_CLK, ENABLE);
+	// SPI_I2S_DeInit(SPI1);
+	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_64;
 	SPI_Init(SPI1, &SPI_InitStructure);
+
+	// SPI_I2S_DeInit(SPI1);
+	// SPI_InitStructure.SPI_Direction         = SPI_Direction_2Lines_FullDuplex;
+	// SPI_InitStructure.SPI_DataSize          = SPI_DataSize_8b;
+	// SPI_InitStructure.SPI_CPOL              = SPI_CPOL_Low;
+	// SPI_InitStructure.SPI_CPHA              = SPI_CPHA_1Edge;
+	// SPI_InitStructure.SPI_NSS               = SPI_NSS_Hard;
+	// SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_64;
+	// SPI_InitStructure.SPI_FirstBit          = SPI_FirstBit_MSB;
+	// SPI_InitStructure.SPI_CRCPolynomial     = 7;
+	// SPI_InitStructure.SPI_Mode              = SPI_Mode_Master;
+	// SPI_Init(SPI1, &SPI_InitStructure);
+
 }
 
 //setup to disable rx - because who cares about rx on a write
@@ -572,6 +591,7 @@ dw1000_err_e dw1000_init () {
 	devID = dwt_readdevid();
 	if (devID != DWT_DEVICE_ID) {
 		//if we can't talk to dw1000, return with an error
+		uDelay(1000);
 		return DW1000_COMM_ERR;
 	}
 
@@ -640,7 +660,7 @@ dw1000_err_e dw1000_init () {
 #endif
 
 	// Make SPI fast now that the clock has been setup
-	setup_spi_fast();
+	dw1000_spi_fast();
 
 	return DW1000_NO_ERR;
 }

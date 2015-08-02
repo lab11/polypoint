@@ -106,11 +106,14 @@ typedef enum {
 // gets called with event that just finished and an error code
 typedef void (*dw1000_callback)(dw1000_cb_e, dw1000_err_e);
 
+void dw1000_spi_fast ();
+// void dw1000_spi_slow ();
 
 dw1000_err_e dw1000_init ();
 void dw1000_reset ();
 void dw1000_choose_antenna (uint8_t antenna_number);
 void dw1000_read_eui (uint8_t *eui_buf);
+void dw1000_set_mode (dw1000_role_e role);
 void dw1000_set_ranging_broadcast_subsequence_settings (dw1000_role_e role, uint8_t subseq_num, bool reset);
 
 void dw1000_interrupt_fired ();
