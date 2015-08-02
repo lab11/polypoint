@@ -36,6 +36,29 @@
 	(APP_US_TO_DEVICETIMEU32(SPI_US_PER_BYTE * (_len) + SPI_US_BETWEEN_BYTES * (_len) + SPI_SLACK_US) >> 8)
 
 
+#define DW_DELAY_FROM_US(_us) (APP_US_TO_DEVICETIMEU32((_us)) >> 8)
+
+#define ANC_FINAL_RX_PKT_TIME_US	398  // 8mhz: 398; 16mhz: 256
+#define ANC_FINAL_RX_PKT_MEMCPY_TIME_US	 79  // 8mhz: 120
+#define ANC_FINAL_RX_PKT_PRINTF_TIME_US	150
+#define ANC_FINAL_RX_PKT_GUARD_US	100
+#ifdef DW_DEBUG
+#define ANC_FINAL_RX_TIME_ON_TAG	(\
+		ANC_FINAL_RX_PKT_TIME_US +\
+		ANC_FINAL_RX_PKT_MEMCPY_TIME_US +\
+		ANC_FINAL_RX_PKT_PRINTF_TIME_US +\
+		ANC_FINAL_RX_PKT_GUARD_US\
+		)
+#else
+#define ANC_FINAL_RX_TIME_ON_TAG	(\
+		ANC_FINAL_RX_PKT_TIME_US +\
+		ANC_FINAL_RX_PKT_MEMCPY_TIME_US +\
+		ANC_FINAL_RX_PKT_GUARD_US\
+		)
+#endif
+
+#define ANC_FINAL_INITIAL_DELAY_HACK_VALUE 300	// See note in anchor.c
+
 /******************************************************************************/
 // Parameters for the localization and ranging protocol
 /******************************************************************************/
@@ -52,7 +75,7 @@
 // contact will all anchors, even if the anchors aren't listening on the
 // first channel, plus we don't lose the first two if the anchor was listening
 // on the third channel.
-#define NUM_RANGING_BROADCASTS ((NUM_RANGING_CHANNELS*NUM_ANTENNAS*NUM_ANTENNAS) + (NUM_RANGING_CHANNELS-1))
+#define NUM_RANGING_BROADCASTS ((NUM_RANGING_CHANNELS*NUM_ANTENNAS*NUM_ANTENNAS) + NUM_RANGING_CHANNELS)
 
 // How much time between each ranging broadcast in the subsequence from the tag.
 #define RANGING_BROADCASTS_PERIOD_US 1000
@@ -95,13 +118,12 @@ struct pp_tag_poll  {
 } __attribute__ ((__packed__));
 
 // Packet the anchor sends back to the tag.
-// Includes TOAs for all packets except the first NUM_CHANNEL-1 packets
 struct pp_anc_final {
 	struct ieee154_header_unicast header;
 	uint8_t message_type;
 	uint8_t final_antenna;
 	uint32_t dw_time_sent;
-	uint64_t TOAs[NUM_RANGING_BROADCASTS - (NUM_RANGING_CHANNELS-1)];
+	uint64_t TOAs[NUM_RANGING_BROADCASTS];
 	struct ieee154_footer footer;
 } __attribute__ ((__packed__));
 

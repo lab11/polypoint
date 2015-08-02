@@ -18,8 +18,6 @@ timer_t* _ranging_broadcast_timer;
 
 // What the anchor is currently doing
 static dw1000_anchor_state_e _state = ASTATE_IDLE;
-// Which tag the anchor is currently helping.
-static uint8_t _current_tag_eui[8] = {0};
 // Which spot in the ranging broadcast sequence we are currently at
 static uint8_t _ranging_broadcast_ss_num = 0;
 
@@ -134,7 +132,7 @@ void dw1000_anchor_rxcallback (const dwt_callback_data_t *rxd) {
 					// ranging broadcast packets.
 					_state = ASTATE_RANGING;
 					// Record the EUI of the tag so that we don't get mixed up
-					memcpy(_current_tag_eui, rx_poll_pkt->header.sourceAddr, 8);
+					memcpy(pp_anc_final_pkt.header.destAddr, rx_poll_pkt->header.sourceAddr, 8);
 					// Record which ranging subsequence the tag is on
 					_ranging_broadcast_ss_num = rx_poll_pkt->roundNum;
 					// Record the timestamp
@@ -158,7 +156,7 @@ void dw1000_anchor_rxcallback (const dwt_callback_data_t *rxd) {
 				// ranging broadcast packets.
 
 				// First check if this is from the same tag
-				if (memcmp(_current_tag_eui, rx_poll_pkt->header.sourceAddr, 8) == 0) {
+				if (memcmp(pp_anc_final_pkt.header.destAddr, rx_poll_pkt->header.sourceAddr, 8) == 0) {
 					// Same tag
 
 					if (rx_poll_pkt->roundNum == _ranging_broadcast_ss_num) {
@@ -170,6 +168,41 @@ void dw1000_anchor_rxcallback (const dwt_callback_data_t *rxd) {
 						// Some how we got out of sync with the tag. Ignore the
 						// range and catch up.
 						_ranging_broadcast_ss_num = rx_poll_pkt->roundNum;
+					}
+
+					// Check to see if we got the last of the ranging broadcasts
+					if (_ranging_broadcast_ss_num == NUM_RANGING_BROADCASTS - 1) {
+						// We did!
+						// Stop iterating through timing channels
+						timer_stop(_ranging_broadcast_timer);
+
+						// We no longer need to receive and need to instead
+						// start transmitting.
+						dwt_forcetrxoff();
+
+						// Prepare the outgoing packet to send back to the
+						// tag with our TOAs.
+						pp_anc_final_pkt.header.seqNum++;
+						const uint16_t frame_len = sizeof(struct pp_anc_final);
+						dwt_writetxfctrl(frame_len, 0);
+
+						// Come up with the time to send this packet back to the
+						// tag.
+						// TODO: randomize this for multiple anchors
+						uint32_t delay_time = dwt_readsystimestamphi32() +
+							DW_DELAY_FROM_US(ANC_FINAL_INITIAL_DELAY_HACK_VALUE +
+								(ANC_FINAL_RX_TIME_ON_TAG*6));
+
+						delay_time &= 0xFFFFFFFE;
+						pp_anc_final_pkt.dw_time_sent = delay_time;
+						dwt_setdelayedtrxtime(delay_time);
+
+						// Send the response packet
+						int err = dwt_starttx(DWT_START_TX_DELAYED);
+						dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
+						dwt_writetxdata(frame_len, (uint8_t*) &pp_anc_final_pkt, 0);
+
+
 					}
 
 				} else {
