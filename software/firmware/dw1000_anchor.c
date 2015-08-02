@@ -1,10 +1,11 @@
 #include "deca_device_api.h"
+#include "deca_regs.h"
 
 #include "dw1000_anchor.h"
 #include "dw1000.h"
 #include "firmware.h"
 
-void dw1000_anchor_init (dw1000_callback cb) {
+dw1000_err_e dw1000_anchor_init () {
 	uint8_t eui_array[8];
 
 	// Set the anchor so it only receives data and ack packets
@@ -24,4 +25,14 @@ void dw1000_anchor_init (dw1000_callback cb) {
 
 	// Don't receive at first
 	dwt_rxenable(FALSE);
+
+	return DW1000_NO_ERR;
+}
+
+void dw1000_anchor_txcallback (const dwt_callback_data_t *data) {
+
+}
+
+void dw1000_anchor_rxcallback (const dwt_callback_data_t *data) {
+
 }

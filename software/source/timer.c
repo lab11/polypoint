@@ -130,7 +130,7 @@ void TIM17_IRQHandler(void) {
 		// We save the index of the callback in our interrupt slot
 		// so that when the main thread gets back to us we know what
 		// to call.
-		mark_interrupt(TIMER_17);
+		mark_interrupt(INTERRUPT_TIMER_17);
 
 		// Clear Timer interrupt pending bit
 		TIM_ClearITPendingBit(TIM17, TIM_IT_Update);
@@ -144,7 +144,7 @@ void TIM16_IRQHandler(void) {
 		// We save the index of the callback in our interrupt slot
 		// so that when the main thread gets back to us we know what
 		// to call.
-		mark_interrupt(TIMER_16);
+		mark_interrupt(INTERRUPT_TIMER_16);
 
 		// Clear Timer interrupt pending bit
 		TIM_ClearITPendingBit(TIM16, TIM_IT_Update);

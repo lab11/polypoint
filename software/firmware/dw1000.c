@@ -11,6 +11,8 @@
 #include "port.h"
 #include "board.h"
 #include "dw1000.h"
+#include "dw1000_tag.h"
+#include "dw1000_anchor.h"
 #include "timing.h"
 #include "firmware.h"
 
@@ -68,6 +70,9 @@ static double getTxDelayCal() {
 
 DMA_InitTypeDef DMA_InitStructure;
 SPI_InitTypeDef SPI_InitStructure;
+
+// Keep track of whether we are a tag or anchor
+dw1000_role_e _my_role = UNDECIDED;
 
 // Keep track of state to signal the caller when we are done
 //dw1000_callback callback;
@@ -341,11 +346,40 @@ void EXTI2_3_IRQHandler(void) {
 
 
   if(EXTI_GetITStatus(EXTI_Line2) != RESET) {
-    led_toggle(LED2);
+    // led_toggle(LED2);
+
+    mark_interrupt(INTERRUPT_DW1000);
 
     // Clear the EXTI line 2 pending bit
     EXTI_ClearITPendingBit(EXTI_Line2);
   }
+}
+
+void dw1000_interrupt_fired () {
+	// Keep calling the decawave interrupt handler as long as the interrupt pin
+	// is asserted.
+	do {
+		dwt_isr();
+	} while (DW_INTERRUPT_PORT->IDR | DW_INTERRUPT_PIN);
+}
+
+
+// Callbacks from the decawave library. Just pass these to the correct
+// anchor or tag code.
+static void txcallback (const dwt_callback_data_t *data) {
+	if (_my_role == TAG) {
+		dw1000_tag_txcallback(data);
+	} else if (_my_role == ANCHOR) {
+		dw1000_anchor_txcallback(data);
+	}
+}
+
+static void rxcallback (const dwt_callback_data_t *data) {
+	if (_my_role == TAG) {
+		dw1000_tag_rxcallback(data);
+	} else if (_my_role == ANCHOR) {
+		dw1000_anchor_rxcallback(data);
+	}
 }
 
 /******************************************************************************/
@@ -492,6 +526,7 @@ void dw1000_reset () {
 	GPIO_Init(DW_RESET_PORT, &GPIO_InitStructure);*/
 }
 
+// Choose which antenna to connect to the radio
 void dw1000_choose_antenna(uint8_t antenna_number) {
 	// Antenna selection comes from the STM32 chip instead of the DW1000 now
 
@@ -506,7 +541,6 @@ void dw1000_choose_antenna(uint8_t antenna_number) {
 		case 1: ANT_SEL1_PORT->BSRR = ANT_SEL1_PIN; break;
 		case 2: ANT_SEL2_PORT->BSRR = ANT_SEL2_PIN; break;
 	}
-
 }
 
 // Read this node's EUI from the correct address in flash
@@ -522,18 +556,7 @@ void dw1000_read_eui (uint8_t *eui_buf) {
 	// eui_buf[7] = 0xc0;
 }
 
-static void txcallback(const dwt_callback_data_t *data) {
-
-}
-
-static void rxcallback(const dwt_callback_data_t *data) {
-
-}
-
-
-
-
-
+// First (generic) init of the DW1000
 dw1000_err_e dw1000_init () {
 
 	// Do the STM setup that initializes pin and peripherals and whatnot
@@ -620,6 +643,17 @@ dw1000_err_e dw1000_init () {
 	setup_spi_fast();
 
 	return DW1000_NO_ERR;
+}
+
+// This allows the code to select if this device is a TAG or ANCHOR.
+// This will also init the correct mode.
+void dw1000_set_mode (dw1000_role_e role) {
+	_my_role = role;
+	if (role == TAG) {
+		dw1000_tag_init();
+	} else {
+		dw1000_anchor_init();
+	}
 }
 
 

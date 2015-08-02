@@ -1,6 +1,7 @@
 #include <string.h>
 
 #include "deca_device_api.h"
+#include "deca_regs.h"
 
 #include "timer.h"
 #include "dw1000.h"
@@ -95,6 +96,15 @@ void dw1000_tag_start_ranging_event () {
 
 	// Start a timer that will kick off the broadcast ranging events
 	timer_start(_ranging_broadcast_timer, RANGING_BROADCASTS_PERIOD_US, ranging_broadcast_subsequence_task);
+}
+
+
+void dw1000_tag_txcallback (const dwt_callback_data_t *data) {
+
+}
+
+void dw1000_tag_rxcallback (const dwt_callback_data_t *data) {
+
 }
 
 // Send one of the ranging broadcast packets.

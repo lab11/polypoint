@@ -91,7 +91,7 @@ int main () {
 				dw1000_init();
 
 				// Make it a tag
-				dw1000_tag_init();
+				dw1000_set_mode(TAG);
 
 				// Do a test run
 				dw1000_tag_start_ranging_event();
@@ -132,14 +132,19 @@ int main () {
 
 		// When an interrupt fires we end up here
 
-		if (interupts_triggered[TIMER_17] == TRUE) {
-			interupts_triggered[TIMER_17] = FALSE;
+		if (interupts_triggered[INTERRUPT_TIMER_17] == TRUE) {
+			interupts_triggered[INTERRUPT_TIMER_17] = FALSE;
 			timer_17_fired();
 		}
 
-		if (interupts_triggered[TIMER_16] == TRUE) {
-			interupts_triggered[TIMER_16] = FALSE;
+		if (interupts_triggered[INTERRUPT_TIMER_16] == TRUE) {
+			interupts_triggered[INTERRUPT_TIMER_16] = FALSE;
 			timer_16_fired();
+		}
+
+		if (interupts_triggered[INTERRUPT_DW1000] == TRUE) {
+			interupts_triggered[INTERRUPT_DW1000] = FALSE;
+			dw1000_interrupt_fired();
 		}
 
 
