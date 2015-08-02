@@ -104,7 +104,7 @@ void dw1000_tag_txcallback (const dwt_callback_data_t *data) {
 }
 
 void dw1000_tag_rxcallback (const dwt_callback_data_t *data) {
-	send_poll();
+	// send_poll();
 
 }
 

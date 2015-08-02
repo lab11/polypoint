@@ -251,32 +251,13 @@ static void setup () {
 // Functions to configure the SPI speed
 
 void dw1000_spi_fast () {
-	// RCC_APB2PeriphClockCmd(SPI1_CLK, DISABLE);
-	// RCC_APB2PeriphClockCmd(SPI1_CLK, ENABLE);
-	// SPI_I2S_DeInit(SPI1);
-	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_4;
+	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_8;
 	SPI_Init(SPI1, &SPI_InitStructure);
 }
 
 static void dw1000_spi_slow () {
-	// RCC_APB2PeriphClockCmd(SPI1_CLK, DISABLE);
-	// RCC_APB2PeriphClockCmd(SPI1_CLK, ENABLE);
-	// SPI_I2S_DeInit(SPI1);
-	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_64;
+	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_32;
 	SPI_Init(SPI1, &SPI_InitStructure);
-
-	// SPI_I2S_DeInit(SPI1);
-	// SPI_InitStructure.SPI_Direction         = SPI_Direction_2Lines_FullDuplex;
-	// SPI_InitStructure.SPI_DataSize          = SPI_DataSize_8b;
-	// SPI_InitStructure.SPI_CPOL              = SPI_CPOL_Low;
-	// SPI_InitStructure.SPI_CPHA              = SPI_CPHA_1Edge;
-	// SPI_InitStructure.SPI_NSS               = SPI_NSS_Hard;
-	// SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_64;
-	// SPI_InitStructure.SPI_FirstBit          = SPI_FirstBit_MSB;
-	// SPI_InitStructure.SPI_CRCPolynomial     = 7;
-	// SPI_InitStructure.SPI_Mode              = SPI_Mode_Master;
-	// SPI_Init(SPI1, &SPI_InitStructure);
-
 }
 
 //setup to disable rx - because who cares about rx on a write
@@ -379,7 +360,7 @@ void dw1000_interrupt_fired () {
 	// is asserted.
 	do {
 		dwt_isr();
-	} while (DW_INTERRUPT_PORT->IDR | DW_INTERRUPT_PIN);
+	} while (GPIO_ReadInputDataBit(DW_INTERRUPT_PORT, DW_INTERRUPT_PIN));
 }
 
 
@@ -518,7 +499,8 @@ void dw1000_reset () {
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
 	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+	// GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
 	GPIO_Init(DW_RESET_PORT, &GPIO_InitStructure);
 
 
