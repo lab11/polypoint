@@ -445,6 +445,10 @@ void decamutexoff (decaIrqStatus_t s) {
 	}
 }
 
+void usleep (uint32_t u) {
+	uDelay(u);
+}
+
 
 
 
@@ -530,7 +534,7 @@ static void rxcallback(const dwt_callback_data_t *data) {
 
 
 
-void dw1000_init (dw1000_callback cb) {
+dw1000_err_e dw1000_init () {
 
 	// Do the STM setup that initializes pin and peripherals and whatnot
 	// Start SPI at ~3MHz
@@ -545,8 +549,7 @@ void dw1000_init (dw1000_callback cb) {
 	devID = dwt_readdevid();
 	if (devID != DWT_DEVICE_ID) {
 		//if we can't talk to dw1000, return with an error
-		cb(DW1000_INIT_DONE, DW1000_COMM_ERR);
-		return;
+		return DW1000_COMM_ERR;
 	}
 
 	// Choose antenna 0 as a default
@@ -560,7 +563,7 @@ void dw1000_init (dw1000_callback cb) {
 	                     DWT_LOADXTALTRIM);
 
 	if (err != DWT_SUCCESS) {
-		cb(DW1000_INIT_DONE, err);
+		return DW1000_COMM_ERR;
 	}
 
 	// Configure interrupts and callbacks
@@ -616,7 +619,7 @@ void dw1000_init (dw1000_callback cb) {
 	// Make SPI fast now that the clock has been setup
 	setup_spi_fast();
 
-	cb(DW1000_INIT_DONE, DW1000_NO_ERR);
+	return DW1000_NO_ERR;
 }
 
 

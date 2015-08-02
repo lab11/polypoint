@@ -7,6 +7,8 @@
 
 #include "i2c_interface.h"
 #include "dw1000.h"
+#include "dw1000_tag.h"
+#include "dw1000_anchor.h"
 #include "timer.h"
 #include "firmware.h"
 
@@ -86,7 +88,14 @@ int main () {
 				if (err) error();
 
 				// Setup the DW1000 decawave chip
-				dw1000_init(decawave_done);
+				dw1000_init();
+
+				// Make it a tag
+				dw1000_tag_init();
+
+				// Do a test run
+				dw1000_tag_start_ranging_event();
+
 				break;
 			}
 

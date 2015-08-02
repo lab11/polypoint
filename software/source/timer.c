@@ -48,7 +48,9 @@ timer_t timers[TIMER_NUMBER] = {
 	}
 };
 
-
+/******************************************************************************/
+// API Functions
+/******************************************************************************/
 
 // Give the caller a pointer to a valid timer configuration struct.
 timer_t* timer_init () {
@@ -81,9 +83,9 @@ void timer_start (timer_t* t, uint32_t us_period, timer_callback cb) {
 
 	// Enable the timer
 	TIM_Cmd(t->tim_ptr, ENABLE);
-
 }
 
+// Disable everything that timer_start enabled
 void timer_stop (timer_t* t) {
 	// Disable the timer
 	TIM_Cmd(t->tim_ptr, DISABLE);
@@ -102,6 +104,9 @@ void timer_stop (timer_t* t) {
 	timer_callbacks[t->index] = NULL;
 }
 
+/******************************************************************************/
+// Interrupt handling
+/******************************************************************************/
 
 // Call the timer callback from main thread context
 void timer_17_fired () {
@@ -117,8 +122,7 @@ void timer_16_fired () {
 	}
 }
 
-
-
+// Raw interrupt handlers from vector table
 void TIM17_IRQHandler(void) {
 	if (TIM_GetITStatus(TIM17, TIM_IT_Update) != RESET) {
 

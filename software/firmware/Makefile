@@ -20,7 +20,6 @@ APPLICATION_SRCS += stm32f0xx_syscfg.c
 APPLICATION_SRCS += stm32f0xx_i2c_cpal.c
 APPLICATION_SRCS += stm32f0xx_i2c_cpal_hal.c
 
-APPLICATION_SRCS += dw1000-platform.c
 APPLICATION_SRCS += deca_device.c
 APPLICATION_SRCS += deca_params_init.c
 

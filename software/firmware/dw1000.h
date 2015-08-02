@@ -1,6 +1,8 @@
 #ifndef __DW1000_H
 #define __DW1000_H
 
+#include "firmware.h"
+
 /******************************************************************************/
 // General defines for the DW1000
 /******************************************************************************/
@@ -104,9 +106,10 @@ typedef enum {
 typedef void (*dw1000_callback)(dw1000_cb_e, dw1000_err_e);
 
 
-void dw1000_init(dw1000_callback cb);
-void dw1000_reset();
-void dw1000_choose_antenna(uint8_t antenna_number);
-void dw1000_read_eui(uint8_t *eui_buf);
+dw1000_err_e dw1000_init ();
+void dw1000_reset ();
+void dw1000_choose_antenna (uint8_t antenna_number);
+void dw1000_read_eui (uint8_t *eui_buf);
+void dw1000_set_ranging_broadcast_subsequence_settings (dw1000_role_e role, uint8_t subseq_num, bool reset);
 
 #endif
