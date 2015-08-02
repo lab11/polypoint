@@ -49,6 +49,12 @@ const uint32_t txPower[8] = {
 	0x5171B1D1UL
 };
 
+// Configure the RF channels to use. This is just a mapping from 0..2 to
+// the actual RF channel numbers the DW1000 uses.
+const uint8_t channel_index_to_channel_rf_number[NUM_RANGING_CHANNELS] = {
+	1, 4, 3
+};
+
 static void setTxDelayCal(double txdelay) {
 	//somehow set delay cal on dw10000 mem
 }
@@ -610,6 +616,77 @@ void dw1000_init (dw1000_callback cb) {
 	setup_spi_fast();
 
 	cb(DW1000_INIT_DONE, DW1000_NO_ERR);
+}
+
+
+/******************************************************************************/
+// Ranging Protocol Algorithm Functions
+/******************************************************************************/
+
+// Return the RF channel to use for a given subsequence number
+static uint8_t subsequence_number_to_channel (uint8_t subseq_num) {
+	// ALGORITHM
+	// We iterate through the channels as fast as possible. We do this to
+	// find anchors that may not be listening on the first channel as quickly
+	// as possible so that they can join the sequence as early as possible. This
+	// increases the number of successful packet transmissions and increases
+	// ranging accuracy.
+	uint8_t channel_index = subseq_num % NUM_RANGING_CHANNELS;
+	return channel_index_to_channel_rf_number[channel_index];
+}
+
+// Return the Antenna index to use for a given subsequence number
+static uint8_t subsequence_number_to_antenna (dw1000_role_e role, uint8_t subseq_num) {
+	// ALGORITHM
+	// We must rotate the anchor and tag antennas differently so the same
+	// ones don't always overlap. This should also be different from the
+	// channel sequence. This math is a little weird but somehow works out,
+	// even if NUM_RANGING_CHANNELS != NUM_ANTENNAS.
+	if (role == TAG) {
+		return (subseq_num / NUM_RANGING_CHANNELS) % NUM_ANTENNAS;
+	} else {
+		return ((subseq_num / NUM_RANGING_CHANNELS) / NUM_RANGING_CHANNELS) % NUM_ANTENNAS;
+	}
+}
+
+// Update the Antenna and Channel settings to correspond with the settings
+// for the given subsequence number.
+//
+// role:       anchor or tag
+// subseq_num: where in the sequence we are
+// reset:      force settings update on the dw1000 when the channel is changed
+void dw1000_set_ranging_broadcast_subsequence_settings (dw1000_role_e role,
+                                                        uint8_t subseq_num,
+                                                        bool reset) {
+	// Stop the transceiver on the anchor. Don't know why.
+	if (role == ANCHOR) {
+		dwt_forcetrxoff();
+	}
+
+	// Change the channel depending on what subsequence number we're at
+	global_ranging_config.chan = subsequence_number_to_channel(subseq_num);
+
+	// If we were requested to force a reset of settings do that now.
+	if (reset) {
+#if DW1000_USE_OTP
+		dwt_configure(&global_ranging_config, (DWT_LOADANTDLY | DWT_LOADXTALTRIM));
+#else
+		dwt_configure(&global_ranging_config, 0);
+#endif
+		dwt_setsmarttxpower(global_ranging_config.smartPowerEn);
+		global_tx_config.PGdly = pgDelay[global_ranging_config.chan];
+		global_tx_config.power = txPower[global_ranging_config.chan];
+		dwt_configuretxrf(&global_tx_config);
+#if DW1000_USE_OTP == 0
+		dwt_setrxantennadelay(0);
+		dwt_settxantennadelay(0);
+#endif
+	} else {
+		dwt_setchannel(&global_ranging_config, 0);
+	}
+
+	// Change what antenna we're listening on
+	dw1000_choose_antenna(subsequence_number_to_antenna(role, subseq_num));
 }
 
 

@@ -46,7 +46,10 @@ struct pp_tag_poll  {
 
 
 
-
+typedef enum {
+	TAG,
+	ANCHOR
+} dw1000_role_e;
 
 
 typedef enum {
