@@ -609,8 +609,8 @@ void dw1000_init (dw1000_callback cb) {
 	dwt_xtaltrim(8);
 
 	// Antenna delay we don't really care about so we just use 0
-	dwt_setrxantennadelay(0);
-	dwt_settxantennadelay(0);
+	dwt_setrxantennadelay(DW1000_ANTENNA_DELAY_RX);
+	dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
 #endif
 
 	// Make SPI fast now that the clock has been setup
@@ -679,8 +679,8 @@ void dw1000_set_ranging_broadcast_subsequence_settings (dw1000_role_e role,
 		global_tx_config.power = txPower[global_ranging_config.chan];
 		dwt_configuretxrf(&global_tx_config);
 #if DW1000_USE_OTP == 0
-		dwt_setrxantennadelay(0);
-		dwt_settxantennadelay(0);
+		dwt_setrxantennadelay(DW1000_ANTENNA_DELAY_RX);
+		dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
 #endif
 	} else {
 		dwt_setchannel(&global_ranging_config, 0);

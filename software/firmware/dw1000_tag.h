@@ -3,6 +3,7 @@
 
 #include "dw1000.h"
 
-void dw1000_tag_init (dw1000_callback cb);
+void dw1000_tag_init ();
+void dw1000_tag_start_ranging_event ();
 
 #endif

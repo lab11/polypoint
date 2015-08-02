@@ -14,6 +14,24 @@
 // radios should go.
 #define DW1000_USE_OTP 0
 
+// The antenna delays are set to 0 because our other calibration takes
+// care of this.
+#define DW1000_ANTENNA_DELAY_TX 0
+#define DW1000_ANTENNA_DELAY_RX 0
+
+/******************************************************************************/
+// Timing defines for this particular mcu
+/******************************************************************************/
+
+#define APP_US_TO_DEVICETIMEU32(_microsecu) \
+	((uint32_t) ( ((_microsecu) / (double) DWT_TIME_UNITS) / 1e6 ))
+
+#define SPI_US_PER_BYTE        0.94	// 0.94 @ 8mhz, 0.47 @ 16mhz
+#define SPI_US_BETWEEN_BYTES   0.25	// 0.25 @ 8mhz, 0.30 @ 16mhz
+#define SPI_SLACK_US           200	// 200 @ 8mhz, 150 @ 16mhz
+#define DW_DELAY_FROM_PKT_LEN(_len) \
+	(APP_US_TO_DEVICETIMEU32(SPI_US_PER_BYTE * (_len) + SPI_US_BETWEEN_BYTES * (_len) + SPI_SLACK_US) >> 8)
+
 
 /******************************************************************************/
 // Parameters for the localization and ranging protocol
@@ -24,6 +42,17 @@
 // It's possible that someday the number of antennas should be configurable
 // to support different hardware...
 #define NUM_ANTENNAS 3
+
+// Use 30 broadcasts from the tag for ranging.
+// (3 channels * 3 antennas on tag * 3 antennas on anchor) + 2
+// We iterate through the first 2 twice so that we can make sure we made
+// contact will all anchors, even if the anchors aren't listening on the
+// first channel, plus we don't lose the first two if the anchor was listening
+// on the third channel.
+#define NUM_RANGING_BROADCASTS ((NUM_RANGING_CHANNELS*NUM_ANTENNAS*NUM_ANTENNAS) + (NUM_RANGING_CHANNELS-1))
+
+// How much time between each ranging broadcast in the subsequence from the tag.
+#define RANGING_BROADCASTS_PERIOD_US 1000
 
 /******************************************************************************/
 // Data Structs for packet messages between tags and anchors

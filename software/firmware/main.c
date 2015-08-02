@@ -7,6 +7,8 @@
 
 #include "i2c_interface.h"
 #include "dw1000.h"
+#include "timer.h"
+#include "firmware.h"
 
 
 typedef enum {
@@ -19,34 +21,17 @@ typedef enum {
 state_e state = STATE_START;
 
 
+// Array of interrupt sources. When an interrupt fires, this array gets marked
+// noting that the interrupt fired. The main thread then processes this array
+// to get all of the functions it should call.
+bool interupts_triggered[NUMBER_INTERRUPT_SOURCES]  = {FALSE};
 
-static void TIM17_Config(uint32_t Period) {
-  /* TIM17 is used to generate periodic interrupts. At each interrupt
-  if Transmitter mode is selected, a status message is sent to other Board */
 
-  NVIC_InitTypeDef NVIC_InitStructure;
-  TIM_TimeBaseInitTypeDef   TIM_TimeBaseStructure;
-
-  /* TIMER clock enable */
-  RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM17 , ENABLE);
-
-  NVIC_InitStructure.NVIC_IRQChannel = TIM17_IRQn;
-  NVIC_InitStructure.NVIC_IRQChannelPriority = 0x01;
-  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-  NVIC_Init(&NVIC_InitStructure);
-
-  TIM_TimeBaseStructure.TIM_Period  = Period;
-  TIM_TimeBaseStructure.TIM_Prescaler = (SystemCoreClock/10000)-1;
-  TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
-  TIM_TimeBaseStructure.TIM_CounterMode =  TIM_CounterMode_Up;
-  TIM_TimeBaseInit(TIM17, &TIM_TimeBaseStructure);
-
-  /* TIM IT enable */
-  TIM_ITConfig(TIM17, TIM_IT_Update , ENABLE);
-
-  /* TIM17 enable counter */
-  TIM_Cmd(TIM17, ENABLE);
+// This gets called from interrupt context
+void mark_interrupt (interrupt_source_e src) {
+	interupts_triggered[src] = TRUE;
 }
+
 
 
 static void error () {
@@ -136,6 +121,18 @@ int main () {
 
 		PWR_EnterSleepMode(PWR_SLEEPEntry_WFI);
 
+		// When an interrupt fires we end up here
+
+		if (interupts_triggered[TIMER_17] == TRUE) {
+			interupts_triggered[TIMER_17] = FALSE;
+			timer_17_fired();
+		}
+
+		if (interupts_triggered[TIMER_16] == TRUE) {
+			interupts_triggered[TIMER_16] = FALSE;
+			timer_16_fired();
+		}
+
 
 
 
@@ -150,22 +147,3 @@ int main () {
 
 
 
-
-void TIM17_IRQHandler(void) {
-
-	if (TIM_GetITStatus(TIM17, TIM_IT_Update) != RESET) {
-
-
-
-		// led_toggle(LED1);
-		// err = i2c_interface_send(0x74, 5, buf);
-		// if (err) {
-		// 	led_on(LED2);
-		// }
-
-		// dw1000_init(decawave_done);
-
-		/* Clear Timer interrupt pending bit */
-		TIM_ClearITPendingBit(TIM17, TIM_IT_Update);
-	}
-}

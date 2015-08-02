@@ -4,6 +4,7 @@ PROJECT_NAME = $(shell basename "$(realpath ./)")
 #############################################
 APPLICATION_SRCS = $(notdir $(wildcard ./*.c))
 APPLICATION_SRCS += led.c
+APPLICATION_SRCS += timer.c
 
 APPLICATION_SRCS += stm32f0xx_gpio.c
 APPLICATION_SRCS += stm32f0xx_rcc.c
