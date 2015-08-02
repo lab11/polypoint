@@ -12,6 +12,7 @@
 #include "board.h"
 #include "dw1000.h"
 #include "timing.h"
+#include "firmware.h"
 
 
 

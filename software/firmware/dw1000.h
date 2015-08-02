@@ -16,6 +16,16 @@
 
 
 /******************************************************************************/
+// Parameters for the localization and ranging protocol
+/******************************************************************************/
+
+#define NUM_RANGING_CHANNELS 3
+
+// It's possible that someday the number of antennas should be configurable
+// to support different hardware...
+#define NUM_ANTENNAS 3
+
+/******************************************************************************/
 // Data Structs for packet messages between tags and anchors
 /******************************************************************************/
 
