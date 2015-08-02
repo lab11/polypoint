@@ -45,7 +45,7 @@ static struct pp_tag_poll pp_tag_poll_pkt = {
 
 // Functions
 static void send_poll ();
-void ranging_broadcast_subsequence_task ();
+static void ranging_broadcast_subsequence_task ();
 
 void dw1000_tag_init () {
 
@@ -152,7 +152,7 @@ static void send_poll () {
 
 // This is called for each broadcast ranging subsequence interval where
 // the tag sends broadcast packets.
-void ranging_broadcast_subsequence_task () {
+static void ranging_broadcast_subsequence_task () {
 
 	if (_ranging_broadcast_ss_num == NUM_RANGING_BROADCASTS-1) {
 		// This is our last packet to send. Stop the timer so we don't generate

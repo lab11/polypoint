@@ -358,9 +358,9 @@ void EXTI2_3_IRQHandler(void) {
 void dw1000_interrupt_fired () {
 	// Keep calling the decawave interrupt handler as long as the interrupt pin
 	// is asserted.
-	do {
+	// do {
 		dwt_isr();
-	} while (GPIO_ReadInputDataBit(DW_INTERRUPT_PORT, DW_INTERRUPT_PIN));
+	// } while (GPIO_ReadInputDataBit(DW_INTERRUPT_PORT, DW_INTERRUPT_PIN));
 }
 
 

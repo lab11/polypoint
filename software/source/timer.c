@@ -80,6 +80,7 @@ void timer_start (timer_t* t, uint32_t us_period, timer_callback cb) {
 
 	// Enable the interrupt
 	TIM_ITConfig(t->tim_ptr, TIM_IT_Update , ENABLE);
+	TIM_ClearITPendingBit(t->tim_ptr, TIM_IT_Update);
 
 	// Enable the timer
 	TIM_Cmd(t->tim_ptr, ENABLE);

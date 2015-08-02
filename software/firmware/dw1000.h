@@ -21,8 +21,9 @@
 #define DW1000_ANTENNA_DELAY_TX 0
 #define DW1000_ANTENNA_DELAY_RX 0
 
+
 /******************************************************************************/
-// Timing defines for this particular mcu
+// Timing defines for this particular MCU
 /******************************************************************************/
 
 #define APP_US_TO_DEVICETIMEU32(_microsecu) \
@@ -72,10 +73,19 @@ struct ieee154_header_broadcast {
 	uint8_t sourceAddr[8];
 };
 
-struct ieee154_footer {
-	uint8_t fcs[2] ;                                  //  we allow space for the CRC as it is logically part of the message. However ScenSor TX calculates and adds these bytes.
+struct ieee154_header_unicast {
+	uint8_t frameCtrl[2];          //  frame control bytes 00-01
+	uint8_t seqNum;                //  sequence_number 02
+	uint8_t panID[2];              //  PAN ID 03-04
+	uint8_t destAddr[8];
+	uint8_t sourceAddr[8];
 };
 
+struct ieee154_footer {
+	uint8_t fcs[2] ;               //  we allow space for the CRC as it is logically part of the message. However ScenSor TX calculates and adds these bytes.
+};
+
+// Packet the tag broadcasts to all nearby anchors
 struct pp_tag_poll  {
 	struct ieee154_header_broadcast header;
 	uint8_t message_type;
@@ -84,7 +94,16 @@ struct pp_tag_poll  {
 	struct ieee154_footer footer;
 } __attribute__ ((__packed__));
 
-
+// Packet the anchor sends back to the tag.
+// Includes TOAs for all packets except the first NUM_CHANNEL-1 packets
+struct pp_anc_final {
+	struct ieee154_header_unicast header;
+	uint8_t message_type;
+	uint8_t final_antenna;
+	uint32_t dw_time_sent;
+	uint64_t TOAs[NUM_RANGING_BROADCASTS - (NUM_RANGING_CHANNELS-1)];
+	struct ieee154_footer footer;
+} __attribute__ ((__packed__));
 
 
 typedef enum {

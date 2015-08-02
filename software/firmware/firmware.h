@@ -6,6 +6,10 @@
 
 typedef uint8_t bool;
 
+// Convenience functions
+#define MIN(_a, _b) ((_a < _b) ? (_a) : (_b))
+#define MAX(_a, _b) ((_a > _b) ? (_a) : (_b))
+
 // All of the possible interrupt sources.
 typedef enum {
 	INTERRUPT_TIMER_17,
