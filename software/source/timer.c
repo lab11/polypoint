@@ -75,7 +75,7 @@ void timer_start (timer_t* t, uint32_t us_period, timer_callback cb) {
 
 	// Setup the actual timer
 	t->tim_init.TIM_Period    = us_period;
-	t->tim_init.TIM_Prescaler = (SystemCoreClock/10000)-1;
+	t->tim_init.TIM_Prescaler = (SystemCoreClock/500000)-1;
 	TIM_TimeBaseInit(t->tim_ptr, &t->tim_init);
 
 	// Enable the interrupt
