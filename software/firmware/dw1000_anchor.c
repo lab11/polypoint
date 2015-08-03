@@ -83,16 +83,32 @@ void dw1000_anchor_start () {
 	// This could change to wait in any of the first NUM_CHANNEL-1 positions.
 	dw1000_set_ranging_broadcast_subsequence_settings(ANCHOR, 0, TRUE);
 
+	// We want to clear the recorded timestamps from the previous ranging
+	// event
+	memset(pp_anc_final_pkt.TOAs, 0, sizeof(uint64_t)*NUM_RANGING_BROADCASTS);
+
+	// Also we start over in case the anchor was doing anything before
+	_state = ASTATE_IDLE;
+
 	// Obviously we want to be able to receive packets
 	dwt_rxenable(0);
 }
 
-
+// This is called by the periodic timer that tracks the tag's periodic
+// broadcast ranging poll messages. This is responsible for setting the
+// antenna and channel properties for the anchor.
 static void ranging_broadcast_subsequence_task () {
+	// When this timer is called it is time to start a new subsequence
+	// slot, so we must increment our counter
+	_ranging_broadcast_ss_num++;
 
+	// Update the anchor listening settings
+	dw1000_set_ranging_broadcast_subsequence_settings(ANCHOR, _ranging_broadcast_ss_num, FALSE);
 }
 
 
+// Called after a packet is transmitted. We don't need this so it is
+// just empty.
 void dw1000_anchor_txcallback (const dwt_callback_data_t *txd) {
 
 }
@@ -201,16 +217,33 @@ void dw1000_anchor_rxcallback (const dwt_callback_data_t *rxd) {
 						int err = dwt_starttx(DWT_START_TX_DELAYED);
 						dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
 						dwt_writetxdata(frame_len, (uint8_t*) &pp_anc_final_pkt, 0);
+
+						// Go back to idle
+						_state = ASTATE_IDLE;
 					}
 
 				} else {
 					// Not the same tag, ignore
 				}
+			} else {
+				// We are in some other state, not sure what that means
 			}
 
-
-
+		} else {
+			// Other message types go here, if they get added
 		}
 
+	} else {
+		// If an RX error has occurred, we're gonna need to setup the receiver again
+		// (because dwt_rxreset within dwt_isr smashes everything without regard)
+		if (rxd->event == DWT_SIG_RX_PHR_ERROR ||
+			rxd->event == DWT_SIG_RX_ERROR ||
+			rxd->event == DWT_SIG_RX_SYNCLOSS ||
+			rxd->event == DWT_SIG_RX_SFDTIMEOUT ||
+			rxd->event == DWT_SIG_RX_PTOTIMEOUT) {
+			set_subsequence_settings(_ranging_broadcast_ss_num, ANCHOR, true);
+		} else {
+			// Some other unknown error, not sure what to do
+		}
 	}
 }
