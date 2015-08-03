@@ -96,6 +96,10 @@ int main () {
 				// Do a test run
 				dw1000_tag_start_ranging_event();
 
+				// dw1000_set_mode(ANCHOR);
+				// dw1000_anchor_start();
+
+
 				break;
 			}
 

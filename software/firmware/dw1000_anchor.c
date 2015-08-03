@@ -125,7 +125,7 @@ void dw1000_anchor_rxcallback (const dwt_callback_data_t *rxd) {
 
 		// Get the received time of this packet first
 		dwt_readrxtimestamp(buf);
-		dw_rx_timestamp = ((uint64_t) (*((uint32_t*) buf))) | (((uint64_t) buf[4]) << 32);
+		dw_rx_timestamp = DW_TIMESTAMP_TO_UINT64(buf);
 
 		// Get the actual packet bytes
 		dwt_readrxdata(buf, MIN(DW1000_ANCHOR_MAX_RX_PKT_LEN, rxd->datalength), 0);
@@ -241,7 +241,7 @@ void dw1000_anchor_rxcallback (const dwt_callback_data_t *rxd) {
 			rxd->event == DWT_SIG_RX_SYNCLOSS ||
 			rxd->event == DWT_SIG_RX_SFDTIMEOUT ||
 			rxd->event == DWT_SIG_RX_PTOTIMEOUT) {
-			set_subsequence_settings(_ranging_broadcast_ss_num, ANCHOR, true);
+			dw1000_set_ranging_broadcast_subsequence_settings(ANCHOR, _ranging_broadcast_ss_num, TRUE);
 		} else {
 			// Some other unknown error, not sure what to do
 		}

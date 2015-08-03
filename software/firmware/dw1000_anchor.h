@@ -16,6 +16,7 @@ typedef enum {
 } dw1000_anchor_state_e;
 
 dw1000_err_e dw1000_anchor_init ();
+void dw1000_anchor_start ();
 
 void dw1000_anchor_txcallback (const dwt_callback_data_t *data);
 void dw1000_anchor_rxcallback (const dwt_callback_data_t *data);

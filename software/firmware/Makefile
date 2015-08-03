@@ -38,6 +38,8 @@ ifeq ($(DEVICE_FAMILY), STM32F031)
 CFLAGS += -DI2C2_IRQn=24
 endif
 
+CLFAGS += -Wall
+
 #The install locations of the STM Standard library
 #################################################
 LIBRARY_START_PATH ?= $(HOME)/code/stm/STM32F0xx_StdPeriph_Lib_V1.5.0/
