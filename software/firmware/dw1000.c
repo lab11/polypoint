@@ -723,20 +723,4 @@ void dw1000_set_ranging_broadcast_subsequence_settings (dw1000_role_e role,
 
 
 
-/*
-void port_SPIx_clear_chip_select () {
-
-}
-
-void port_SPIx_set_chip_select () {
-
-
-}
-
-void setup_DW1000RSTnIRQ () {
-
-
-} */
-
-
 

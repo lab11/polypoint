@@ -143,3 +143,25 @@ void CPAL_I2C_RXTC_UserCallback(CPAL_InitTypeDef* pDevInitStruct) {
 	// Handle this interrupt on the main thread
 	mark_interrupt(INTERRUPT_I2C_RX);
 }
+
+/**
+  * @brief  User callback that manages the I2C device errors.
+  * @note   Make sure that the define USE_SINGLE_ERROR_CALLBACK is uncommented in
+  *         the cpal_conf.h file, otherwise this callback will not be functional.
+  * @param  pDevInitStruct.
+  * @param  DeviceError.
+  * @retval None
+  */
+void CPAL_I2C_ERR_UserCallback(CPAL_DevTypeDef pDevInstance, uint32_t DeviceError) {
+
+}
+
+/**
+  * @brief  Manages the End of Tx transfer event.
+  * @param  pDevInitStruct
+  * @retval None
+  */
+void CPAL_I2C_TXTC_UserCallback(CPAL_InitTypeDef* pDevInitStruct) {
+}
+
+
