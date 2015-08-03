@@ -2,6 +2,7 @@
 #include "stm32f0xx_i2c_cpal.h"
 
 #include "board.h"
+#include "firmware.h"
 #include "i2c_interface.h"
 
 #define BUFFER_SIZE 128
@@ -108,32 +109,26 @@ uint32_t i2c_interface_send (uint16_t address, uint8_t length, uint8_t* buf) {
 }
 
 
+// Called when the I2C interface receives a message on the bus
+void i2c_interface_rx_fired () {
+	// Keep listening
+	i2c_interface_listen();
+}
+
+// Called after timeout
+void i2c_interface_timeout_fired () {
+
+}
+
+
 /**
   * @brief  User callback that manages the Timeout error
   * @param  pDevInitStruct
   * @retval None.
   */
-uint32_t CPAL_TIMEOUT_UserCallback(CPAL_InitTypeDef* pDevInitStruct)
-{
-
-  led_toggle(LED2);
-  // /* Update CPAL states */
-  // pDevInitStruct->CPAL_State = CPAL_STATE_READY;
-  // pDevInitStruct->wCPAL_DevError = CPAL_I2C_ERR_NONE ;
-  // pDevInitStruct->wCPAL_Timeout  = CPAL_I2C_TIMEOUT_DEFAULT;
-
-  // /* DeInitialize CPAL device */
-  // CPAL_I2C_DeInit(pDevInitStruct);
-
-  //  Initialize CPAL device with the selected parameters
-  // CPAL_I2C_Init(pDevInitStruct);
-
-  // /* Switch the LCD write color */
-  // Switch_ErrorColor();
-
-  // LCD_DisplayStringLine(Line9, (uint8_t*)"  Timeout Recovered ");
-
-  // ActionState = ACTION_NONE;
+uint32_t CPAL_TIMEOUT_UserCallback(CPAL_InitTypeDef* pDevInitStruct) {
+	// Handle this interrupt on the main thread
+	mark_interrupt(INTERRUPT_I2C_TIMEOUT);
 
   return CPAL_PASS;
 }
@@ -144,65 +139,7 @@ uint32_t CPAL_TIMEOUT_UserCallback(CPAL_InitTypeDef* pDevInitStruct)
   * @param  pDevInitStruct
   * @retval None
   */
-void CPAL_I2C_RXTC_UserCallback(CPAL_InitTypeDef* pDevInitStruct)
-{
-// led_toggle(LED1);
-
-	// Keep listening
-	i2c_interface_listen();
-
-	// Tell the main code about what we just got
-	callback(rxBuffer[0], rxBuffer+1);
-
-
-  // INTERRUPT_PORT->BRR = INTERRUPT_PIN; // clear
-
-  // uint8_t result = 0xFF, i = 0;
-
-  // /* Activate the mode receiver only */
-  // RecieverMode = 1;
-
-  // /* Switch the LCD write color */
-  // Switch_Color();
-
-  // LCD_DisplayStringLine(Line3, (uint8_t*)"RECEIVER MODE ACTIVE");
-  // LCD_DisplayStringLine(Line5, MEASSAGE_EMPTY);
-  // LCD_DisplayStringLine(Line9, MEASSAGE_EMPTY);
-
-  // STM_EVAL_LEDOff(LED2);
-  // STM_EVAL_LEDToggle(LED3);
-
-  // /* Initialize local Reception structures */
-  // sRxStructure.wNumData = BufferSize;       /* Maximum Number of data to be received */
-  // sRxStructure.pbBuffer = tRxBuffer;        /* Common Rx buffer for all received data */
-
-  // /* Check the Received Buffer */
-  // result = Buffer_Check(tRxBuffer, (uint8_t*)tStateSignal, (uint8_t*)tSignal1,(uint8_t*)tSignal2, (uint16_t)BufferSize);
-
-  // switch(result)
-  // {
-  //   case 0:
-  //     LCD_DisplayStringLine(Line7, (uint8_t*)"  State message OK  ");
-  //     break;
-
-  //   case 1:
-  //     /* Display Reception Complete */
-  //     LCD_DisplayStringLine(Line5, (uint8_t*)" Signal1 message OK ");
-  //     break;
-
-  //   case 2:
-  //     /* Display Reception Complete */
-  //     LCD_DisplayStringLine(Line5, (uint8_t*)" Signal2 message OK ");
-  //     break;
-
-  //   default:
-  //     LCD_DisplayStringLine(Line7, (uint8_t*)"       Failure     ");
-  //     break;
-  // }
-
-  // /* Reinitialize RXBuffer */
-  // for(i = 0; i < MAX_BUFF_SIZE; i++)
-  // {
-  //   tRxBuffer[i]=0;
-  // }
+void CPAL_I2C_RXTC_UserCallback(CPAL_InitTypeDef* pDevInitStruct) {
+	// Handle this interrupt on the main thread
+	mark_interrupt(INTERRUPT_I2C_RX);
 }

@@ -151,6 +151,17 @@ int main () {
 			dw1000_interrupt_fired();
 		}
 
+		if (interupts_triggered[INTERRUPT_I2C_RX] == TRUE) {
+			interupts_triggered[INTERRUPT_I2C_RX] = FALSE;
+			i2c_interface_rx_fired();
+		}
+
+		if (interupts_triggered[INTERRUPT_I2C_TIMEOUT] == TRUE) {
+			interupts_triggered[INTERRUPT_I2C_TIMEOUT] = FALSE;
+			i2c_interface_timeout_fired();
+		}
+
+
 
 
 

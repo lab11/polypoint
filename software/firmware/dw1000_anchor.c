@@ -21,6 +21,7 @@ static dw1000_anchor_state_e _state = ASTATE_IDLE;
 // Which spot in the ranging broadcast sequence we are currently at
 static uint8_t _ranging_broadcast_ss_num = 0;
 
+// Packet that the anchor unicasts to the tag
 static struct pp_anc_final pp_anc_final_pkt = {
 	{ // 802.15.4 HEADER
 		{

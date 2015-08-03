@@ -6,7 +6,7 @@
 
 #include "dw1000.h"
 
-// Set at some arbritrary length for what the longest packet we will receive
+// Set at some arbitrary length for what the longest packet we will receive
 // is.
 #define DW1000_ANCHOR_MAX_RX_PKT_LEN 64
 
