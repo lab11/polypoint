@@ -201,8 +201,6 @@ void dw1000_anchor_rxcallback (const dwt_callback_data_t *rxd) {
 						int err = dwt_starttx(DWT_START_TX_DELAYED);
 						dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
 						dwt_writetxdata(frame_len, (uint8_t*) &pp_anc_final_pkt, 0);
-
-
 					}
 
 				} else {
