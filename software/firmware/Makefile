@@ -4,6 +4,7 @@ PROJECT_NAME = $(shell basename "$(realpath ./)")
 #############################################
 APPLICATION_SRCS = $(notdir $(wildcard ./*.c))
 APPLICATION_SRCS += led.c
+APPLICATION_SRCS += timer.c
 
 APPLICATION_SRCS += stm32f0xx_gpio.c
 APPLICATION_SRCS += stm32f0xx_rcc.c
@@ -19,20 +20,29 @@ APPLICATION_SRCS += stm32f0xx_syscfg.c
 APPLICATION_SRCS += stm32f0xx_i2c_cpal.c
 APPLICATION_SRCS += stm32f0xx_i2c_cpal_hal.c
 
-APPLICATION_SRCS += dw1000-platform.c
 APPLICATION_SRCS += deca_device.c
 APPLICATION_SRCS += deca_params_init.c
 
 CFLAGS += -DBOARD=TRIPOINT
+LDFLAGS += -lm
 
 #The exact STM part number All CAPS
 ############################################
-DEVICE = STM32F051R8
-DEVICE_FAMILY = STM32F051
+DEVICE ?= STM32F031G6
+DEVICE_FAMILY ?= STM32F031
+
+## HACK FOR stm32f031
+## Need to define this so that CPAL will compile.
+## It is never used, however.
+ifeq ($(DEVICE_FAMILY), STM32F031)
+CFLAGS += -DI2C2_IRQn=24
+endif
+
+CFLAGS += -Wall
 
 #The install locations of the STM Standard library
 #################################################
-LIBRARY_START_PATH ?= $(HOME)/Programs/stm/STM32F0xx_StdPeriph_Lib_V1.5.0/
+LIBRARY_START_PATH ?= $(HOME)/code/stm/STM32F0xx_StdPeriph_Lib_V1.5.0/
 
 #The location of the gcc setup template
 ################################################

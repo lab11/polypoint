@@ -3,6 +3,11 @@
 
 #include "stm32f0xx.h"
 
+/******************************************************************************/
+// EUI LOCATION IN FLASH
+/******************************************************************************/
+#define EUI_FLASH_LOCATION               0x08007918
+
 
 /******************************************************************************/
 // LEDS
@@ -27,12 +32,12 @@
 #define INTERRUPT_PORT GPIOB
 #define INTERRUPT_CLK RCC_AHBPeriph_GPIOB
 
+
 /******************************************************************************/
 // I2C
 /******************************************************************************/
 #define I2C_OWN_ADDRESS 0xe8
 #define I2C_TIMING              0x00731012
-
 
 
 /******************************************************************************/
@@ -99,6 +104,7 @@
 #define DW_INTERRUPT_EXTI_PORT EXTI_PortSourceGPIOA
 #define DW_INTERRUPT_EXTI_PIN EXTI_PinSource2
 
+
 /******************************************************************************/
 // DECAWAVE RESET
 /********************************************************************************/
@@ -106,12 +112,14 @@
 #define DW_RESET_PORT GPIOB
 #define DW_RESET_CLK RCC_AHBPeriph_GPIOB
 
+
 /******************************************************************************/
 // DECAWAVE WAKEUP
 /*****************************************************************************/
 #define DW_WAKEUP_PIN GPIO_Pin_1
 #define DW_WAKEUP_PORT GPIOB
 #define DW_WAKEUP_CLK RCC_AHBPeriph_GPIOB
+
 
 /*****************************************************************************/
 // ANTENNA PINS
@@ -129,5 +137,27 @@
 #define ANT_SEL2_CLK	RCC_AHBPeriph_GPIOA
 
 
+/*****************************************************************************/
+// MISC GPIOs
+/*****************************************************************************/
+#define STM_GPIO0_PIN	GPIO_Pin_5
+#define STM_GPIO0_PORT	GPIOB
+#define STM_GPIO0_CLK	RCC_AHBPeriph_GPIOB
+
+#define STM_GPIO1_PIN	GPIO_Pin_6
+#define STM_GPIO1_PORT	GPIOB
+#define STM_GPIO1_CLK	RCC_AHBPeriph_GPIOB
+
+#define STM_GPIO2_PIN	GPIO_Pin_0
+#define STM_GPIO2_PORT	GPIOA
+#define STM_GPIO2_CLK	RCC_AHBPeriph_GPIOA
+
+#define STM_GPIO3_PIN	GPIO_Pin_1
+#define STM_GPIO3_PORT	GPIOA
+#define STM_GPIO3_CLK	RCC_AHBPeriph_GPIOA
+
+#define STM_GPIO4_PIN	GPIO_Pin_7
+#define STM_GPIO4_PORT	GPIOB
+#define STM_GPIO4_CLK	RCC_AHBPeriph_GPIOB
 
 #endif

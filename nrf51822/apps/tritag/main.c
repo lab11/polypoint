@@ -186,12 +186,14 @@ static void on_ble_evt(ble_evt_t * p_ble_evt) {
     switch (p_ble_evt->header.evt_id) {
         case BLE_GAP_EVT_CONNECTED:
             app.conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
+            led_on(LED_0);
             //advertising_stop();
             break;
 
         case BLE_GAP_EVT_DISCONNECTED:
             app.conn_handle = BLE_CONN_HANDLE_INVALID;
             advertising_start();
+            led_off(LED_0);
             break;
 
         case BLE_GATTS_EVT_WRITE:
@@ -402,9 +404,10 @@ static void services_init (void)
 
         memset(&char_md, 0, sizeof(char_md));
 
-        // This characteristic is a read & write
+        // The characteristic properties
         char_md.char_props.read          = 1;
         char_md.char_props.write         = 0;
+        char_md.char_props.notify        = 1;
         char_md.p_char_user_desc         = NULL;
         char_md.p_char_pf                = NULL;
         char_md.p_user_desc_md           = NULL;

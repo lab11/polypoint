@@ -8,4 +8,8 @@ uint32_t i2c_interface_init(i2c_interface_callback cb);
 uint32_t i2c_interface_listen ();
 uint32_t i2c_interface_send (uint16_t address, uint8_t length, uint8_t* buf);
 
+// Interrupt callbacks
+void i2c_interface_rx_fired ();
+void i2c_interface_timeout_fired ();
+
 #endif

@@ -10,9 +10,9 @@
 extern uint8_t MAC_ADDR[6];
 
 
-#define LED_START      18
-#define LED_0          18
-#define LED_STOP       18
+#define LED_START      17
+#define LED_0          17
+#define LED_STOP       17
 
 
 // This pin is mapped to the FTDI chip to all the device to enter the
@@ -106,5 +106,7 @@ extern uint8_t MAC_ADDR[6];
 #endif
 
 #define SER_CONN_ASSERT_LED_PIN     LED_0
+
+
 
 #endif

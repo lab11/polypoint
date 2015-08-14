@@ -3671,7 +3671,6 @@ Basic Inductor/Choke - 0603 and 1206. Footprints are not proven and vary greatly
 <parts>
 <part name="FRAME1" library="frames" deviceset="LETTER_L" device=""/>
 <part name="E_1" library="Edison" deviceset="EDISON_CONNECTOR_SEGMENTED" device=""/>
-<part name="FRAME2" library="frames" deviceset="LETTER_L" device=""/>
 <part name="U1" library="tripoint" deviceset="TRIPOINT" device=""/>
 <part name="A1" library="chips" deviceset="TAIYO-YUDEN-AH086M" device=""/>
 <part name="A2" library="chips" deviceset="TAIYO-YUDEN-AH086M" device=""/>
@@ -3952,18 +3951,6 @@ Basic Inductor/Choke - 0603 and 1206. Footprints are not proven and vary greatly
 <plain>
 </plain>
 <instances>
-<instance part="FRAME2" gate="G$1" x="0" y="0"/>
-<instance part="FRAME2" gate="G$2" x="147.32" y="0"/>
-</instances>
-<busses>
-</busses>
-<nets>
-</nets>
-</sheet>
-<sheet>
-<plain>
-</plain>
-<instances>
 <instance part="FRAME3" gate="G$1" x="0" y="0"/>
 <instance part="FRAME3" gate="G$2" x="147.32" y="0"/>
 <instance part="J1" gate="G$1" x="40.64" y="134.62"/>
@@ -4216,8 +4203,7 @@ Basic Inductor/Choke - 0603 and 1206. Footprints are not proven and vary greatly
 </sheets>
 <errors>
 <approved hash="113,1,124.356,92.606,FRAME1,,,,,"/>
-<approved hash="113,2,124.356,92.606,FRAME2,,,,,"/>
-<approved hash="113,3,124.356,92.606,FRAME3,,,,,"/>
+<approved hash="113,2,124.356,92.606,FRAME3,,,,,"/>
 </errors>
 </schematic>
 </drawing>
