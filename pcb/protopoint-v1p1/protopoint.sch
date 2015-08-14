@@ -2190,4 +2190,12 @@ Text Label 3950 7450 0    60   ~ 0
 SPI1_MOSI
 Text Label 3950 7050 0    60   ~ 0
 ~DW_RST
+Text Label 6400 3050 0    60   ~ 0
+DW_XTAL1
+Text Label 2150 5700 1    60   ~ 0
+DW_XTAL1
+Text Label 9050 3550 0    60   ~ 0
+DW_SYNC
+Text Label 3950 7550 0    60   ~ 0
+DW_SYNC
 $EndSCHEMATC
