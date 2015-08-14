@@ -2178,4 +2178,16 @@ Text Label 1250 2050 0    60   ~ 0
 GPIO3
 Text Label 3450 2650 0    60   ~ 0
 GPIO4
+Text Label 3150 5700 1    60   ~ 0
+DW_IRQ
+Text Label 3950 7150 0    60   ~ 0
+~SPI1_SS
+Text Label 3950 7250 0    60   ~ 0
+SPI1_CLK
+Text Label 3950 7350 0    60   ~ 0
+SPI1_MISO
+Text Label 3950 7450 0    60   ~ 0
+SPI1_MOSI
+Text Label 3950 7050 0    60   ~ 0
+~DW_RST
 $EndSCHEMATC
