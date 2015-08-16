@@ -5,12 +5,18 @@ The PolyPoint app has undergone a few significant revisions. To facilitate
 parallel testing and development, it's been forked (copy a folder and go) a few
 times.
 
+* `pp_noslots_[common,tag,anchor]` -- This version removes the assumption of a
+   fixed number of anchors. Anchors send their responses stochastically, varying
+   the slot for each response. It also transmits the final measurement round on
+   all three channels instead of just one.
+
 * `pp_oneway_[common,tag,anchor]` -- This version revises the ranging protocol.
   The original protocol was `NUM_MESUREMENTS` * {Tag `--TAG_POLL-->` Anchor,
   `NUM_ANCHORS` * {Anchor `--ANC_RESP-->` Tag}} + {Tag `--TAG_FINAL-->` Anchor,
   `NUM_ANCHORS` * {Anchor `--ANC_FINAL-->` Tag}}. The revised protocol sends
   `NUM_MESUREMENTS` * {Tag `--TAG_POLL-->` Anchor}, `NUM_ANCHORS` * {Anchor
   `--ANC_FINAL-->` Tag}. This is `NUM_MESUREMENTS` * `NUM_ANCHORS` fewer packets.
+  This version achieved an update rate of 20-30 Hz in practice.
 
 * `polypoint_[common,tag,anchor]` -- This version split tags and anchors into
   two dedicated applications, with some common code. It uses the same
