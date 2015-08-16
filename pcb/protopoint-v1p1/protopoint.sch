@@ -10,7 +10,6 @@ LIBS:cmos4000
 LIBS:adc-dac
 LIBS:memory
 LIBS:xilinx
-LIBS:special
 LIBS:microcontrollers
 LIBS:dsp
 LIBS:microchip
@@ -2198,4 +2197,10 @@ Text Label 9050 3550 0    60   ~ 0
 DW_SYNC
 Text Label 3950 7550 0    60   ~ 0
 DW_SYNC
+Text Notes 7400 7000 0    197  ~ 39
+TriPoint
+Text Notes 10550 7650 0    60   ~ 0
+1.1
+Text Notes 8800 7000 0    118  ~ 0
+UWB Ranging Module
 $EndSCHEMATC

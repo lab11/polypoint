@@ -1932,7 +1932,7 @@
   (gr_text "Ben K" (at 45.339 38.608) (layer F.SilkS)
     (effects (font (size 1 1) (thickness 0.2)))
   )
-  (gr_text ProtoPoint (at 44.45 27.051) (layer F.SilkS)
+  (gr_text TriPoint (at 44.45 27.051) (layer F.SilkS)
     (effects (font (size 1 1) (thickness 0.2)))
   )
   (gr_line (start 25.4 25.4) (end 41.275 52.8955) (angle 90) (layer Edge.Cuts) (width 0.1))
