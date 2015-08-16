@@ -3252,9 +3252,9 @@ Standard schematic elements and footprints for 5mm, 3mm, 1206, and 0603 sized LE
 <symbol name="TRIPOINT">
 <pin name="VCC" x="-22.86" y="15.24" length="short"/>
 <wire x1="17.78" y1="17.78" x2="-20.32" y2="17.78" width="0.254" layer="94"/>
-<wire x1="-20.32" y1="17.78" x2="-20.32" y2="-20.32" width="0.254" layer="94"/>
-<wire x1="-20.32" y1="-20.32" x2="17.78" y2="-20.32" width="0.254" layer="94"/>
-<wire x1="17.78" y1="-20.32" x2="17.78" y2="17.78" width="0.254" layer="94"/>
+<wire x1="-20.32" y1="17.78" x2="-20.32" y2="-35.56" width="0.254" layer="94"/>
+<wire x1="-20.32" y1="-35.56" x2="17.78" y2="-35.56" width="0.254" layer="94"/>
+<wire x1="17.78" y1="-35.56" x2="17.78" y2="17.78" width="0.254" layer="94"/>
 <pin name="SCL" x="-22.86" y="10.16" length="short"/>
 <pin name="SDA" x="-22.86" y="7.62" length="short"/>
 <pin name="INTERRUPT" x="-22.86" y="2.54" length="short"/>
@@ -3271,7 +3271,15 @@ Standard schematic elements and footprints for 5mm, 3mm, 1206, and 0603 sized LE
 <pin name="SWDCLK" x="20.32" y="-12.7" length="short" rot="R180"/>
 <pin name="!RESET" x="20.32" y="-15.24" length="short" rot="R180"/>
 <text x="-20.32" y="18.288" size="1.778" layer="95" ratio="12">&gt;NAME</text>
-<text x="-20.32" y="-22.86" size="1.778" layer="96" ratio="12">&gt;VALUE</text>
+<text x="-20.32" y="-38.1" size="1.778" layer="96" ratio="12">&gt;VALUE</text>
+<pin name="!DEBUG_DW_RST" x="20.32" y="-20.32" length="short" rot="R180"/>
+<pin name="DEBUG_DW_IRQ" x="20.32" y="-22.86" length="short" rot="R180"/>
+<pin name="DEBUG_DW_MOSI" x="20.32" y="-25.4" length="short" rot="R180"/>
+<pin name="DEBUG_DW_MISO" x="20.32" y="-27.94" length="short" rot="R180"/>
+<pin name="DEBUG_DW_CLK" x="20.32" y="-30.48" length="short" rot="R180"/>
+<pin name="!DEBUG_DW_CS" x="20.32" y="-33.02" length="short" rot="R180"/>
+<pin name="DW_SYNC" x="20.32" y="-2.54" length="short" rot="R180"/>
+<pin name="DW_XTAL1" x="20.32" y="-5.08" length="short" rot="R180"/>
 </symbol>
 </symbols>
 <devicesets>
@@ -3283,10 +3291,18 @@ Standard schematic elements and footprints for 5mm, 3mm, 1206, and 0603 sized LE
 <devices>
 <device name="" package="TRIPOINT">
 <connects>
+<connect gate="G$1" pin="!DEBUG_DW_CS" pad="23"/>
+<connect gate="G$1" pin="!DEBUG_DW_RST" pad="24"/>
 <connect gate="G$1" pin="!RESET" pad="30"/>
 <connect gate="G$1" pin="ANT1" pad="9"/>
 <connect gate="G$1" pin="ANT2" pad="26"/>
 <connect gate="G$1" pin="ANT3" pad="43"/>
+<connect gate="G$1" pin="DEBUG_DW_CLK" pad="22"/>
+<connect gate="G$1" pin="DEBUG_DW_IRQ" pad="39"/>
+<connect gate="G$1" pin="DEBUG_DW_MISO" pad="21"/>
+<connect gate="G$1" pin="DEBUG_DW_MOSI" pad="20"/>
+<connect gate="G$1" pin="DW_SYNC" pad="19"/>
+<connect gate="G$1" pin="DW_XTAL1" pad="49"/>
 <connect gate="G$1" pin="GND" pad="8 10 18 25 27 42 44"/>
 <connect gate="G$1" pin="GPIO0" pad="31"/>
 <connect gate="G$1" pin="GPIO1" pad="32"/>
@@ -4576,6 +4592,8 @@ new: Attribute TP_SIGNAL_NAME&lt;br&gt;
 <sheet>
 <plain>
 <text x="124.46" y="137.16" size="3.81" layer="98" align="bottom-center">Power Supply and Charging</text>
+<text x="201.422" y="92.71" size="1.778" layer="98" align="bottom-center">Must be a stable LDO
+for the DW1000.</text>
 </plain>
 <instances>
 <instance part="FRAME1" gate="G$1" x="0" y="0"/>
@@ -4800,4 +4818,10 @@ new: Attribute TP_SIGNAL_NAME&lt;br&gt;
 </errors>
 </schematic>
 </drawing>
+<compatibility>
+<note version="6.3" minversion="6.2.2" severity="warning">
+Since Version 6.2.2 text objects can contain more than one line,
+which will not be processed correctly with this version.
+</note>
+</compatibility>
 </eagle>
