@@ -22,4 +22,9 @@ typedef enum {
 
 void mark_interrupt (interrupt_source_e src);
 
+/******************************************************************************/
+// I2C for the application
+/******************************************************************************/
+#define I2C_OWN_ADDRESS         0x65
+
 #endif

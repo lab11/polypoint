@@ -2,40 +2,47 @@
 #include "stm32f0xx_rcc.h"
 
 #include "board.h"
+#include "led.h"
 
-GPIO_TypeDef* GPIO_PORT[LEDn] = {LED1_GPIO_PORT, LED2_GPIO_PORT};
-const uint16_t GPIO_PIN[LEDn] = {LED1_PIN, LED2_PIN};
-const uint32_t GPIO_CLK[LEDn] = {LED1_GPIO_CLK, LED2_GPIO_CLK};
+// Array of all initialized LEDs
+static led_t leds[LEDn];
 
 
-void led_init (uint8_t led)
-{
-  GPIO_InitTypeDef GPIO_InitStructure;
+int led_init (uint8_t led, GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin, uint32_t RCC_AHBPeriph) {
+	GPIO_InitTypeDef GPIO_InitStructure;
 
-  /* Enable the GPIO_LED Clock */
-  RCC_AHBPeriphClockCmd(GPIO_CLK[led], ENABLE);
+	// Save this new led
+	if (led < LEDn) {
+		leds[led].GPIOx = GPIOx;
+		leds[led].GPIO_Pin = GPIO_Pin;
+	} else {
+		return -1;
+	}
 
-  /* Configure the GPIO_LED pin */
-  GPIO_InitStructure.GPIO_Pin = GPIO_PIN[led];
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-  GPIO_Init(GPIO_PORT[led], &GPIO_InitStructure);
-  GPIO_PORT[led]->BSRR = GPIO_PIN[led];
+	/* Enable the GPIO_LED Clock */
+	RCC_AHBPeriphClockCmd(RCC_AHBPeriph, ENABLE);
+
+	/* Configure the GPIO_LED pin */
+	GPIO_InitStructure.GPIO_Pin = leds[led].GPIO_Pin;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(leds[led].GPIOx, &GPIO_InitStructure);
+	leds[led].GPIOx->BSRR = leds[led].GPIO_Pin;
 }
 
-void led_on (uint8_t led)
-{
-  GPIO_PORT[led]->BSRR = GPIO_PIN[led];
+void led_on (uint8_t led) {
+	if (led > LEDn) return;
+	leds[led].GPIOx->BSRR = leds[led].GPIO_Pin;
 }
 
-void led_off (uint8_t led)
-{
-  GPIO_PORT[led]->BRR = GPIO_PIN[led];
+void led_off (uint8_t led) {
+	if (led > LEDn) return;
+	leds[led].GPIOx->BRR = leds[led].GPIO_Pin;
 }
 
-void led_toggle (uint8_t led)
-{
-  GPIO_PORT[led]->ODR ^= GPIO_PIN[led];
+void led_toggle (uint8_t led) {
+	if (led > LEDn) return;
+	leds[led].GPIOx->ODR ^= leds[led].GPIO_Pin;
 }
