@@ -65,7 +65,11 @@ static uint64_t global_anchor_final_send_times[NUM_ANCHORS] = {0};
 static uint64_t global_final_TOAs[NUM_ANCHORS] = {0};
 static uint8_t global_anchor_final_antenna[NUM_ANCHORS] = {0};
 
-static bool global_received_final_from[NUM_ANCHORS] = {0};
+// This approach to mapping ids to slots trades memory for time
+static uint8_t global_anchor_id_to_idx[MAX_VALID_ANCHORS+1];
+static uint8_t global_anchor_idx_to_id[NUM_ANCHORS];
+static unsigned global_anchor_id_map_count;
+_Static_assert((MAX_VALID_ANCHORS+1) <= 256, "Need to increase global_anchor_id_map array size (and probably lots of other uint8_t refs to anchor id)");
 
 static struct pp_tag_poll pp_tag_poll_pkt;
 
@@ -89,10 +93,24 @@ static void insert_sorted(int arr[], int new, unsigned end) {
 	}
 }
 
+static uint8_t anchor_id_to_idx(uint8_t anchor_id) {
+	if (global_anchor_id_to_idx[anchor_id] == INVALID_ANCHOR_ID) {
+		if (global_anchor_id_map_count == NUM_ANCHORS) {
+			return INVALID_ANCHOR_ID;
+		} else {
+			global_anchor_id_to_idx[anchor_id] = global_anchor_id_map_count;
+			global_anchor_idx_to_id[global_anchor_id_map_count] = anchor_id;
+			return global_anchor_id_map_count++;
+		}
+	} else {
+		return global_anchor_id_to_idx[anchor_id];
+	}
+}
+
 static double dwtime_to_dist(double dwtime, unsigned anchor_id, unsigned subseq) {
 	double dist = dwtime * DWT_TIME_UNITS * SPEED_OF_LIGHT;
 	dist += ANCHOR_CAL_LEN;
-	dist -= txDelayCal[anchor_id*NUM_CHANNELS + subseq_num_to_chan(subseq, true)];
+	dist -= txDelayCal[anchor_id*NUM_RANGING_CHANNELS + subsequence_number_to_channel(subseq)];
 	return dist;
 }
 
@@ -104,21 +122,10 @@ static void compute_results() {
 #endif
 
 	unsigned i;
-	for(i=0; i < NUM_ANCHORS; i++){
+	for(i=0; i < global_anchor_id_map_count; i++){
 		unsigned j;
-#ifdef REPORT_PERCENTILE_ONLY
-		// Shortcut the whole thing if we didn't rx a final from this anc
-		if (!global_received_final_from[i]) {
-			const unsigned char* s = (unsigned char*) "X ";
 #ifdef REPORT_PERCENTILE_VIA_UART
-			dbg_send_bytes(s, 2);
-#endif
-			memcpy(pkt+pkt_offset, s, 2);
-			pkt_offset += 2;
-			continue;
-		}
-#else
-		printf("\r\ntagstart %d\r\n",i+1);
+		printf("\r\ntagstart id:%d anc:%d\r\n",i,global_anchor_id_to_idx[i]);
 #endif
 		/*
 		for (j=0; j < NUM_MEASUREMENTS+1; j++) {
@@ -202,13 +209,7 @@ static void compute_results() {
 			}
 
 			if (num_valid < MINIMUM_MEASUREMENTS_PER_ANCHOR) {
-				// Not enough valid ranges
-				const unsigned char* s = (unsigned char*) "- ";
-#ifdef REPORT_PERCENTILE_VIA_UART
-				dbg_send_bytes(s, 2);
-#endif
-				memcpy(pkt+pkt_offset, s, 2);
-				pkt_offset += 2;
+				continue;
 			} else {
 				unsigned bot = num_valid*TARGET_PERCENTILE;
 				unsigned top = num_valid*TARGET_PERCENTILE+1;
@@ -216,13 +217,21 @@ static void compute_results() {
 					dists_times_100[bot] +
 					(dists_times_100[top] - dists_times_100[bot]) * (NUM_MEASUREMENTS*TARGET_PERCENTILE - (float) bot);
 #ifdef REPORT_PERCENTILE_VIA_UART
-				printf("%d.%02d ", perc/100, perc%100);
+				printf("%d:%d.%02d ",
+						global_anchor_idx_to_id[i],
+						perc/100,
+						perc%100);
 #endif
-				pkt_offset += sprintf(pkt+pkt_offset, "%d.%02d ", perc/100, perc%100);
+				pkt_offset += sprintf(pkt+pkt_offset,
+						"%d:%d.%02d ",
+						global_anchor_idx_to_id[i],
+						perc/100,
+						perc%100);
 			}
 			DEBUG_B6_HIGH;
 		}
 #else  // REPORT_PERCENTILE_ONLY
+		printf("%d: ", global_anchor_idx_to_id[i]);
 		for (j=0; j < NUM_MEASUREMENTS; j++) {
 			int dist_times_100 = dists_times_100[j];
 			printf("%d.%d ", dist_times_100/100, dist_times_100%100);
@@ -248,7 +257,7 @@ static void compute_results() {
 static void send_pkt(bool is_final){
 	const uint16_t tx_frame_length = sizeof(struct pp_tag_poll);
 	pp_tag_poll_pkt.header.seqNum++;
-	pp_tag_poll_pkt.message_type = (is_final) ? MSG_TYPE_PP_NOSLOTS_TAG_FINAL : MSG_TYPE_PP_NOSLOTS_TAG_POLL;
+	pp_tag_poll_pkt.message_type = MSG_TYPE_PP_NOSLOTS_TAG_POLL;
 	pp_tag_poll_pkt.subsequence = global_subseq_num;
 
 	//Make sure we're out of rx mode before attempting to transmit
@@ -276,7 +285,7 @@ static void send_pkt(bool is_final){
 	}
 
 	// MP bug - TX antenna delay needs reprogramming as it is not preserved
-	dwt_settxantennadelay(TX_ANTENNA_DELAY);
+	dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
 
 	if (err == DWT_SUCCESS) {
 		DEBUG_P("Sent TAG_POLL  (%u)\r\n", global_subseq_num);
@@ -285,14 +294,6 @@ static void send_pkt(bool is_final){
 		DEBUG_P("Start %lu, goal %lu, now %lu\r\n",
 				temp, delay_time, dwt_readsystimestamphi32());
 	}
-}
-
-static void send_poll() {
-	send_pkt(false);
-}
-
-static void send_final() {
-	send_pkt(true);
 }
 
 // Triggered after a TX
@@ -327,20 +328,20 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 			anc_final = (struct pp_anc_final*) recv_pkt_buf;
 
 			uint8_t anchor_id = anc_final->anchor_id;
-
 			DEBUG_P("ANC_FINAL from %u\r\n", anchor_id);
-			if((anchor_id-1) >= NUM_ANCHORS) return;
+
+			uint8_t effective_id = anchor_id_to_idx(anchor_id);
+			if (effective_id == INVALID_ANCHOR_ID) return;
 
 			DEBUG_B6_HIGH;
 			memcpy(
-					&global_anchor_TOAs[anchor_id-1],
+					&global_anchor_TOAs[effective_id],
 					anc_final->TOAs,
 					sizeof(anc_final->TOAs)
 					);
-			global_anchor_final_send_times[anchor_id-1] = ((uint64_t)anc_final->dw_time_sent) << 8;
-			global_anchor_final_antenna[anchor_id-1] = anc_final->final_antenna;
-			global_final_TOAs[anchor_id-1] = timestamp;
-			global_received_final_from[anchor_id-1] = true;
+			global_anchor_final_send_times[effective_id] = ((uint64_t)anc_final->dw_time_sent) << 8;
+			global_anchor_final_antenna[effective_id] = anc_final->final_antenna;
+			global_final_TOAs[effective_id] = timestamp;
 		} else {
 			DEBUG_P("*** ERR: RX Unknown packet type: 0x%X\r\n", packet_type);
 		}
@@ -352,7 +353,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 		    rxd->event == DWT_SIG_RX_SYNCLOSS ||
 		    rxd->event == DWT_SIG_RX_SFDTIMEOUT ||
 		    rxd->event == DWT_SIG_RX_PTOTIMEOUT) {
-			set_subsequence_settings(global_subseq_num, TAG, true);
+			set_ranging_broadcast_subsequence_settings(TAG, global_subseq_num, true);
 		} else {
 			DEBUG_P("*** ERR: rxd->event unknown: 0x%X\r\n", rxd->event);
 		}
@@ -387,6 +388,10 @@ void app_init(void) {
 
 	pp_tag_poll_pkt.roundNum = 0;
 	pp_tag_poll_pkt.subsequence = 0;
+
+	pp_tag_poll_pkt.reply_after_subsequence = NUM_MEASUREMENTS+NUM_RANGING_CHANNELS-1;
+	pp_tag_poll_pkt.anchor_reply_window_in_us = ALL_ANC_FINAL_US;
+	pp_tag_poll_pkt.anchor_reply_slot_time_in_us = ANC_FINAL_RX_TIME_ON_TAG;
 }
 
 
@@ -397,23 +402,23 @@ static char subsequence_task(struct rtimer *rt, void* ptr){
 
 	DEBUG_B5_HIGH;
 
-	if (global_subseq_num < NUM_MEASUREMENTS) {
+	if (global_subseq_num < (NUM_MEASUREMENTS+NUM_RANGING_CHANNELS)) {
 		set_to = now + US_TO_RT(POLL_TO_SS_US+SS_TO_SQ_US);
 	} else {
 		set_to = now + US_TO_RT(ALL_ANC_FINAL_US);
 	}
-	if (global_subseq_num <= NUM_MEASUREMENTS)
+	if (global_subseq_num <= (NUM_MEASUREMENTS+NUM_RANGING_CHANNELS+NUM_RANGING_CHANNELS))
 		rtimer_set(rt, set_to, 1, (rtimer_callback_t)subsequence_task, NULL);
 
 
-	if(global_subseq_num < NUM_MEASUREMENTS) {
-		set_subsequence_settings(global_subseq_num, TAG, false);
-		send_poll();
+	if(global_subseq_num < (NUM_MEASUREMENTS+NUM_RANGING_CHANNELS)) {
+		set_ranging_broadcast_subsequence_settings(TAG, global_subseq_num, false);
+		send_pkt(false);
 		global_subseq_num++;
-	} else if (global_subseq_num == NUM_MEASUREMENTS) {
-		set_subsequence_settings(0, TAG, false);
+	} else if (global_subseq_num < (NUM_MEASUREMENTS+NUM_RANGING_CHANNELS+NUM_RANGING_CHANNELS)) {
+		set_ranging_broadcast_subsequence_settings(TAG, global_subseq_num, false);
 
-		send_final(); // enables rx
+		send_pkt(true); // enables rx
 		global_subseq_num++;
 
 		DEBUG_P("In wait period expecting ANC_FINALs\r\n");
@@ -422,7 +427,7 @@ static char subsequence_task(struct rtimer *rt, void* ptr){
 		// messages during this slot; the rx handler
 		// will fill out the results array
 	} else {
-		set_subsequence_settings(0, TAG, true);
+		set_ranging_broadcast_subsequence_settings(TAG, 0, true);
 		compute_results();
 
 		pp_tag_poll_pkt.roundNum = ++global_round_num;
@@ -432,7 +437,11 @@ static char subsequence_task(struct rtimer *rt, void* ptr){
 		memset(global_anchor_final_send_times, 0, sizeof(global_anchor_final_send_times));
 		memset(global_anchor_final_antenna, 0, sizeof(global_anchor_final_antenna));
 		memset(global_final_TOAs, 0, sizeof(global_final_TOAs));
-		memset(global_received_final_from, 0, sizeof(global_received_final_from));
+
+		unsigned i;
+		for (i=0; i<global_anchor_id_map_count; i++) {
+			global_anchor_id_to_idx[global_anchor_idx_to_id[i]] = INVALID_ANCHOR_ID;
+		}
 
 		global_subseq_num = 0;
 
@@ -518,7 +527,7 @@ PROCESS_THREAD(polypoint_tag, ev, data) {
 	app_init();
 	global_round_num = 0;
 	global_subseq_num = 0;
-	set_subsequence_settings(0, TAG, true);
+	set_ranging_broadcast_subsequence_settings(TAG, 0, true);
 
 	// Tickle the watchdog
 	watchdog_periodic();

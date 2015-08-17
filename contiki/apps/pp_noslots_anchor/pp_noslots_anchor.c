@@ -39,13 +39,14 @@ static int8_t antenna_statistics[NUM_ANTENNAS];
 #define ANCHOR_EUI 1
 #endif
 
-_Static_assert(ANCHOR_EUI <= NUM_ANCHORS, "Invalid ANCHOR_EUI");
-
 /**************
  * GLOBAL STATE
  */
 
 static bool global_round_active = false;
+static uint8_t global_reply_after_subsequence = 0xff;
+static uint16_t global_anchor_reply_window_in_us = 0;
+static uint16_t global_anchor_reply_slot_time_in_us = 0;
 static uint8_t global_round_num = 0xAA;
 static uint8_t global_subseq_num = 0xAA;
 
@@ -83,10 +84,45 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 		packet_type = recv_pkt_buf[offsetof(struct pp_tag_poll, message_type)];
 		global_round_num = recv_pkt_buf[offsetof(struct pp_tag_poll, roundNum)];
 
-		if (packet_type == MSG_TYPE_PP_NOSLOTS_TAG_POLL) {
-			struct pp_tag_poll* pkt = (struct pp_tag_poll*) recv_pkt_buf;
-			DEBUG_P("TAG_POLL rx: %u\r\n", pkt->subsequence);
+		if (packet_type != MSG_TYPE_PP_NOSLOTS_TAG_POLL) {
+			DEBUG_P("UNKNOWN PKT TYPE %u\r\n", packet_type);
+			return;
+		}
 
+		struct pp_tag_poll* pkt = (struct pp_tag_poll*) recv_pkt_buf;
+		DEBUG_P("TAG_POLL rx: %u\r\n", pkt->subsequence);
+
+		if (!global_round_active) {
+			if (pkt->subsequence == pkt->reply_after_subsequence) {
+				// The first packet we happened to receive was
+				// the last. We have nothing interesting to
+				// reply with, so don't. But we *do* need to set
+				// receive mode again so that a new poll will be
+				// caught
+				dwt_rxenable(0);
+				return;
+			}
+			DEBUG_B4_LOW;
+			DEBUG_B5_LOW;
+			memset(antenna_statistics, 0, sizeof(antenna_statistics));
+			global_round_active = true;
+			global_reply_after_subsequence = pkt->reply_after_subsequence;
+			global_anchor_reply_window_in_us = pkt->anchor_reply_window_in_us;
+			global_anchor_reply_slot_time_in_us = pkt->anchor_reply_slot_time_in_us;
+			start_of_new_subseq = true;
+			substate_timer_fired = true;
+			rtimer_clock_t set_to = rt_timestamp + US_TO_RT(
+					POLL_TO_SS_US + SS_TO_SQ_US
+					- TAG_SQ_START_TO_POLL_SFD_HIGH_US
+					- ANC_MYSTERY_STARTUP_DELAY_US);
+			rtimer_set(&subsequence_timer,
+					set_to,
+					1,
+					(rtimer_callback_t)subsequence_task,
+					NULL);
+		}
+
+		if (pkt->subsequence < global_reply_after_subsequence) {
 			if (global_subseq_num == pkt->subsequence) {
 				// Configurations matched, record arrival time
 				pp_anc_final_pkt.TOAs[global_subseq_num] = dw_timestamp;
@@ -96,41 +132,9 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 				global_subseq_num = pkt->subsequence;
 			}
 
-			if (!global_round_active) {
-				DEBUG_B4_LOW;
-				DEBUG_B5_LOW;
-				memset(antenna_statistics, 0, sizeof(antenna_statistics));
-				global_round_active = true;
-				start_of_new_subseq = true;
-				substate_timer_fired = true;
-				/*
-				subseq_start_time = rt_timestamp - US_TO_RT(TAG_SQ_START_TO_POLL_SFD_HIGH_US);
-				rtimer_clock_t set_to = subseq_start_time + US_TO_RT(POLL_TO_SS_US+SS_TO_SQ_US);
-				*/
-				rtimer_clock_t set_to = rt_timestamp + US_TO_RT(
-						POLL_TO_SS_US + SS_TO_SQ_US
-						- TAG_SQ_START_TO_POLL_SFD_HIGH_US
-						- ANC_MYSTERY_STARTUP_DELAY_US);
-				rtimer_set(&subsequence_timer,
-						set_to,
-						1,
-						(rtimer_callback_t)subsequence_task,
-						NULL);
-			}
-
 			//Keep a running total of the number of packets seen from each antenna
-			antenna_statistics[subseq_num_to_anchor_sel(global_subseq_num)]++;
-		} else if (packet_type == MSG_TYPE_PP_NOSLOTS_TAG_FINAL) {
-			if (!global_round_active) {
-				// The first packet we happened to receive was
-				// an ANC_FINAL. We have nothing interesting to
-				// reply with, so don't. But we *do* need to set
-				// receive mode again so that a new poll will be
-				// caught
-				dwt_rxenable(0);
-				return;
-			}
-
+			antenna_statistics[subsequence_number_to_antenna(ANCHOR, global_subseq_num)]++;
+		} else if (pkt->subsequence == global_reply_after_subsequence) {
 			//We're likely in RX mode, so we need to exit before transmission
 			dwt_forcetrxoff();
 
@@ -143,17 +147,20 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 			//Schedule this transmission for our scheduled time slot
 			DEBUG_B6_LOW;
 			uint32_t temp = dwt_readsystimestamphi32();
+			// TODO: Use random
 			uint32_t delay_time = temp +
 				DW_DELAY_FROM_US(
 					ANC_FINAL_INITIAL_DELAY_HACK_VALUE +
-					(ANC_FINAL_RX_TIME_ON_TAG*(ANCHOR_EUI-1))
+					(global_anchor_reply_slot_time_in_us*ANCHOR_EUI) - (global_anchor_reply_window_in_us*((global_anchor_reply_slot_time_in_us*ANCHOR_EUI)/global_anchor_reply_window_in_us))
 					);
+				// LEGACY PROBLEM PROBABLY STILL APPLIES:
 				/* I don't understand what exactly is going on
 				 * here. The chip seems to want way longer for
 				 * this preamble than others -- maybe something
 				 * to do with the large payload? From empirical
 				 * measurements, the 300 base delay is about the
 				 * minimum (250 next tested as not working)
+				// LEGACY NOTION FOR NON-BUG VERSION:
 				DW_DELAY_FROM_US(
 					REVISED_DELAY_FROM_PKT_LEN_US(frame_len) +
 					(2*ANC_FINAL_RX_TIME_ON_TAG*(ANCHOR_EUI-1))
@@ -164,7 +171,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 			dwt_setdelayedtrxtime(delay_time);
 
 			int err = dwt_starttx(DWT_START_TX_DELAYED);
-			dwt_settxantennadelay(TX_ANTENNA_DELAY);
+			dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
 			dwt_writetxdata(frame_len, (uint8_t*) &pp_anc_final_pkt, 0);
 			DEBUG_B6_HIGH;
 
@@ -196,7 +203,7 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 		    rxd->event == DWT_SIG_RX_SYNCLOSS ||
 		    rxd->event == DWT_SIG_RX_SFDTIMEOUT ||
 		    rxd->event == DWT_SIG_RX_PTOTIMEOUT) {
-			set_subsequence_settings(global_subseq_num, ANCHOR, true);
+			set_ranging_broadcast_subsequence_settings(ANCHOR, global_subseq_num, true);
 		} else {
 			DEBUG_P("*** ERR: rxd->event unknown: 0x%X\r\n", rxd->event);
 		}
@@ -252,7 +259,7 @@ static char subsequence_task(struct rtimer *rt, void* ptr){
 
 	if(global_subseq_num < NUM_MEASUREMENTS) {
 		global_subseq_num++;
-		set_subsequence_settings(global_subseq_num, ANCHOR, false);
+		set_ranging_broadcast_subsequence_settings(ANCHOR, global_subseq_num, false);
 
 		if(global_subseq_num == NUM_MEASUREMENTS){
 			//For the final round, the anchor should be listening to the antenna
@@ -300,7 +307,7 @@ static char subsequence_task(struct rtimer *rt, void* ptr){
 		memset(pp_anc_final_pkt.TOAs, 0, sizeof(pp_anc_final_pkt.TOAs));
 
 		// Shouldn't be needed, but doesn't hurt
-		set_subsequence_settings(0, ANCHOR, true);
+		set_ranging_broadcast_subsequence_settings(0, ANCHOR, true);
 
 		// Tickle the watchdog
 		watchdog_periodic();
@@ -381,9 +388,9 @@ PROCESS_THREAD(polypoint_anchor, ev, data) {
 
 	// Kickstart things at the beginning of the loop
 	global_subseq_num = 0;
-	set_subsequence_settings(0, ANCHOR, true);
-		clock_delay_usec(1e3); // sleep for a millisecond before trying again
-	set_subsequence_settings(0, ANCHOR, true);
+	set_ranging_broadcast_subsequence_settings(ANCHOR, 0, true);
+	clock_delay_usec(1e3); // sleep for a millisecond before trying again
+	set_ranging_broadcast_subsequence_settings(ANCHOR, 0, true);
 	dwt_rxenable(0);
 
 	DEBUG_B4_INIT;

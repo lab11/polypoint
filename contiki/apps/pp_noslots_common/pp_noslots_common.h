@@ -21,12 +21,14 @@
 //#define REPORT_PERCENTILE_VIA_UART
 #endif
 
-#define MSG_TYPE_PP_NOSLOTS_TAG_POLL   0x60
-#define MSG_TYPE_PP_NOSLOTS_TAG_FINAL  0x6F
-#define MSG_TYPE_PP_NOSLOTS_ANC_FINAL  0x70
+#define MSG_TYPE_PP_NOSLOTS_TAG_POLL   0x80
+#define MSG_TYPE_PP_NOSLOTS_ANC_FINAL  0x81
 
 #define ANCHOR_CAL_LEN (0.914-0.18) //0.18 is post-over-air calibration
 
+#define MAX_VALID_ANCHORS 255
+#define INVALID_ANCHOR_ID 255
+_Static_assert(MAX_VALID_ANCHORS == INVALID_ANCHOR_ID, "The code assumes this. The different names just make it easier to read");
 #define NUM_ANCHORS 18
 
 #define DW1000_PANID 0xD100
@@ -34,8 +36,8 @@
 #define DELAY_MASK 0x00FFFFFFFE00
 #define SPEED_OF_LIGHT 299702547.0
 #define NUM_ANTENNAS 3
-#define NUM_CHANNELS 3
-#define NUM_MEASUREMENTS (NUM_ANTENNAS*NUM_ANTENNAS*NUM_CHANNELS)
+#define NUM_RANGING_CHANNELS 3
+#define NUM_MEASUREMENTS (NUM_ANTENNAS*NUM_ANTENNAS*NUM_RANGING_CHANNELS)
 
 // This controls the minimum number of measurements per anchor that must be
 // received for a range event with that anchor to be considered valid. It only
@@ -47,8 +49,8 @@ _Static_assert(MINIMUM_MEASUREMENTS_PER_ANCHOR <= NUM_MEASUREMENTS, "Impossible 
 #define MIN_VALID_RANGE_IN_CM -100
 #define MAX_VALID_RANGE_IN_CM (50*100)
 
-#define TX_ANTENNA_DELAY 0
-
+#define DW1000_ANTENNA_DELAY_RX 0
+#define DW1000_ANTENNA_DELAY_TX 0
 
 #ifdef DW_DEBUG
 #if WATCHDOG_CONF_ENABLE
@@ -107,40 +109,6 @@ _Static_assert(MINIMUM_MEASUREMENTS_PER_ANCHOR <= NUM_MEASUREMENTS, "Impossible 
 
 #define US_TO_RT(_us) (RTIMER_SECOND * ((_us)/1e6))
 
-/*
-#define NODE_DELAY_US 7000
-#define TAG_SETTINGS_SETUP_US 850
-#define TAG_SEND_POLL_DELAY_US 250
-#define TAG_SEND_FINAL_DELAY_US 290 // final is longer packet than poll
-#define ANC_RESP_SEND_TIME_US 300
-#define ANC_RESP_DELAY_US 500
-#define TAG_FINAL_DELAY_US (\
-			TAG_SETTINGS_SETUP_US +\
-			TAG_SEND_POLL_DELAY_US +\
-			ANC_RESP_DELAY_US +\
-			ANC_RESP_SEND_TIME_US * (NUM_ANCHORS+1)\
-			)
-#define ANC_RX_AND_PROC_TAG_FINAL_US 2400
-
-#ifdef ANC_FINAL_PERCENTILE_ONLY
-#define ANC_FINAL_BUFFER_FILL_TIME_US 250
-#define ANC_FINAL_SEND_TIME_US 300
-#define RT_FINAL_PRINTF_DURATION (RTIMER_SECOND * 0.012)
-#else
-#define ANC_FINAL_BUFFER_FILL_TIME_US 500
-#define ANC_FINAL_SEND_TIME_US 700
-#define RT_FINAL_PRINTF_DURATION (RTIMER_SECOND * 0.125)
-#endif
-
-#define ANC_SETTINGS_SETUP_US 500
-
-#define SUBSEQUENCE_PERIOD_US (\
-			TAG_FINAL_DELAY_US \
-			+ ANC_RX_AND_PROC_TAG_FINAL_US \
-			+ ANC_SETTINGS_SETUP_US \
-			)
-*/
-
 #define APP_US_TO_DEVICETIMEU32(_microsecu)\
 	(\
 	 (uint32_t) ( ((_microsecu) / (double) DWT_TIME_UNITS) / 1e6 )\
@@ -189,6 +157,9 @@ struct pp_tag_poll  {
 	uint8_t message_type;
 	uint8_t roundNum;
 	uint8_t subsequence;
+	uint8_t reply_after_subsequence;
+	uint16_t anchor_reply_window_in_us;
+	uint16_t anchor_reply_slot_time_in_us;
 	struct ieee154_footer footer;
 } __attribute__ ((__packed__));
 
@@ -207,9 +178,11 @@ _Static_assert(offsetof(struct pp_tag_poll, message_type) == offsetof(struct pp_
 			"message_type field at inconsistent offsets");
 
 
-uint8_t subseq_num_to_chan(uint8_t subseq_num, bool return_channel_index);
-void set_subsequence_settings(uint8_t subseq_num, int role, bool force_config_reset);
-uint8_t subseq_num_to_anchor_sel(uint8_t subseq_num);
+uint8_t subsequence_number_to_channel (uint8_t subseq_num);
+uint8_t subsequence_number_to_antenna (uint8_t role, uint8_t subseq_num);
+void set_ranging_broadcast_subsequence_settings (uint8_t role,
+                                                 uint8_t subseq_num,
+                                                 bool reset);
 int app_dw1000_init (
 		int HACK_role,
 		int HACK_EUI,
