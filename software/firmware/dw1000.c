@@ -29,7 +29,7 @@ static uint8_t getXtalTrim() {
 	return 8;
 }
 
-const uint8_t pgDelay[8] = {
+const uint8_t pgDelay[DW1000_NUM_CHANNELS] = {
 	0x0,
 	0xc9,
 	0xc2,
@@ -41,7 +41,7 @@ const uint8_t pgDelay[8] = {
 };
 
 //NOTE: THIS IS DEPENDENT ON BAUDRATE
-const uint32_t txPower[8] = {
+const uint32_t txPower[DW1000_NUM_CHANNELS] = {
 	0x0,
 	0x07274767UL,
 	0x07274767UL,
@@ -221,7 +221,6 @@ static void setup () {
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
 	GPIO_Init(ANT_SEL0_PORT, &GPIO_InitStructure);
-	ANT_SEL0_PORT->BRR = ANT_SEL0_PIN;
 
 	GPIO_InitStructure.GPIO_Pin = ANT_SEL1_PIN;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
@@ -229,7 +228,6 @@ static void setup () {
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
 	GPIO_Init(ANT_SEL1_PORT, &GPIO_InitStructure);
-	ANT_SEL1_PORT->BRR = ANT_SEL1_PIN;
 
 	GPIO_InitStructure.GPIO_Pin = ANT_SEL2_PIN;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
@@ -237,7 +235,11 @@ static void setup () {
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
 	GPIO_Init(ANT_SEL1_PORT, &GPIO_InitStructure);
-	ANT_SEL2_PORT->BRR = ANT_SEL2_PIN;
+
+	// Initialize the RF Switch
+	GPIO_WriteBit(ANT_SEL0_PORT, ANT_SEL0_PIN, Bit_SET);
+	GPIO_WriteBit(ANT_SEL1_PORT, ANT_SEL1_PIN, Bit_RESET);
+	GPIO_WriteBit(ANT_SEL2_PORT, ANT_SEL2_PIN, Bit_RESET);
 
 	// Pre-populate DMA fields that don't need to change
 	DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t) SPI1_DR_ADDRESS;
@@ -532,28 +534,35 @@ void dw1000_choose_antenna(uint8_t antenna_number) {
 	// Antenna selection comes from the STM32 chip instead of the DW1000 now
 
 	// Set all of them low
-	ANT_SEL0_PORT->BRR = ANT_SEL0_PIN;
-	ANT_SEL1_PORT->BRR = ANT_SEL1_PIN;
-	ANT_SEL2_PORT->BRR = ANT_SEL2_PIN;
+	GPIO_WriteBit(ANT_SEL0_PORT, ANT_SEL0_PIN, Bit_RESET);
+	GPIO_WriteBit(ANT_SEL1_PORT, ANT_SEL1_PIN, Bit_RESET);
+	GPIO_WriteBit(ANT_SEL2_PORT, ANT_SEL2_PIN, Bit_RESET);
 
 	// Set the one we want high
 	switch (antenna_number) {
-		case 0: ANT_SEL0_PORT->BSRR = ANT_SEL0_PIN; break;
-		case 1: ANT_SEL1_PORT->BSRR = ANT_SEL1_PIN; break;
-		case 2: ANT_SEL2_PORT->BSRR = ANT_SEL2_PIN; break;
+		case 0: GPIO_WriteBit(ANT_SEL0_PORT, ANT_SEL0_PIN, Bit_SET); break;
+		case 1: GPIO_WriteBit(ANT_SEL1_PORT, ANT_SEL1_PIN, Bit_SET); break;
+		case 2: GPIO_WriteBit(ANT_SEL2_PORT, ANT_SEL2_PIN, Bit_SET); break;
 	}
 }
 
 // Read this node's EUI from the correct address in flash
 void dw1000_read_eui (uint8_t *eui_buf) {
-	memcpy(eui_buf, (uint8_t*) EUI_FLASH_LOCATION, 8);
+	eui_buf[0] = 0x22;
+	eui_buf[1] = 0x33;
+	eui_buf[2] = 0x44;
+	eui_buf[3] = 0x54;
+	eui_buf[4] = 0x56;
+	eui_buf[5] = 0xe5;
+	eui_buf[6] = 0x98;
+	eui_buf[7] = 0xc0;
+	// memcpy(eui_buf, (uint8_t*) EUI_FLASH_LOCATION, 8);
 }
 
 // First (generic) init of the DW1000
 dw1000_err_e dw1000_init () {
 
-	// Do the STM setup that initializes pin and peripherals and whatnot
-	// Start SPI at ~3MHz
+	// Do the STM setup that initializes pin and peripherals and whatnot.
 	setup();
 
 	// Reset the dw1000...for some reason
@@ -633,9 +642,6 @@ dw1000_err_e dw1000_init () {
 	dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
 #endif
 
-	// Make SPI fast now that the clock has been setup
-	dw1000_spi_fast();
-
 	return DW1000_NO_ERR;
 }
 
@@ -645,7 +651,7 @@ void dw1000_set_mode (dw1000_role_e role) {
 	_my_role = role;
 	if (role == TAG) {
 		dw1000_tag_init();
-	} else {
+	} else if (role == ANCHOR) {
 		dw1000_anchor_init();
 	}
 }
@@ -676,7 +682,7 @@ static uint8_t subsequence_number_to_antenna (dw1000_role_e role, uint8_t subseq
 	// even if NUM_RANGING_CHANNELS != NUM_ANTENNAS.
 	if (role == TAG) {
 		return (subseq_num / NUM_RANGING_CHANNELS) % NUM_ANTENNAS;
-	} else {
+	} else if (role == ANCHOR) {
 		return ((subseq_num / NUM_RANGING_CHANNELS) / NUM_RANGING_CHANNELS) % NUM_ANTENNAS;
 	}
 }
@@ -717,7 +723,7 @@ void dw1000_set_ranging_broadcast_subsequence_settings (dw1000_role_e role,
 		dwt_setchannel(&global_ranging_config, 0);
 	}
 
-	// Change what antenna we're listening on
+	// Change what antenna we're listening/sending on
 	dw1000_choose_antenna(subsequence_number_to_antenna(role, subseq_num));
 }
 

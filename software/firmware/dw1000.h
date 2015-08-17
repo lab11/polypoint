@@ -21,6 +21,9 @@
 #define DW1000_ANTENNA_DELAY_TX 0
 #define DW1000_ANTENNA_DELAY_RX 0
 
+// Constant for the number of UWB channels
+#define DW1000_NUM_CHANNELS 8
+
 
 /******************************************************************************/
 // Timing defines for this particular MCU

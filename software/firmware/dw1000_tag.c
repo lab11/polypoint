@@ -85,6 +85,9 @@ void dw1000_tag_init () {
 
 	// Create a timer for use when sending ranging broadcast packets
 	_ranging_broadcast_timer = timer_init();
+
+	// Make SPI fast now that everything has been setup
+	dw1000_spi_fast();
 }
 
 // This starts a ranging event by causing the tag to send a series of
@@ -100,6 +103,12 @@ void dw1000_tag_start_ranging_event () {
 
 
 void dw1000_tag_txcallback (const dwt_callback_data_t *data) {
+
+	if (data->event == DWT_SIG_TX_DONE) {
+		//good
+	} else {
+		timer_stop(_ranging_broadcast_timer);
+	}
 
 }
 
@@ -167,8 +176,3 @@ static void ranging_broadcast_subsequence_task () {
 	send_poll();
 	_ranging_broadcast_ss_num += 1;
 }
-
-
-
-
-

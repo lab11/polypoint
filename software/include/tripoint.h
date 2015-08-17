@@ -124,11 +124,11 @@
 /*****************************************************************************/
 // ANTENNA PINS
 /*****************************************************************************/
-#define ANT_SEL0_PIN	GPIO_Pin_3
+#define ANT_SEL0_PIN	GPIO_Pin_4
 #define ANT_SEL0_PORT	GPIOB
 #define ANT_SEL0_CLK	RCC_AHBPeriph_GPIOB
 
-#define ANT_SEL1_PIN	GPIO_Pin_4
+#define ANT_SEL1_PIN	GPIO_Pin_3
 #define ANT_SEL1_PORT	GPIOB
 #define ANT_SEL1_CLK	RCC_AHBPeriph_GPIOB
 

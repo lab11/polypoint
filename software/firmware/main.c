@@ -26,55 +26,50 @@ state_e state = STATE_START;
 // Array of interrupt sources. When an interrupt fires, this array gets marked
 // noting that the interrupt fired. The main thread then processes this array
 // to get all of the functions it should call.
-bool interupts_triggered[NUMBER_INTERRUPT_SOURCES]  = {FALSE};
+bool interrupts_triggered[NUMBER_INTERRUPT_SOURCES]  = {FALSE};
 
 
 // This gets called from interrupt context
 void mark_interrupt (interrupt_source_e src) {
-	interupts_triggered[src] = TRUE;
+	interrupts_triggered[src] = TRUE;
 }
 
 
-
 static void error () {
-	led_on(LED2);
+	// led_on(LED2);
 }
 
 
 void i2c_callback (uint8_t opcode, uint8_t* data) {
-	led_toggle(LED1);
+	// led_toggle(LED1);
 }
 
 
 void decawave_done (dw1000_cb_e evt, dw1000_err_e err) {
-	if (err) {
-		// do something
-		// led_on(LED1);
-		led_on(LED2);
+	// if (err) {
+	// 	// do something
+	// 	// led_on(LED1);
+	// 	// led_on(LED2);
 
-	} else {
+	// } else {
 
-		switch (evt) {
-			case DW1000_INIT_DONE:
-				state = STATE_DW1000_INIT_DONE;
-				led_on(LED1);
-				dw1000_tag_init();
+	// 	switch (evt) {
+	// 		case DW1000_INIT_DONE:
+	// 			state = STATE_DW1000_INIT_DONE;
+	// 			// led_on(LED1);
+	// 			dw1000_tag_init();
 
-				break;
+	// 			break;
 
-			default:
-				break;
-		}
-	}
+	// 		default:
+	// 			break;
+	// 	}
+	// }
 }
 
 int main () {
 	uint32_t err;
-
-	led_init(LED1);
-	led_init(LED2);
-	led_off(LED1);
-	led_off(LED2);
+	bool interrupt_triggered = FALSE;
 
 	while (1) {
 
@@ -88,13 +83,16 @@ int main () {
 				if (err) error();
 
 				// Setup the DW1000 decawave chip
-				dw1000_init();
+				err = dw1000_init();
 
-				// Make it a tag
-				dw1000_set_mode(TAG);
+				if (err == DW1000_NO_ERR) {
 
-				// Do a test run
-				dw1000_tag_start_ranging_event();
+					// Make it a tag
+					dw1000_set_mode(TAG);
+
+					// Do a test run
+					dw1000_tag_start_ranging_event();
+				}
 
 				// dw1000_set_mode(ANCHOR);
 				// dw1000_anchor_start();
@@ -134,35 +132,44 @@ int main () {
 
 		PWR_EnterSleepMode(PWR_SLEEPEntry_WFI);
 
-		// When an interrupt fires we end up here
+		// When an interrupt fires we end up here.
+		// Check all of the interrupt "queues" and call the appropriate
+		// callbacks for all of the interrupts that have fired.
+		// Do this in a loop in case we get an interrupt during the
+		// checks.
+		do {
+			interrupt_triggered = FALSE;
 
-		if (interupts_triggered[INTERRUPT_TIMER_17] == TRUE) {
-			interupts_triggered[INTERRUPT_TIMER_17] = FALSE;
-			timer_17_fired();
-		}
+			if (interrupts_triggered[INTERRUPT_TIMER_17] == TRUE) {
+				interrupts_triggered[INTERRUPT_TIMER_17] = FALSE;
+				interrupt_triggered = TRUE;
+				timer_17_fired();
+			}
 
-		if (interupts_triggered[INTERRUPT_TIMER_16] == TRUE) {
-			interupts_triggered[INTERRUPT_TIMER_16] = FALSE;
-			timer_16_fired();
-		}
+			if (interrupts_triggered[INTERRUPT_TIMER_16] == TRUE) {
+				interrupts_triggered[INTERRUPT_TIMER_16] = FALSE;
+				interrupt_triggered = TRUE;
+				timer_16_fired();
+			}
 
-		if (interupts_triggered[INTERRUPT_DW1000] == TRUE) {
-			interupts_triggered[INTERRUPT_DW1000] = FALSE;
-			dw1000_interrupt_fired();
-		}
+			if (interrupts_triggered[INTERRUPT_DW1000] == TRUE) {
+				interrupts_triggered[INTERRUPT_DW1000] = FALSE;
+				interrupt_triggered = TRUE;
+				dw1000_interrupt_fired();
+			}
 
-		if (interupts_triggered[INTERRUPT_I2C_RX] == TRUE) {
-			interupts_triggered[INTERRUPT_I2C_RX] = FALSE;
-			i2c_interface_rx_fired();
-		}
+			if (interrupts_triggered[INTERRUPT_I2C_RX] == TRUE) {
+				interrupts_triggered[INTERRUPT_I2C_RX] = FALSE;
+				interrupt_triggered = TRUE;
+				i2c_interface_rx_fired();
+			}
 
-		if (interupts_triggered[INTERRUPT_I2C_TIMEOUT] == TRUE) {
-			interupts_triggered[INTERRUPT_I2C_TIMEOUT] = FALSE;
-			i2c_interface_timeout_fired();
-		}
-
-
-
+			if (interrupts_triggered[INTERRUPT_I2C_TIMEOUT] == TRUE) {
+				interrupts_triggered[INTERRUPT_I2C_TIMEOUT] = FALSE;
+				interrupt_triggered = TRUE;
+				i2c_interface_timeout_fired();
+			}
+		} while (interrupt_triggered == TRUE);
 
 
 
