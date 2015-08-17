@@ -27,4 +27,10 @@ void mark_interrupt (interrupt_source_e src);
 /******************************************************************************/
 #define I2C_OWN_ADDRESS         0x65
 
+// Identification byte that we return to an interested client. This is useful
+// for initializing and debugging to make sure that the I2C connection is
+// working
+#define INFO_BYTE_0 0xB0
+#define INFO_BYTE_1 0x1A
+
 #endif
