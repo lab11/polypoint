@@ -6,11 +6,13 @@ Tripoint API
 | ------           | ---- | ---- | -----------                        |
 | `INFO`           | 0x01 | W/R  | Get information about the module. |
 | `CONFIG`         | 0x02 | W    | Configure options. Set tag/anchor. |
-| `SET_LOCATION`   | 0x   | W    | Set location of this device. Useful only for anchors. |
-| `DO_RANGE`       | 0x   | W    | If not doing periodic ranging, initiate a range now. |
-| `START_LOCATION` | 0x   | W    | Rather than just getting ranges, return actual positions. |
-| `READ_INTERRUPT` | 0x   | W/R  | Ask the chip why it asserted the interrupt pin. |
-| `SLEEP`          | 0x   | W    | Stop all ranging and put the device in sleep mode. |
+| `READ_INTERRUPT` | 0x03 | W/R  | Ask the chip why it asserted the interrupt pin. |
+| `DO_RANGE`       | 0x04 | W    | If not doing periodic ranging, initiate a range now. |
+| `SLEEP`          | 0x05 | W    | Stop all ranging and put the device in sleep mode. |
+| `RESUME`         | 0x06 | W    | Restart ranging. |
+| `SET_LOCATION`   | 0x07 | W    | Set location of this device. Useful only for anchors. |
+
+
 
 
 
@@ -35,33 +37,77 @@ Byte 2: version
 ```
 Byte 0: 0x02  Opcode
 Byte 1:       Config 1
-   Bit 7:    Anchor/Tag select.
+   Bits 1-7: Reserved
+   Bit 0:    Anchor/Tag select.
              0 = tag
              1 = anchor
-   Bits 5-6: Update mode.
+IF TAG:
+Byte 2:
+   Bits 3-7: Reserved.
+   Bits 1-2: Update mode.
              Configure if the module should periodically get new locations
              or if it should get locations on demand.
              0 = update periodically
              1 = update only on demand
              2 = reserved
              3 = reserved
-   Bit 4:    Report locations or ranges.
+   Bit 0:    Report locations or ranges.
              Configure if the module should report raw ranges or a computed
              location. NOTE: The module may need to offload the location
              computation.
              0 = return ranges
              1 = return location
-   Bits 0-3: Reserved.
-Byte 2:      Location update rate.
+Byte 3:      Location update rate.
              Specify the rate at which the module should get location updates.
              Specified in multiples of 0.1 Hz. 0 indicates as fast as possible.
+
+IF ANCHOR:
+   TODO
 ```
 
-| Index | Value | Description |
-| ----- | ----- | ----------- |
-| 0     | 0x01  | Opcode      |
-| 1     |       | Bit 7: Anchor/Tag select.
+
+Both TAG and ANCHOR Commands
+----------------------------
 
 
+### `READ_INTERRUPT`
 
+Write:
+```
+Byte 0: 0x03  Opcode
+````
+
+Read:
+```
+Byte 0: Interrupt reason.
+...
+```
+
+
+TAG Commands
+------------
+
+### `DO_RANGE`
+
+Initiate a ranging event. Only valid if tag is in update on demand mode.
+
+```
+Byte 0: 0x04  Opcode
+```
+
+
+### `SLEEP`
+
+Stop all ranging and put the module into sleep mode.
+```
+Byte 0: 0x05  Opcode
+
+
+### `RESUME`
+
+If the module is in SLEEP mode after a `SLEEP` command, this will resume the
+previous settings.
+```
+Byte 0: 0x06  Opcode
+````
 
