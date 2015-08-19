@@ -32,6 +32,8 @@ USE_SOFTDEVICE = s110
 
 SDK_VERSION = 9
 TEMPLATE_PATH ?= ../../nrf5x-base/nrf51-pure-gcc-setup/template/
+SOFTDEVICE ?= ../../nrf5x-base/softdevice/s110_nrf51_8.0.0_softdevice.hex
+SDK_PATH ?= ../../nrf5x-base/sdk/nrf51_sdk_9.0.0/
 
 LIBRARY_PATHS += . ../../nrf5x-base/peripherals ../../nrf5x-base/devices ../../nrf5x-base/services ../../src
 SOURCE_PATHS += ../../nrf5x-base/peripherals ../../nrf5x-base/devices ../../nrf5x-base/services ../../src
@@ -39,5 +41,5 @@ SOURCE_PATHS += ../../nrf5x-base/peripherals ../../nrf5x-base/devices ../../nrf5
 CFLAGS = -Os
 GDB_PORT_NUMBER = 2331
 
-include ../../Makefile.include
+#include ../../Makefile.include
 include $(TEMPLATE_PATH)Makefile
