@@ -291,7 +291,10 @@ static void sys_evt_dispatch(uint32_t sys_evt)
 
 
 static void timer_handler (void* p_context) {
-    tripoint_start_ranging();
+    // tripoint_start_ranging();
+    uint16_t id;
+    uint8_t version;
+    tripoint_get_info (&id, &version);
 }
 
 

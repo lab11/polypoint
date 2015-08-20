@@ -3,9 +3,9 @@
 
 #include "nrf_gpio.h"
 
-#ifndef DEVICE_NAME
+// #ifndef DEVICE_NAME
 #define DEVICE_NAME    "tritag"
-#endif
+// #endif
 
 extern uint8_t MAC_ADDR[6];
 

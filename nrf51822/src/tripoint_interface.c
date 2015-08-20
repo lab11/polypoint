@@ -13,7 +13,13 @@ nrf_drv_twi_t twi_instance = NRF_DRV_TWI_INSTANCE(1);
 
 
 void tripoint_i2c_callback (nrf_drv_twi_evt_t* event) {
+	uint8_t buf[10];
+
+
 	led_toggle(LED_0);
+
+
+	nrf_drv_twi_rx(&twi_instance, TRIPOINT_ADDRESS, buf, 5, false);
 
 }
 
@@ -51,14 +57,43 @@ ret_code_t tripoint_init () {
 	return NRF_SUCCESS;
 }
 
-ret_code_t tripoint_start_ranging () {
-	uint8_t buf[1] = {TRIPOINT_CMD_START_RANGING};
+ret_code_t tripoint_get_info (uint16_t* id, uint8_t* version) {
+	uint8_t buf_cmd[1] = {TRIPOINT_CMD_INFO};
+	uint8_t buf_resp[3];
 	ret_code_t ret;
 
+	// Send outgoing command that indicates we want the device info string
+	ret = nrf_drv_twi_tx(&twi_instance, TRIPOINT_ADDRESS, buf_cmd, 1, false);
+	if (ret != NRF_SUCCESS) {
+		return ret;
+	}
+
+	// Read back the 3 byte payload
+	ret = nrf_drv_twi_rx(&twi_instance, TRIPOINT_ADDRESS, buf_resp, 3, false);
+	if (ret != NRF_SUCCESS) {
+		return ret;
+	}
+
+	*id = (buf_resp[0] << 8) | buf_resp[1];
+	*version = buf_resp[2];
+
+	return NRF_SUCCESS;
+}
+
+ret_code_t tripoint_start_ranging () {
+	uint8_t buf[1] = {TRIPOINT_CMD_INFO};
+	uint8_t buf2[10];
+	ret_code_t ret;
+
+	// ret = nrf_drv_twi_rx(&twi_instance, TRIPOINT_ADDRESS, buf, 5, false);
+	// ret = nrf_drv_twi_rx(&twi_instance, 0x64, buf, 5, false);
 	ret = nrf_drv_twi_tx(&twi_instance, TRIPOINT_ADDRESS, buf, 1, false);
 	if (ret == NRF_ERROR_INTERNAL) {
 		led_toggle(LED_0);
 	}
+
+	nrf_drv_twi_rx(&twi_instance, TRIPOINT_ADDRESS, buf2, 3, false);
+
 	return ret;
 }
 
