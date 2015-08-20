@@ -7,3 +7,6 @@
 [submodule "software/dw1000-driver"]
 	path = software/dw1000-driver
 	url = git@github.com:lab11/dw1000-driver
+[submodule "software/stm32f0-base"]
+	path = software/stm32f0-base
+	url = https://github.com/lab11/stm32f0-base.git
