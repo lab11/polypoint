@@ -14,22 +14,14 @@ nrf_drv_twi_t twi_instance = NRF_DRV_TWI_INSTANCE(1);
 
 void tripoint_i2c_callback (nrf_drv_twi_evt_t* event) {
 	uint8_t buf[10];
-
-
 	led_toggle(LED_0);
-
-
-	nrf_drv_twi_rx(&twi_instance, TRIPOINT_ADDRESS, buf, 5, false);
-
 }
 
 void tripoint_interrupt_handler (nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action) {
-   	// led_toggle(LED_0);
 
-   	tripoint_start_ranging();
 }
 
-ret_code_t tripoint_init () {
+ret_code_t tripoint_hw_init () {
 	nrf_drv_twi_config_t twi_config;
 	ret_code_t ret;
 
@@ -53,6 +45,19 @@ ret_code_t tripoint_init () {
 	if (ret != NRF_SUCCESS) return ret;
 
 	nrf_drv_gpiote_in_event_enable(TRIPOINT_INTERRUPT_PIN, true);
+	return NRF_SUCCESS;
+}
+
+ret_code_t tripoint_init () {
+	ret_code_t ret;
+	// Now try to read the info byte to make sure we have I2C connection
+	{
+		uint16_t id;
+		uint8_t version;
+		ret = tripoint_get_info(&id, &version);
+		if (ret != NRF_SUCCESS) return ret;
+		if (id != TRIPOINT_ID) return NRF_ERROR_INVALID_DATA;
+	}
 
 	return NRF_SUCCESS;
 }
@@ -64,15 +69,11 @@ ret_code_t tripoint_get_info (uint16_t* id, uint8_t* version) {
 
 	// Send outgoing command that indicates we want the device info string
 	ret = nrf_drv_twi_tx(&twi_instance, TRIPOINT_ADDRESS, buf_cmd, 1, false);
-	if (ret != NRF_SUCCESS) {
-		return ret;
-	}
+	if (ret != NRF_SUCCESS) return ret;
 
 	// Read back the 3 byte payload
 	ret = nrf_drv_twi_rx(&twi_instance, TRIPOINT_ADDRESS, buf_resp, 3, false);
-	if (ret != NRF_SUCCESS) {
-		return ret;
-	}
+	if (ret != NRF_SUCCESS) return ret;
 
 	*id = (buf_resp[0] << 8) | buf_resp[1];
 	*version = buf_resp[2];
@@ -80,21 +81,30 @@ ret_code_t tripoint_get_info (uint16_t* id, uint8_t* version) {
 	return NRF_SUCCESS;
 }
 
-ret_code_t tripoint_start_ranging () {
-	uint8_t buf[1] = {TRIPOINT_CMD_INFO};
-	uint8_t buf2[10];
+ret_code_t tripoint_start_ranging (bool periodic, uint8_t rate) {
+	uint8_t buf_cmd[4];
 	ret_code_t ret;
 
-	// ret = nrf_drv_twi_rx(&twi_instance, TRIPOINT_ADDRESS, buf, 5, false);
-	// ret = nrf_drv_twi_rx(&twi_instance, 0x64, buf, 5, false);
-	ret = nrf_drv_twi_tx(&twi_instance, TRIPOINT_ADDRESS, buf, 1, false);
-	if (ret == NRF_ERROR_INTERNAL) {
-		led_toggle(LED_0);
+	buf_cmd[0] = TRIPOINT_CMD_CONFIG;
+
+	// TAG for now
+	buf_cmd[1] = 0;
+
+	// TAG options
+	buf_cmd[2] = 0;
+	if (periodic) {
+		// leave 0
+	} else {
+		buf_cmd[2] |= 0x2;
 	}
 
-	nrf_drv_twi_rx(&twi_instance, TRIPOINT_ADDRESS, buf2, 3, false);
+	// And rate
+	buf_cmd[3] = rate;
 
-	return ret;
+	ret = nrf_drv_twi_tx(&twi_instance, TRIPOINT_ADDRESS, buf_cmd, 4, false);
+	if (ret != NRF_SUCCESS) return ret;
+
+	return NRF_SUCCESS;
 }
 
 

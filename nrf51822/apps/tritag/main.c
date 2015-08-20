@@ -69,7 +69,7 @@ static ble_gap_adv_params_t m_adv_params;
 
 static app_timer_id_t  test_timer;
 
-
+bool tripoint_inited = false;
 
 
 
@@ -291,10 +291,15 @@ static void sys_evt_dispatch(uint32_t sys_evt)
 
 
 static void timer_handler (void* p_context) {
-    // tripoint_start_ranging();
-    uint16_t id;
-    uint8_t version;
-    tripoint_get_info (&id, &version);
+    uint32_t err_code;
+
+    if (!tripoint_inited) {
+        err_code = tripoint_init();
+        if (err_code == NRF_SUCCESS) {
+            tripoint_inited = true;
+            tripoint_start_ranging(true, 10);
+        }
+    }
 }
 
 
@@ -548,11 +553,21 @@ int main(void) {
     timers_init();
     conn_params_init();
 
-    err_code = tripoint_init();
+    err_code = tripoint_hw_init();
     APP_ERROR_CHECK(err_code);
+
+    err_code = tripoint_init();
+    if (err_code == NRF_SUCCESS) {
+        tripoint_inited = true;
+    }
 
     // Advertise that we are a TORCH board
     advertising_start();
+
+    // Start the ranging!!!
+    if (tripoint_inited) {
+        tripoint_start_ranging(true, 10);
+    }
 
     led_on(LED_0);
 

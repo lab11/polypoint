@@ -3,6 +3,7 @@
 
 #include "sdk_errors.h"
 
+#define TRIPOINT_ID 0xB01A
 
 #define TRIPOINT_ADDRESS 0x65
 
@@ -17,7 +18,8 @@
 
 
 ret_code_t tripoint_init ();
+ret_code_t tripoint_hw_init ();
 ret_code_t tripoint_get_info (uint16_t* id, uint8_t* version);
-ret_code_t tripoint_start_ranging ();
+ret_code_t tripoint_start_ranging (bool periodic, uint8_t rate);
 
 #endif
