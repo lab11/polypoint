@@ -147,11 +147,25 @@ struct pp_anc_final {
 // Structs and what-not for control flow throughout the DW1000 code
 /******************************************************************************/
 
+// Enum for what role this particular module should do
 typedef enum {
 	TAG,
 	ANCHOR,
 	UNDECIDED
 } dw1000_role_e;
+
+// Enum for what the module should provide the host.
+typedef enum {
+	REPORT_MODE_RANGES = 0,   // Return just range measurements to anchors
+	REPORT_MODE_LOCATION = 1  // Determine location and provide location coordinates
+} dw1000_report_mode_e;
+
+// Enum for when the TAG should do a ranging event
+typedef enum {
+	UPDATE_MODE_PERIODIC = 0,  // Range at regular intervals
+	UPDATE_MODE_DEMAND = 1     // Range only when the host instructs
+} dw1000_update_mode_e;
+
 
 
 typedef enum {

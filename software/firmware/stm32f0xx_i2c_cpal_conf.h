@@ -37,6 +37,19 @@
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/
 
+
+#define CPAL_I2C1_SCL_GPIO_PORT         GPIOA
+#define CPAL_I2C1_SCL_GPIO_CLK          RCC_AHBPeriph_GPIOA
+#define CPAL_I2C1_SCL_GPIO_PIN          GPIO_Pin_9
+#define CPAL_I2C1_SCL_GPIO_PINSOURCE    GPIO_PinSource9
+
+#define CPAL_I2C1_SDA_GPIO_PORT         GPIOA
+#define CPAL_I2C1_SDA_GPIO_CLK          RCC_AHBPeriph_GPIOA
+#define CPAL_I2C1_SDA_GPIO_PIN          GPIO_Pin_10
+#define CPAL_I2C1_SDA_GPIO_PINSOURCE    GPIO_PinSource10
+
+#define CPAL_I2C1_AF                    GPIO_AF_4
+
 /*=======================================================================================================================================
                                                      User NOTES
 =========================================================================================================================================
@@ -337,13 +350,14 @@
     Description: This section allows user to enable/disable some Transfer Options. The benefits of these
                  defines is to minimize the size of the source code */
 
-/* Enable the use of Master Mode */
-#define CPAL_I2C_MASTER_MODE
+/* No Master Mode */
+// #define CPAL_I2C_MASTER_MODE
 /* This define must be uncommented for this example. In this example I2C1 device
    can be used as master to communicate other Board (Slave)*/
 
 /* Enable the use of Slave Mode */
 #define CPAL_I2C_SLAVE_MODE
+// #define CPAL_I2C_LISTEN_MODE
 /* This define must be uncommented for this example. In this example I2C1 device
    can be used as slave to communicate other Board (Master)*/
 
@@ -360,7 +374,7 @@
 /* !!!! These following defines are available only when CPAL_I2C_MASTER_MODE is enabled !!!! */
 
 /* Enable the use of 10Bit Addressing Mode */
-#define CPAL_I2C_10BIT_ADDR_MODE
+// #define CPAL_I2C_10BIT_ADDR_MODE
 
 /* Enable the use of Memory Addressing Mode */
 /*#define CPAL_I2C_MEM_ADDR*/
