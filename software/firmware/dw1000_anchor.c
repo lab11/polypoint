@@ -146,7 +146,7 @@ void dw1000_anchor_rxcallback (const dwt_callback_data_t *rxd) {
 			if (_state == ASTATE_IDLE) {
 				// We are currently not ranging with any tags.
 
-				if (rx_poll_pkt->roundNum < NUM_RANGING_CHANNELS) {
+				if (rx_poll_pkt->subsequence < NUM_RANGING_CHANNELS) {
 					// We are idle and this is one of the first packets
 					// that the tag sent. Start listening for this tag's
 					// ranging broadcast packets.
@@ -154,7 +154,7 @@ void dw1000_anchor_rxcallback (const dwt_callback_data_t *rxd) {
 					// Record the EUI of the tag so that we don't get mixed up
 					memcpy(pp_anc_final_pkt.header.destAddr, rx_poll_pkt->header.sourceAddr, 8);
 					// Record which ranging subsequence the tag is on
-					_ranging_broadcast_ss_num = rx_poll_pkt->roundNum;
+					_ranging_broadcast_ss_num = rx_poll_pkt->subsequence;
 					// Record the timestamp
 					pp_anc_final_pkt.TOAs[_ranging_broadcast_ss_num] = dw_rx_timestamp;
 
@@ -179,7 +179,7 @@ void dw1000_anchor_rxcallback (const dwt_callback_data_t *rxd) {
 				if (memcmp(pp_anc_final_pkt.header.destAddr, rx_poll_pkt->header.sourceAddr, 8) == 0) {
 					// Same tag
 
-					if (rx_poll_pkt->roundNum == _ranging_broadcast_ss_num) {
+					if (rx_poll_pkt->subsequence == _ranging_broadcast_ss_num) {
 						// This is the packet we were expecting from the tag.
 						// Record the TOA.
 						pp_anc_final_pkt.TOAs[_ranging_broadcast_ss_num] = dw_rx_timestamp;
@@ -187,7 +187,7 @@ void dw1000_anchor_rxcallback (const dwt_callback_data_t *rxd) {
 					} else {
 						// Some how we got out of sync with the tag. Ignore the
 						// range and catch up.
-						_ranging_broadcast_ss_num = rx_poll_pkt->roundNum;
+						_ranging_broadcast_ss_num = rx_poll_pkt->subsequence;
 					}
 
 					// Check to see if we got the last of the ranging broadcasts

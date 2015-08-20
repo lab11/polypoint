@@ -690,12 +690,12 @@ static uint8_t subsequence_number_to_antenna (dw1000_role_e role, uint8_t subseq
 }
 
 // Return the RF channel to use when the anchors respond to the tag
-static uint8_t listening_slot_number_to_channel (uint8_t slot_num) {
-	return slot_num % NUM_RANGING_CHANNELS;
+static uint8_t listening_window_number_to_channel (uint8_t window_num) {
+	return window_num % NUM_RANGING_CHANNELS;
 }
 
 // Return the Antenna index to use in anchor response period
-static uint8_t listening_slot_number_to_antenna (dw1000_role_e role, uint8_t slot_num) {
+static uint8_t listening_window_number_to_antenna (dw1000_role_e role, uint8_t window_num) {
 	// For now just use a default antenna.
 	return 0;
 }
@@ -746,21 +746,21 @@ void dw1000_set_ranging_broadcast_subsequence_settings (dw1000_role_e role,
 }
 
 // Update the Antenna and Channel settings to correspond with the settings
-// for the given listening slot.
+// for the given listening window.
 //
 // role:       anchor or tag
-// subseq_num: where in the listening slots we are
+// window_num: where in the listening window we are
 // reset:      force settings update on the dw1000 when the channel is changed
-void dw1000_set_ranging_listening_slot_settings (dw1000_role_e role,
-                                                 uint8_t slot_num,
-                                                 bool reset) {
+void dw1000_set_ranging_listening_window_settings (dw1000_role_e role,
+                                                   uint8_t window_num,
+                                                   bool reset) {
 	// Stop the transceiver on the anchor. Don't know why.
 	if (role == ANCHOR) {
 		dwt_forcetrxoff();
 	}
 
-	// Change the channel depending on what slot number we're at
-	global_ranging_config.chan = listening_slot_number_to_channel(slot_num);
+	// Change the channel depending on what window number we're at
+	global_ranging_config.chan = listening_window_number_to_channel(window_num);
 
 	// If we were requested to force a reset of settings do that now.
 	if (reset) {
@@ -770,7 +770,7 @@ void dw1000_set_ranging_listening_slot_settings (dw1000_role_e role,
 	}
 
 	// Change what antenna we're listening/sending on
-	dw1000_choose_antenna(listening_slot_number_to_antenna(role, slot_num));
+	dw1000_choose_antenna(listening_window_number_to_antenna(role, window_num));
 }
 
 

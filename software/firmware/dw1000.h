@@ -84,10 +84,13 @@
 #define RANGING_BROADCASTS_PERIOD_US 1000
 
 // Listen for responses from the anchors on different channels
-#define NUM_RANGING_LISTENING_SLOTS 3
+#define NUM_RANGING_LISTENING_WINDOWS 3
 
 // How much time the tag listens on each channel when receiving packets from the anchor
-#define RANGING_LISTENING_PERIOD_US 10000
+#define RANGING_LISTENING_WINDOW_US 10000
+
+// How long the slots inside each window should be for the anchors to choose from
+#define RANGING_LISTENING_SLOT_US RANGING_LISTENING_WINDOW_US/20
 
 /******************************************************************************/
 // Data Structs for packet messages between tags and anchors
@@ -116,15 +119,17 @@ struct ieee154_header_unicast {
 };
 
 struct ieee154_footer {
-	uint8_t fcs[2] ;               //  we allow space for the CRC as it is logically part of the message. However ScenSor TX calculates and adds these bytes.
+	uint8_t fcs[2];                //  we allow space for the CRC as it is logically part of the message. However ScenSor TX calculates and adds these bytes.
 };
 
 // Packet the tag broadcasts to all nearby anchors
 struct pp_tag_poll  {
 	struct ieee154_header_broadcast header;
-	uint8_t message_type;
-	uint8_t roundNum;
-	uint8_t subsequence;
+	uint8_t message_type;                   // Packet type identifier so the anchor knows what it is receiving.
+	uint8_t subsequence;                    // Index of which broadcast sequence number this packet is.
+	uint8_t reply_after_subsequence;        // Tells anchor which broadcast subsequence number to respond after.
+	uint16_t anchor_reply_window_in_us;     // How long each anchor response window is. Each window allows multiple anchor responses.
+	uint16_t anchor_reply_slot_time_in_us;  // How long that slots that break up each window are.
 	struct ieee154_footer footer;
 } __attribute__ ((__packed__));
 
