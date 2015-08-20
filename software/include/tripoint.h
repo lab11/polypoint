@@ -18,9 +18,9 @@
 /******************************************************************************/
 // INTERRUPT TO HOST DEVICE
 /********************************************************************************/
-#define INTERRUPT_PIN GPIO_Pin_5
-#define INTERRUPT_PORT GPIOB
-#define INTERRUPT_CLK RCC_AHBPeriph_GPIOB
+#define INTERRUPT_PIN GPIO_Pin_3
+#define INTERRUPT_PORT GPIOA
+#define INTERRUPT_CLK RCC_AHBPeriph_GPIOA
 
 
 /******************************************************************************/
