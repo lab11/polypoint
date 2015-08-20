@@ -11,9 +11,14 @@
 // Our timer object that we use for timing packet transmissions
 timer_t* _ranging_broadcast_timer;
 
+tag_state_e _tag_state = TSTATE_IDLE;
+
 // Which subsequence slot we are on when transmitting broadcast packets
 // for ranging.
 static uint8_t _ranging_broadcast_ss_num = 0;
+
+// Which slot we are in when receiving packets from the anchor.
+static uint8_t _ranging_listening_slot_num = 0;
 
 // Array of when we sent each of the broadcast ranging packets
 static uint64_t _ranging_broadcast_ss_send_times[NUM_RANGING_BROADCASTS] = {0};
@@ -38,14 +43,15 @@ static struct pp_tag_poll pp_tag_poll_pkt = {
 		{ 0 }     // Source (blank for now)
 	},
 	// PACKET BODY
-	MSG_TYPE_PP_ONEWAY_TAG_POLL,  // Message type
-	0,                            // Round number
-	0                             // Sub Sequence number
+	MSG_TYPE_PP_NOSLOTS_TAG_POLL,  // Message type
+	0,                             // Round number
+	0                              // Sub Sequence number
 };
 
 // Functions
 static void send_poll ();
 static void ranging_broadcast_subsequence_task ();
+static void ranging_listening_slot_task ();
 
 void dw1000_tag_init () {
 
@@ -93,6 +99,8 @@ void dw1000_tag_init () {
 // This starts a ranging event by causing the tag to send a series of
 // ranging broadcasts.
 void dw1000_tag_start_ranging_event () {
+	_tag_state = TSTATE_BROADCASTS;
+
 	// Clear state that we keep for each ranging event
 	memset(_ranging_broadcast_ss_send_times, 0, sizeof(_ranging_broadcast_ss_send_times));
 	_ranging_broadcast_ss_num = 0;
@@ -105,7 +113,28 @@ void dw1000_tag_start_ranging_event () {
 void dw1000_tag_txcallback (const dwt_callback_data_t *data) {
 
 	if (data->event == DWT_SIG_TX_DONE) {
-		//good
+		// Packet was sent successfully
+
+		// Check which state we are in to decide what to do.
+		// We use TX_callback because it will get called after we have sent
+		// all of the broadcast packets. (Now of course we will get this
+		// callback multiple times, but that is ok.)
+		if (_tag_state == TSTATE_TRANSITION_TO_ANC_FINAL) {
+			// At this point we have sent all of our ranging broadcasts.
+			// Now we move to listening for responses from anchors.
+			_tag_state = TSTATE_LISTENING;
+
+			// Init some state
+			_ranging_listening_slot_num = 0;
+
+			// Start a timer to switch between the slots
+			timer_start(_ranging_broadcast_timer, RANGING_LISTENING_PERIOD_US, ranging_listening_slot_task);
+
+		} else {
+			// We don't need to do anything on TX done for any other states
+		}
+
+
 	} else {
 		timer_stop(_ranging_broadcast_timer);
 	}
@@ -175,4 +204,20 @@ static void ranging_broadcast_subsequence_task () {
 	// Actually send the packet
 	send_poll();
 	_ranging_broadcast_ss_num += 1;
+}
+
+// This is called after the broadcasts have been sent in order to receive
+// the responses from the anchors.
+static void ranging_listening_slot_task () {
+
+	// Stop after the correct number of slots
+	if (_ranging_listening_slot_num == NUM_RANGING_LISTENING_SLOTS-1) {
+		timer_stop(_ranging_broadcast_timer);
+	}
+
+	// Set the correct listening settings
+	dw1000_set_ranging_listening_slot_settings(TAG, _ranging_listening_slot_num, FALSE);
+
+	// Increment and wait
+	_ranging_listening_slot_num++;
 }

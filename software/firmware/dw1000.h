@@ -83,6 +83,12 @@
 // How much time between each ranging broadcast in the subsequence from the tag.
 #define RANGING_BROADCASTS_PERIOD_US 1000
 
+// Listen for responses from the anchors on different channels
+#define NUM_RANGING_LISTENING_SLOTS 3
+
+// How much time the tag listens on each channel when receiving packets from the anchor
+#define RANGING_LISTENING_PERIOD_US 10000
+
 /******************************************************************************/
 // Data Structs for packet messages between tags and anchors
 /******************************************************************************/
@@ -90,6 +96,8 @@
 #define MSG_TYPE_PP_ONEWAY_TAG_POLL   0x60
 #define MSG_TYPE_PP_ONEWAY_TAG_FINAL  0x6F
 #define MSG_TYPE_PP_ONEWAY_ANC_FINAL  0x70
+#define MSG_TYPE_PP_NOSLOTS_TAG_POLL   0x80
+#define MSG_TYPE_PP_NOSLOTS_ANC_FINAL  0x81
 
 struct ieee154_header_broadcast {
 	uint8_t frameCtrl[2];          //  frame control bytes 00-01
@@ -189,6 +197,7 @@ void dw1000_choose_antenna (uint8_t antenna_number);
 void dw1000_read_eui (uint8_t *eui_buf);
 void dw1000_set_mode (dw1000_role_e role);
 void dw1000_set_ranging_broadcast_subsequence_settings (dw1000_role_e role, uint8_t subseq_num, bool reset);
+void dw1000_set_ranging_listening_slot_settings (dw1000_role_e role, uint8_t slot_num, bool reset);
 
 void dw1000_interrupt_fired ();
 

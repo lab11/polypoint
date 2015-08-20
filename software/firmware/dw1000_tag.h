@@ -6,6 +6,13 @@
 
 #include "dw1000.h"
 
+typedef enum {
+	TSTATE_IDLE,
+	TSTATE_BROADCASTS,
+	TSTATE_TRANSITION_TO_ANC_FINAL,
+	TSTATE_LISTENING
+} tag_state_e;
+
 void dw1000_tag_init ();
 void dw1000_tag_start_ranging_event ();
 

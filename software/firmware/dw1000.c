@@ -689,6 +689,34 @@ static uint8_t subsequence_number_to_antenna (dw1000_role_e role, uint8_t subseq
 	}
 }
 
+// Return the RF channel to use when the anchors respond to the tag
+static uint8_t listening_slot_number_to_channel (uint8_t slot_num) {
+	return slot_num % NUM_RANGING_CHANNELS;
+}
+
+// Return the Antenna index to use in anchor response period
+static uint8_t listening_slot_number_to_antenna (dw1000_role_e role, uint8_t slot_num) {
+	// For now just use a default antenna.
+	return 0;
+}
+
+// Called when dw1000 tx/rx config settings and constants should be re applied
+static void reset_configuration () {
+#if DW1000_USE_OTP
+	dwt_configure(&global_ranging_config, (DWT_LOADANTDLY | DWT_LOADXTALTRIM));
+#else
+	dwt_configure(&global_ranging_config, 0);
+#endif
+	dwt_setsmarttxpower(global_ranging_config.smartPowerEn);
+	global_tx_config.PGdly = pgDelay[global_ranging_config.chan];
+	global_tx_config.power = txPower[global_ranging_config.chan];
+	dwt_configuretxrf(&global_tx_config);
+#if DW1000_USE_OTP == 0
+	dwt_setrxantennadelay(DW1000_ANTENNA_DELAY_RX);
+	dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
+#endif
+}
+
 // Update the Antenna and Channel settings to correspond with the settings
 // for the given subsequence number.
 //
@@ -708,25 +736,41 @@ void dw1000_set_ranging_broadcast_subsequence_settings (dw1000_role_e role,
 
 	// If we were requested to force a reset of settings do that now.
 	if (reset) {
-#if DW1000_USE_OTP
-		dwt_configure(&global_ranging_config, (DWT_LOADANTDLY | DWT_LOADXTALTRIM));
-#else
-		dwt_configure(&global_ranging_config, 0);
-#endif
-		dwt_setsmarttxpower(global_ranging_config.smartPowerEn);
-		global_tx_config.PGdly = pgDelay[global_ranging_config.chan];
-		global_tx_config.power = txPower[global_ranging_config.chan];
-		dwt_configuretxrf(&global_tx_config);
-#if DW1000_USE_OTP == 0
-		dwt_setrxantennadelay(DW1000_ANTENNA_DELAY_RX);
-		dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
-#endif
+		reset_configuration();
 	} else {
 		dwt_setchannel(&global_ranging_config, 0);
 	}
 
 	// Change what antenna we're listening/sending on
 	dw1000_choose_antenna(subsequence_number_to_antenna(role, subseq_num));
+}
+
+// Update the Antenna and Channel settings to correspond with the settings
+// for the given listening slot.
+//
+// role:       anchor or tag
+// subseq_num: where in the listening slots we are
+// reset:      force settings update on the dw1000 when the channel is changed
+void dw1000_set_ranging_listening_slot_settings (dw1000_role_e role,
+                                                 uint8_t slot_num,
+                                                 bool reset) {
+	// Stop the transceiver on the anchor. Don't know why.
+	if (role == ANCHOR) {
+		dwt_forcetrxoff();
+	}
+
+	// Change the channel depending on what slot number we're at
+	global_ranging_config.chan = listening_slot_number_to_channel(slot_num);
+
+	// If we were requested to force a reset of settings do that now.
+	if (reset) {
+		reset_configuration();
+	} else {
+		dwt_setchannel(&global_ranging_config, 0);
+	}
+
+	// Change what antenna we're listening/sending on
+	dw1000_choose_antenna(listening_slot_number_to_antenna(role, slot_num));
 }
 
 
