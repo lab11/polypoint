@@ -63,6 +63,7 @@ timer_t* timer_init () {
 
 // Start a particular timer running
 void timer_start (timer_t* t, uint32_t us_period, timer_callback cb) {
+	uint32_t prescalar = (SystemCoreClock/500000)-1;
 	// Save the callback
 	timer_callbacks[t->index] = cb;
 
@@ -73,9 +74,15 @@ void timer_start (timer_t* t, uint32_t us_period, timer_callback cb) {
 	t->nvic_init.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&t->nvic_init);
 
+	// Need this to fit in 16 bits
+	while (us_period > 65535) {
+		us_period = us_period >> 1;
+		prescalar = prescalar << 1;
+	}
+
 	// Setup the actual timer
 	t->tim_init.TIM_Period    = us_period;
-	t->tim_init.TIM_Prescaler = (SystemCoreClock/500000)-1;
+	t->tim_init.TIM_Prescaler = prescalar;
 	TIM_TimeBaseInit(t->tim_ptr, &t->tim_init);
 
 	// Enable the interrupt

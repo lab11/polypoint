@@ -85,6 +85,7 @@ void run_tag (dw1000_report_mode_e report_mode,
 	dw1000_set_mode(TAG);
 
 	if (update_mode == UPDATE_MODE_PERIODIC) {
+		// dw1000_tag_start_ranging_event();
 		// Host requested periodic updates.
 		// Set the timer to fire at the correct rate. Multiply by 1000000 to
 		// get microseconds, then divide by 10 because update_rate is in
@@ -113,7 +114,7 @@ int main () {
 
 	// In case we need a timer, get one. This is used for things like periodic
 	// ranging events.
-	timer_init(_periodic_timer);
+	_periodic_timer = timer_init();
 
 	// Initialize the I2C listener. This is the main interface
 	// the host controller (that is using TriPoint for ranging/localization)
