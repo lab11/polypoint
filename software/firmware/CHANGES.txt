@@ -9,14 +9,14 @@ some indication of what protocol they implement.
 
 
 Changed the message_type defines to:
-(this is loosely using mesagge types as a means of versioning)
+(this is loosely using message types as a means of versioning)
 #define MSG_TYPE_PP_NOSLOTS_TAG_POLL   0x80
 #define MSG_TYPE_PP_NOSLOTS_ANC_FINAL  0x81
 
 
 Changed the final response from anchor to tag to a "three try" system:
   * Tag listens sequentially on each channel for ALL_ANC_FINAL_US
-  * Tag opportunisitcally bails early if all anchors are heard on first or second channel
+  * Tag opportunistically bails early if all anchors are heard on first or second channel
   * Anchors check for ACK after sending final, trying all three channels if needed
   * Anchors return to idle once their final is ACK'd
 
@@ -27,8 +27,8 @@ to slots in the table and the final reported packet adds ids.
 
 
 The anchor data reporting protocol changed. Previously it was a space-
-separated list of measurements with indexes corrosponding to anchor
-ids (e.g. 17:87.123). Spaces still spearate measurements. The old no
+separated list of measurements with indexes corresponding to anchor
+ids (e.g. 17:87.123). Spaces still separate measurements. The old no
 packet from anchor code ("X") and insufficient measurements code ("-")
 are dropped as they aren't useful.
 
