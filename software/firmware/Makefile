@@ -42,11 +42,11 @@ CFLAGS += -Wall
 
 #The install locations of the STM Standard library
 #################################################
-LIBRARY_START_PATH ?= $(HOME)/code/stm/STM32F0xx_StdPeriph_Lib_V1.5.0/
+LIBRARY_START_PATH ?= ../stm32f0-base/sdk/stm32f0xx-1.5.0/
 
 #The location of the gcc setup template
 ################################################
-TEMPLATE_PATH ?= ../stm32f0xx-gcc-setup/template/
+TEMPLATE_PATH ?= ../stm32f0-base/stm32f0xx-gcc-setup/template/
 
 #Any places that you put custom header files
 ###############################################
