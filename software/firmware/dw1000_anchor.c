@@ -75,6 +75,9 @@ dw1000_err_e dw1000_anchor_init () {
 	// Need a timer
 	_ranging_broadcast_timer = timer_init();
 
+	// Make SPI fast now that everything has been setup
+	dw1000_spi_fast();
+
 	return DW1000_NO_ERR;
 }
 

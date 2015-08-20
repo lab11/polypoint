@@ -1,5 +1,5 @@
-#ifndef TIMING_H
-#define TIMING_H
+#ifndef __TIMING_H
+#define __TIMING_H
 
 //sleep for a uint32 number of microseconds
 void uDelay(uint32_t);

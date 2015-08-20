@@ -684,6 +684,8 @@ static uint8_t subsequence_number_to_antenna (dw1000_role_e role, uint8_t subseq
 		return (subseq_num / NUM_RANGING_CHANNELS) % NUM_ANTENNAS;
 	} else if (role == ANCHOR) {
 		return ((subseq_num / NUM_RANGING_CHANNELS) / NUM_RANGING_CHANNELS) % NUM_ANTENNAS;
+	} else {
+		return 0;
 	}
 }
 
