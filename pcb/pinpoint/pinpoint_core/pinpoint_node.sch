@@ -29,7 +29,6 @@ LIBS:atmel
 LIBS:contrib
 LIBS:valves
 LIBS:polypoint
-LIBS:pinpoint_core-cache
 EELAYER 25 0
 EELAYER END
 $Descr A4 11693 8268
