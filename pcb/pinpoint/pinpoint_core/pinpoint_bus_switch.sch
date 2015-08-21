@@ -1,0 +1,316 @@
+EESchema Schematic File Version 2
+LIBS:power
+LIBS:device
+LIBS:transistors
+LIBS:conn
+LIBS:linear
+LIBS:regul
+LIBS:74xx
+LIBS:cmos4000
+LIBS:adc-dac
+LIBS:memory
+LIBS:xilinx
+LIBS:microcontrollers
+LIBS:dsp
+LIBS:microchip
+LIBS:analog_switches
+LIBS:motorola
+LIBS:texas
+LIBS:intel
+LIBS:audio
+LIBS:interface
+LIBS:digital-audio
+LIBS:philips
+LIBS:display
+LIBS:cypress
+LIBS:siliconi
+LIBS:opto
+LIBS:atmel
+LIBS:contrib
+LIBS:valves
+LIBS:polypoint
+LIBS:pinpoint_core-cache
+EELAYER 25 0
+EELAYER END
+$Descr A4 11693 8268
+encoding utf-8
+Sheet 6 7
+Title ""
+Date ""
+Rev ""
+Comp ""
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+Text HLabel 5050 1850 0    60   BiDi ~ 0
+I2C_IN_SDA
+Text HLabel 5050 1950 0    60   BiDi ~ 0
+I2C_IN_SCL
+Text HLabel 5050 2850 0    60   BiDi ~ 0
+CFG_IN0
+Text HLabel 5050 2950 0    60   BiDi ~ 0
+CFG_IN1
+Text HLabel 9350 3400 2    60   BiDi ~ 0
+I2C2_SCL
+Text HLabel 9350 3200 2    60   BiDi ~ 0
+I2C2_SDA
+Text HLabel 9350 2600 2    60   BiDi ~ 0
+I2C1_SCL
+Text HLabel 9350 2400 2    60   BiDi ~ 0
+I2C1_SDA
+Text HLabel 9350 1800 2    60   BiDi ~ 0
+I2C0_SCL
+Text HLabel 9350 1600 2    60   BiDi ~ 0
+I2C0_SDA
+Text HLabel 6650 5800 2    60   BiDi ~ 0
+CFG2_OUT1
+Text HLabel 6650 5700 2    60   BiDi ~ 0
+CFG2_OUT0
+Text HLabel 6650 5500 2    60   BiDi ~ 0
+CFG1_OUT1
+Text HLabel 6650 5400 2    60   BiDi ~ 0
+CFG1_OUT0
+Text HLabel 6650 5200 2    60   BiDi ~ 0
+CFG0_OUT1
+Text HLabel 6650 5100 2    60   BiDi ~ 0
+CFG0_OUT0
+$Comp
+L PCA9545A U?
+U 1 1 55DA400E
+P 6100 2750
+F 0 "U?" H 5800 3550 60  0000 C CNN
+F 1 "PCA9545A" H 6100 1950 60  0000 C CNN
+F 2 "" H 6750 2900 60  0000 C CNN
+F 3 "" H 6750 2900 60  0000 C CNN
+	1    6100 2750
+	1    0    0    -1  
+$EndComp
+$Comp
+L P82B96-PP U?
+U 1 1 55DA435E
+P 7900 1700
+F 0 "U?" H 7600 2050 60  0000 C CNN
+F 1 "P82B96-PP" H 7900 1350 60  0000 C CNN
+F 2 "" H 7950 1550 60  0000 C CNN
+F 3 "" H 7950 1550 60  0000 C CNN
+	1    7900 1700
+	-1   0    0    -1  
+$EndComp
+$Comp
+L P82B96-PP U?
+U 1 1 55DA447D
+P 7900 2500
+F 0 "U?" H 7600 2850 60  0000 C CNN
+F 1 "P82B96-PP" H 7900 2150 60  0000 C CNN
+F 2 "" H 7950 2350 60  0000 C CNN
+F 3 "" H 7950 2350 60  0000 C CNN
+	1    7900 2500
+	-1   0    0    -1  
+$EndComp
+$Comp
+L P82B96-PP U?
+U 1 1 55DA44B6
+P 7900 3300
+F 0 "U?" H 7600 3650 60  0000 C CNN
+F 1 "P82B96-PP" H 7900 2950 60  0000 C CNN
+F 2 "" H 7950 3150 60  0000 C CNN
+F 3 "" H 7950 3150 60  0000 C CNN
+	1    7900 3300
+	-1   0    0    -1  
+$EndComp
+Wire Wire Line
+	6650 2450 7350 2450
+Wire Wire Line
+	7350 2350 7200 2350
+Wire Wire Line
+	7200 2350 7200 2450
+Connection ~ 7200 2450
+Wire Wire Line
+	6650 2550 7350 2550
+Wire Wire Line
+	7200 2550 7200 2650
+Wire Wire Line
+	7200 2650 7350 2650
+Connection ~ 7200 2550
+Wire Wire Line
+	6650 2150 7200 2150
+Wire Wire Line
+	7200 2150 7200 1750
+Wire Wire Line
+	7200 1750 7350 1750
+Wire Wire Line
+	7350 1850 7200 1850
+Connection ~ 7200 1850
+Wire Wire Line
+	6650 2050 7100 2050
+Wire Wire Line
+	7100 2050 7100 1550
+Wire Wire Line
+	7100 1550 7350 1550
+Wire Wire Line
+	7350 1650 7100 1650
+Connection ~ 7100 1650
+Wire Wire Line
+	6650 2850 7200 2850
+Wire Wire Line
+	7200 2850 7200 3250
+Wire Wire Line
+	7200 3250 7350 3250
+Wire Wire Line
+	7350 3150 7200 3150
+Connection ~ 7200 3150
+Wire Wire Line
+	6650 2950 7100 2950
+Wire Wire Line
+	7100 2950 7100 3450
+Wire Wire Line
+	7100 3450 7350 3450
+Wire Wire Line
+	7100 3350 7350 3350
+Connection ~ 7100 3350
+$Comp
+L +3.3V #PWR?
+U 1 1 55DA489D
+P 6650 900
+F 0 "#PWR?" H 6650 750 50  0001 C CNN
+F 1 "+3.3V" H 6650 1040 50  0000 C CNN
+F 2 "" H 6650 900 60  0000 C CNN
+F 3 "" H 6650 900 60  0000 C CNN
+	1    6650 900 
+	1    0    0    -1  
+$EndComp
+$Comp
+L +15V #PWR?
+U 1 1 55DA4971
+P 8600 1150
+F 0 "#PWR?" H 8600 1000 50  0001 C CNN
+F 1 "+15V" H 8600 1290 50  0000 C CNN
+F 2 "" H 8600 1150 60  0000 C CNN
+F 3 "" H 8600 1150 60  0000 C CNN
+	1    8600 1150
+	1    0    0    -1  
+$EndComp
+$Comp
+L GND #PWR?
+U 1 1 55DA4BFA
+P 8500 2000
+F 0 "#PWR?" H 8500 1750 50  0001 C CNN
+F 1 "GND" H 8500 1850 50  0000 C CNN
+F 2 "" H 8500 2000 60  0000 C CNN
+F 3 "" H 8500 2000 60  0000 C CNN
+	1    8500 2000
+	1    0    0    -1  
+$EndComp
+$Comp
+L GND #PWR?
+U 1 1 55DA4C78
+P 8500 2800
+F 0 "#PWR?" H 8500 2550 50  0001 C CNN
+F 1 "GND" H 8500 2650 50  0000 C CNN
+F 2 "" H 8500 2800 60  0000 C CNN
+F 3 "" H 8500 2800 60  0000 C CNN
+	1    8500 2800
+	1    0    0    -1  
+$EndComp
+$Comp
+L GND #PWR?
+U 1 1 55DA4CC7
+P 8500 3600
+F 0 "#PWR?" H 8500 3350 50  0001 C CNN
+F 1 "GND" H 8500 3450 50  0000 C CNN
+F 2 "" H 8500 3600 60  0000 C CNN
+F 3 "" H 8500 3600 60  0000 C CNN
+	1    8500 3600
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	8450 3550 8500 3550
+Wire Wire Line
+	8500 3550 8500 3600
+Wire Wire Line
+	8450 2750 8500 2750
+Wire Wire Line
+	8500 2750 8500 2800
+Wire Wire Line
+	8450 1950 8500 1950
+Wire Wire Line
+	8500 1950 8500 2000
+Wire Wire Line
+	8600 1150 8600 3050
+Wire Wire Line
+	8600 1450 8450 1450
+Wire Wire Line
+	8600 2250 8450 2250
+Connection ~ 8600 1450
+Wire Wire Line
+	8600 3050 8450 3050
+Connection ~ 8600 2250
+$Comp
+L C_Small C?
+U 1 1 55DA4E24
+P 9450 2250
+F 0 "C?" V 9400 2300 50  0000 L CNN
+F 1 "C_Small" V 9300 2300 50  0000 L CNN
+F 2 "" H 9450 2250 60  0000 C CNN
+F 3 "" H 9450 2250 60  0000 C CNN
+	1    9450 2250
+	0    1    1    0   
+$EndComp
+$Comp
+L GND #PWR?
+U 1 1 55DA506D
+P 9550 1450
+F 0 "#PWR?" H 9550 1200 50  0001 C CNN
+F 1 "GND" H 9550 1300 50  0000 C CNN
+F 2 "" H 9550 1450 60  0000 C CNN
+F 3 "" H 9550 1450 60  0000 C CNN
+	1    9550 1450
+	0    -1   -1   0   
+$EndComp
+$Comp
+L GND #PWR?
+U 1 1 55DA508D
+P 9550 2250
+F 0 "#PWR?" H 9550 2000 50  0001 C CNN
+F 1 "GND" H 9550 2100 50  0000 C CNN
+F 2 "" H 9550 2250 60  0000 C CNN
+F 3 "" H 9550 2250 60  0000 C CNN
+	1    9550 2250
+	0    -1   -1   0   
+$EndComp
+$Comp
+L GND #PWR?
+U 1 1 55DA50AD
+P 9550 3050
+F 0 "#PWR?" H 9550 2800 50  0001 C CNN
+F 1 "GND" H 9550 2900 50  0000 C CNN
+F 2 "" H 9550 3050 60  0000 C CNN
+F 3 "" H 9550 3050 60  0000 C CNN
+	1    9550 3050
+	0    -1   -1   0   
+$EndComp
+$Comp
+L C_Small C?
+U 1 1 55DA5155
+P 9450 1450
+F 0 "C?" V 9400 1500 50  0000 L CNN
+F 1 "C_Small" V 9300 1500 50  0000 L CNN
+F 2 "" H 9450 1450 60  0000 C CNN
+F 3 "" H 9450 1450 60  0000 C CNN
+	1    9450 1450
+	0    1    1    0   
+$EndComp
+$Comp
+L C_Small C?
+U 1 1 55DA519E
+P 9450 3050
+F 0 "C?" V 9400 3100 50  0000 L CNN
+F 1 "C_Small" V 9300 3100 50  0000 L CNN
+F 2 "" H 9450 3050 60  0000 C CNN
+F 3 "" H 9450 3050 60  0000 C CNN
+	1    9450 3050
+	0    1    1    0   
+$EndComp
+$EndSCHEMATC
