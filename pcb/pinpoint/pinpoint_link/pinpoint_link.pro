@@ -1,4 +1,4 @@
-update=Thu 20 Aug 2015 10:27:26 PM EDT
+update=Sat 22 Aug 2015 02:23:00 PM EDT
 version=1
 last_client=kicad
 [pcbnew]
@@ -23,9 +23,11 @@ ModuleOutlineThickness=0.150000000000
 [cvpcb]
 version=1
 NetIExt=net
+[general]
+version=1
 [eeschema]
 version=1
-LibDir=
+LibDir=../../libs/kicad
 [eeschema/libraries]
 LibName1=power
 LibName2=device
@@ -56,5 +58,4 @@ LibName26=opto
 LibName27=atmel
 LibName28=contrib
 LibName29=valves
-[general]
-version=1
+LibName30=/home/bpkempke/repos/polypoint/pcb/libs/kicad/polypoint
