@@ -23,6 +23,12 @@ static uint8_t _ranging_listening_window_num = 0;
 // Array of when we sent each of the broadcast ranging packets
 static uint64_t _ranging_broadcast_ss_send_times[NUM_RANGING_BROADCASTS] = {0};
 
+// How many anchor responses we have gotten
+static uint8_t _anchor_response_count = 0;
+
+// Array of when we received ANC_FINAL packets and from whom
+static anchor_response_times_t _anchor_response_times[MAX_NUM_ANCHOR_RESPONSES];
+
 
 
 static struct pp_tag_poll pp_tag_poll_pkt = {
@@ -54,6 +60,7 @@ static struct pp_tag_poll pp_tag_poll_pkt = {
 static void send_poll ();
 static void ranging_broadcast_subsequence_task ();
 static void ranging_listening_window_task ();
+static void calculate_ranges ();
 
 void dw1000_tag_init () {
 
@@ -128,6 +135,7 @@ void dw1000_tag_txcallback (const dwt_callback_data_t *data) {
 
 			// Init some state
 			_ranging_listening_window_num = 0;
+			_anchor_response_count = 0;
 
 			// Start a timer to switch between the windows
 			timer_start(_ranging_broadcast_timer, RANGING_LISTENING_WINDOW_US, ranging_listening_window_task);
@@ -143,8 +151,69 @@ void dw1000_tag_txcallback (const dwt_callback_data_t *data) {
 
 }
 
-void dw1000_tag_rxcallback (const dwt_callback_data_t *data) {
-	// send_poll();
+// Called when the tag receives a packet.
+void dw1000_tag_rxcallback (const dwt_callback_data_t* rxd) {
+	if (rxd->event == DWT_SIG_RX_OKAY) {
+		// Everything went right when receiving this packet.
+		// We have to process it to ensure that it is a packet we are expecting
+		// to get.
+
+		uint64_t dw_rx_timestamp;
+		uint8_t  buf[DW1000_TAG_MAX_RX_PKT_LEN];
+		uint8_t  message_type;
+
+		// Get the received time of this packet first
+		dwt_readrxtimestamp(buf);
+		dw_rx_timestamp = DW_TIMESTAMP_TO_UINT64(buf);
+
+		// Get the actual packet bytes
+		dwt_readrxdata(buf, MIN(DW1000_TAG_MAX_RX_PKT_LEN, rxd->datalength), 0);
+		message_type = buf[offsetof(struct pp_anc_final, message_type)];
+
+		if (message_type == MSG_TYPE_PP_NOSLOTS_ANC_FINAL) {
+			// This is what we were looking for, an ANC_FINAL packet
+			struct pp_anc_final* anc_final;
+
+			if (_anchor_response_count >= MAX_NUM_ANCHOR_RESPONSES) {
+				// Nowhere to store this, so we have to ignore this
+				return;
+			}
+
+			// Continue parsing the received packet
+			anc_final = (struct pp_anc_final*) buf;
+
+			// Save the anchor address
+			memcpy(_anchor_response_times[_anchor_response_count].anchor_addr,
+			       anc_final->header.sourceAddr, 8);
+
+			// Save the anchor's list of when it received the tag broadcasts
+			memcpy(_anchor_response_times[_anchor_response_count].tag_poll_TOAs,
+			       anc_final->TOAs, sizeof(anc_final->TOAs));
+
+			// Save when the anchor sent the packet we just received
+			_anchor_response_times[_anchor_response_count].anc_final_tx_timestamp = ((uint64_t)anc_final->dw_time_sent) << 8;
+			// Save when we received the packet
+			_anchor_response_times[_anchor_response_count].anc_final_rx_timestamp = dw_rx_timestamp;
+
+			// Increment the number of anchors heard from
+			_anchor_response_count++;
+
+		} else {
+			// TAGs don't expect to receive any other types of packets.
+		}
+
+	} else {
+		// Packet was NOT received correctly. Need to do some re-configuring
+		// as things get blown out when this happens. (Because dwt_rxreset
+		// within dwt_isr smashes everything without regard.)
+		if (rxd->event == DWT_SIG_RX_PHR_ERROR ||
+		    rxd->event == DWT_SIG_RX_ERROR ||
+		    rxd->event == DWT_SIG_RX_SYNCLOSS ||
+		    rxd->event == DWT_SIG_RX_SFDTIMEOUT ||
+		    rxd->event == DWT_SIG_RX_PTOTIMEOUT) {
+			dw1000_set_ranging_listening_window_settings(TAG, _ranging_listening_window_num, FALSE);
+		}
+	}
 
 }
 
@@ -212,14 +281,33 @@ static void ranging_broadcast_subsequence_task () {
 // the responses from the anchors.
 static void ranging_listening_window_task () {
 
-	// Stop after the correct number of receive windows
-	if (_ranging_listening_window_num == NUM_RANGING_LISTENING_WINDOWS-1) {
+	// Stop after the last of the receive windows
+	if (_ranging_listening_window_num == NUM_RANGING_LISTENING_WINDOWS) {
 		timer_stop(_ranging_broadcast_timer);
+
+		// Stop the radio
+		dwt_forcetrxoff();
+
+		// New state
+		_tag_state = TSTATE_CALCULATE_RANGE;
+
+		// Calculate ranges
+		calculate_ranges();
+
+	} else {
+
+		// Set the correct listening settings
+		dw1000_set_ranging_listening_window_settings(TAG, _ranging_listening_window_num, FALSE);
+
+		// Increment and wait
+		_ranging_listening_window_num++;
+
 	}
-
-	// Set the correct listening settings
-	dw1000_set_ranging_listening_window_settings(TAG, _ranging_listening_window_num, FALSE);
-
-	// Increment and wait
-	_ranging_listening_window_num++;
 }
+
+static void calculate_ranges () {
+
+}
+
+
+
