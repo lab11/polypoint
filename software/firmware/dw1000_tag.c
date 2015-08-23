@@ -307,6 +307,74 @@ static void ranging_listening_window_task () {
 
 static void calculate_ranges () {
 
+	uint8_t anchor_index;
+
+	// Iterate through all anchors to calculate the range from the tag
+	// to each anchor
+	for (anchor_index=0; anchor_index<_anchor_response_count; anchor_index++) {
+		anchor_response_times_t* aresp = &_anchor_response_times[anchor_index];
+
+		// First need to calculate the crystal offset between the anchor and tag.
+		// To do this, we need to get the timestamps at the anchor and tag
+		// for packets that are repeated. In the current scheme, the first
+		// three packets are repeated, where three is the number of channels.
+		// If we get multiple matches, we take the average of the clock offsets.
+		uint8_t j;
+		uint8_t valid_offset_calculations = 0;
+		double offset_ratios_sum = 0.0;
+		for (j=0; j<NUM_RANGING_CHANNELS; j++) {
+			uint8_t first_broadcast_index = j;
+			uint8_t last_broadcast_index = NUM_RANGING_BROADCASTS - NUM_RANGING_CHANNELS + j;
+			uint64_t first_broadcast_send_time = _ranging_broadcast_ss_send_times[first_broadcast_index];
+			uint64_t first_broadcast_recv_time = aresp->tag_poll_TOAs[first_broadcast_index];
+			uint64_t last_broadcast_send_time  = _ranging_broadcast_ss_send_times[last_broadcast_index];
+			uint64_t last_broadcast_recv_time  = aresp->tag_poll_TOAs[last_broadcast_index];
+
+			// Now lets check that the anchor actually received both of these
+			// packets. If it didn't then this isn't valid.
+			if (first_broadcast_recv_time == 0 || last_broadcast_recv_time == 0) {
+				// A packet was dropped (or the anchor wasn't listening on the
+				// first channel). This isn't useful so we skip it.
+				continue;
+			}
+
+			// Calculate the "multiplier for the crystal offset between tag
+			// and anchor".
+			// (last_recv-first_recv) / (last_send-first_send)
+			double offset_anchor_over_tag_item = ((double) last_broadcast_recv_time - (double) first_broadcast_recv_time) /
+				((double) last_broadcast_send_time - (double) first_broadcast_send_time);
+
+			// Add this to the running sum for the average
+			offset_ratios_sum += offset_anchor_over_tag_item;
+			valid_offset_calculations++;
+		}
+
+		// If we didn't get any matching pairs in the first and last rounds
+		// then we have to skip this anchor.
+		if (valid_offset_calculations == 0) {
+			continue;
+		}
+
+		// Calculate the average clock offset multiplier
+		double offset_anchor_over_tag = offset_ratios_sum / (double) valid_offset_calculations;
+
+
+		// Now we need to use the one packet we have from the anchor
+		// to calculate a one-way time of flight measurement so that we can
+		// account for the time offset between the anchor and tag (i.e. the
+		// tag and anchors are not synchronized). We will use this TOF
+		// to calculate ranges from all of the other polls the tag sent.
+		// To do this, we need to match the anchor_antenna, tag_antenna, and
+		// channel between the anchor response and the correct tag poll.
+		uint8_t ss_index_matching = get_ss_index_from_settings(aresp->anchor_final_antenna_index,
+		                                                       aresp->window_packet_recv);
+
+
+
+	}
+
+
+
 }
 
 
