@@ -92,6 +92,9 @@
 // How long the slots inside each window should be for the anchors to choose from
 #define RANGING_LISTENING_SLOT_US RANGING_LISTENING_WINDOW_US/20
 
+// Maximum number of anchors a tag is willing to hear from
+#define MAX_NUM_ANCHOR_RESPONSES 6
+
 /******************************************************************************/
 // Data Structs for packet messages between tags and anchors
 /******************************************************************************/
@@ -101,6 +104,9 @@
 #define MSG_TYPE_PP_ONEWAY_ANC_FINAL  0x70
 #define MSG_TYPE_PP_NOSLOTS_TAG_POLL   0x80
 #define MSG_TYPE_PP_NOSLOTS_ANC_FINAL  0x81
+
+// Size buffers for reading in packets
+#define DW1000_TAG_MAX_RX_PKT_LEN 128
 
 struct ieee154_header_broadcast {
 	uint8_t frameCtrl[2];          //  frame control bytes 00-01

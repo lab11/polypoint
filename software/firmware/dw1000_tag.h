@@ -10,8 +10,18 @@ typedef enum {
 	TSTATE_IDLE,
 	TSTATE_BROADCASTS,
 	TSTATE_TRANSITION_TO_ANC_FINAL,
-	TSTATE_LISTENING
+	TSTATE_LISTENING,
+	TSTATE_CALCULATE_RANGE
 } tag_state_e;
+
+typedef struct {
+	uint8_t  anchor_addr[8];
+	uint8_t  anchor_final_antenna_index; // The antenna the anchor used when it responded.
+	uint8_t  window_packet_recv;         // The window the tag was in when it received the packet from the anchor.
+	uint64_t anc_final_tx_timestamp; // When the anchor node sent the ANC_FINAL
+	uint64_t anc_final_rx_timestamp; // When the tag received the ANC_FINAL
+	uint64_t tag_poll_TOAs[NUM_RANGING_BROADCASTS];
+} anchor_response_times_t;
 
 void dw1000_tag_init ();
 void dw1000_tag_start_ranging_event ();

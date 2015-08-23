@@ -23,6 +23,12 @@ static uint8_t _ranging_listening_window_num = 0;
 // Array of when we sent each of the broadcast ranging packets
 static uint64_t _ranging_broadcast_ss_send_times[NUM_RANGING_BROADCASTS] = {0};
 
+// How many anchor responses we have gotten
+static uint8_t _anchor_response_count = 0;
+
+// Array of when we received ANC_FINAL packets and from whom
+static anchor_response_times_t _anchor_response_times[MAX_NUM_ANCHOR_RESPONSES];
+
 
 
 static struct pp_tag_poll pp_tag_poll_pkt = {
@@ -54,6 +60,7 @@ static struct pp_tag_poll pp_tag_poll_pkt = {
 static void send_poll ();
 static void ranging_broadcast_subsequence_task ();
 static void ranging_listening_window_task ();
+static void calculate_ranges ();
 
 void dw1000_tag_init () {
 
@@ -128,6 +135,7 @@ void dw1000_tag_txcallback (const dwt_callback_data_t *data) {
 
 			// Init some state
 			_ranging_listening_window_num = 0;
+			_anchor_response_count = 0;
 
 			// Start a timer to switch between the windows
 			timer_start(_ranging_broadcast_timer, RANGING_LISTENING_WINDOW_US, ranging_listening_window_task);
@@ -143,8 +151,69 @@ void dw1000_tag_txcallback (const dwt_callback_data_t *data) {
 
 }
 
-void dw1000_tag_rxcallback (const dwt_callback_data_t *data) {
-	// send_poll();
+// Called when the tag receives a packet.
+void dw1000_tag_rxcallback (const dwt_callback_data_t* rxd) {
+	if (rxd->event == DWT_SIG_RX_OKAY) {
+		// Everything went right when receiving this packet.
+		// We have to process it to ensure that it is a packet we are expecting
+		// to get.
+
+		uint64_t dw_rx_timestamp;
+		uint8_t  buf[DW1000_TAG_MAX_RX_PKT_LEN];
+		uint8_t  message_type;
+
+		// Get the received time of this packet first
+		dwt_readrxtimestamp(buf);
+		dw_rx_timestamp = DW_TIMESTAMP_TO_UINT64(buf);
+
+		// Get the actual packet bytes
+		dwt_readrxdata(buf, MIN(DW1000_TAG_MAX_RX_PKT_LEN, rxd->datalength), 0);
+		message_type = buf[offsetof(struct pp_anc_final, message_type)];
+
+		if (message_type == MSG_TYPE_PP_NOSLOTS_ANC_FINAL) {
+			// This is what we were looking for, an ANC_FINAL packet
+			struct pp_anc_final* anc_final;
+
+			if (_anchor_response_count >= MAX_NUM_ANCHOR_RESPONSES) {
+				// Nowhere to store this, so we have to ignore this
+				return;
+			}
+
+			// Continue parsing the received packet
+			anc_final = (struct pp_anc_final*) buf;
+
+			// Save the anchor address
+			memcpy(_anchor_response_times[_anchor_response_count].anchor_addr,
+			       anc_final->header.sourceAddr, 8);
+
+			// Save the anchor's list of when it received the tag broadcasts
+			memcpy(_anchor_response_times[_anchor_response_count].tag_poll_TOAs,
+			       anc_final->TOAs, sizeof(anc_final->TOAs));
+
+			// Save when the anchor sent the packet we just received
+			_anchor_response_times[_anchor_response_count].anc_final_tx_timestamp = ((uint64_t)anc_final->dw_time_sent) << 8;
+			// Save when we received the packet
+			_anchor_response_times[_anchor_response_count].anc_final_rx_timestamp = dw_rx_timestamp;
+
+			// Increment the number of anchors heard from
+			_anchor_response_count++;
+
+		} else {
+			// TAGs don't expect to receive any other types of packets.
+		}
+
+	} else {
+		// Packet was NOT received correctly. Need to do some re-configuring
+		// as things get blown out when this happens. (Because dwt_rxreset
+		// within dwt_isr smashes everything without regard.)
+		if (rxd->event == DWT_SIG_RX_PHR_ERROR ||
+		    rxd->event == DWT_SIG_RX_ERROR ||
+		    rxd->event == DWT_SIG_RX_SYNCLOSS ||
+		    rxd->event == DWT_SIG_RX_SFDTIMEOUT ||
+		    rxd->event == DWT_SIG_RX_PTOTIMEOUT) {
+			dw1000_set_ranging_listening_window_settings(TAG, _ranging_listening_window_num, FALSE);
+		}
+	}
 
 }
 
@@ -212,14 +281,101 @@ static void ranging_broadcast_subsequence_task () {
 // the responses from the anchors.
 static void ranging_listening_window_task () {
 
-	// Stop after the correct number of receive windows
-	if (_ranging_listening_window_num == NUM_RANGING_LISTENING_WINDOWS-1) {
+	// Stop after the last of the receive windows
+	if (_ranging_listening_window_num == NUM_RANGING_LISTENING_WINDOWS) {
 		timer_stop(_ranging_broadcast_timer);
+
+		// Stop the radio
+		dwt_forcetrxoff();
+
+		// New state
+		_tag_state = TSTATE_CALCULATE_RANGE;
+
+		// Calculate ranges
+		calculate_ranges();
+
+	} else {
+
+		// Set the correct listening settings
+		dw1000_set_ranging_listening_window_settings(TAG, _ranging_listening_window_num, FALSE);
+
+		// Increment and wait
+		_ranging_listening_window_num++;
+
+	}
+}
+
+static void calculate_ranges () {
+
+	uint8_t anchor_index;
+
+	// Iterate through all anchors to calculate the range from the tag
+	// to each anchor
+	for (anchor_index=0; anchor_index<_anchor_response_count; anchor_index++) {
+		anchor_response_times_t* aresp = &_anchor_response_times[anchor_index];
+
+		// First need to calculate the crystal offset between the anchor and tag.
+		// To do this, we need to get the timestamps at the anchor and tag
+		// for packets that are repeated. In the current scheme, the first
+		// three packets are repeated, where three is the number of channels.
+		// If we get multiple matches, we take the average of the clock offsets.
+		uint8_t j;
+		uint8_t valid_offset_calculations = 0;
+		double offset_ratios_sum = 0.0;
+		for (j=0; j<NUM_RANGING_CHANNELS; j++) {
+			uint8_t first_broadcast_index = j;
+			uint8_t last_broadcast_index = NUM_RANGING_BROADCASTS - NUM_RANGING_CHANNELS + j;
+			uint64_t first_broadcast_send_time = _ranging_broadcast_ss_send_times[first_broadcast_index];
+			uint64_t first_broadcast_recv_time = aresp->tag_poll_TOAs[first_broadcast_index];
+			uint64_t last_broadcast_send_time  = _ranging_broadcast_ss_send_times[last_broadcast_index];
+			uint64_t last_broadcast_recv_time  = aresp->tag_poll_TOAs[last_broadcast_index];
+
+			// Now lets check that the anchor actually received both of these
+			// packets. If it didn't then this isn't valid.
+			if (first_broadcast_recv_time == 0 || last_broadcast_recv_time == 0) {
+				// A packet was dropped (or the anchor wasn't listening on the
+				// first channel). This isn't useful so we skip it.
+				continue;
+			}
+
+			// Calculate the "multiplier for the crystal offset between tag
+			// and anchor".
+			// (last_recv-first_recv) / (last_send-first_send)
+			double offset_anchor_over_tag_item = ((double) last_broadcast_recv_time - (double) first_broadcast_recv_time) /
+				((double) last_broadcast_send_time - (double) first_broadcast_send_time);
+
+			// Add this to the running sum for the average
+			offset_ratios_sum += offset_anchor_over_tag_item;
+			valid_offset_calculations++;
+		}
+
+		// If we didn't get any matching pairs in the first and last rounds
+		// then we have to skip this anchor.
+		if (valid_offset_calculations == 0) {
+			continue;
+		}
+
+		// Calculate the average clock offset multiplier
+		double offset_anchor_over_tag = offset_ratios_sum / (double) valid_offset_calculations;
+
+
+		// Now we need to use the one packet we have from the anchor
+		// to calculate a one-way time of flight measurement so that we can
+		// account for the time offset between the anchor and tag (i.e. the
+		// tag and anchors are not synchronized). We will use this TOF
+		// to calculate ranges from all of the other polls the tag sent.
+		// To do this, we need to match the anchor_antenna, tag_antenna, and
+		// channel between the anchor response and the correct tag poll.
+		uint8_t ss_index_matching = get_ss_index_from_settings(aresp->anchor_final_antenna_index,
+		                                                       aresp->window_packet_recv);
+
+
+
 	}
 
-	// Set the correct listening settings
-	dw1000_set_ranging_listening_window_settings(TAG, _ranging_listening_window_num, FALSE);
 
-	// Increment and wait
-	_ranging_listening_window_num++;
+
 }
+
+
+
