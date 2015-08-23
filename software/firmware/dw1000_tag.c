@@ -305,13 +305,37 @@ static void ranging_listening_window_task () {
 	}
 }
 
+static void insert_sortedddd (int* arr, int n, unsigned end) {
+	unsigned insert_at = 0;
+	while ((insert_at < end) && (n >= arr[insert_at])) {
+		insert_at++;
+	}
+	 if (insert_at == end) {
+	 	arr[insert_at] = n;
+	 } else {
+		while (insert_at <= end) {
+			int temp = arr[insert_at];
+			arr[insert_at] = n;
+			n = temp;
+			insert_at++;
+		}
+	}
+}
+
+static int dwtime_to_millimeterss (double dwtime) {
+	// Get meters using the speed of light
+	double dist = dwtime * DWT_TIME_UNITS * SPEED_OF_LIGHT;
+
+	// And return millimeters
+	return (int) (dist*1000.0);
+}
+
 static void calculate_ranges () {
 
-	uint8_t anchor_index;
 
 	// Iterate through all anchors to calculate the range from the tag
 	// to each anchor
-	for (anchor_index=0; anchor_index<_anchor_response_count; anchor_index++) {
+	for (uint8_t anchor_index=0; anchor_index<_anchor_response_count; anchor_index++) {
 		anchor_response_times_t* aresp = &_anchor_response_times[anchor_index];
 
 		// First need to calculate the crystal offset between the anchor and tag.
@@ -319,10 +343,9 @@ static void calculate_ranges () {
 		// for packets that are repeated. In the current scheme, the first
 		// three packets are repeated, where three is the number of channels.
 		// If we get multiple matches, we take the average of the clock offsets.
-		uint8_t j;
 		uint8_t valid_offset_calculations = 0;
 		double offset_ratios_sum = 0.0;
-		for (j=0; j<NUM_RANGING_CHANNELS; j++) {
+		for (uint8_t j=0; j<NUM_RANGING_CHANNELS; j++) {
 			uint8_t first_broadcast_index = j;
 			uint8_t last_broadcast_index = NUM_RANGING_BROADCASTS - NUM_RANGING_CHANNELS + j;
 			uint64_t first_broadcast_send_time = _ranging_broadcast_ss_send_times[first_broadcast_index];
@@ -366,8 +389,73 @@ static void calculate_ranges () {
 		// to calculate ranges from all of the other polls the tag sent.
 		// To do this, we need to match the anchor_antenna, tag_antenna, and
 		// channel between the anchor response and the correct tag poll.
-		uint8_t ss_index_matching = get_ss_index_from_settings(aresp->anchor_final_antenna_index,
-		                                                       aresp->window_packet_recv);
+		uint8_t ss_index_matching = dw1000_get_ss_index_from_settings(aresp->anchor_final_antenna_index,
+		                                                              aresp->window_packet_recv);
+		uint64_t matching_broadcast_send_time = _ranging_broadcast_ss_send_times[ss_index_matching];
+		uint64_t matching_broadcast_recv_time = aresp->tag_poll_TOAs[ss_index_matching];
+		uint64_t response_send_time  = aresp->anc_final_tx_timestamp;
+		uint64_t response_recv_time  = aresp->anc_final_rx_timestamp;
+
+		double two_way_TOF = (((double) response_recv_time - (double) matching_broadcast_send_time)*offset_anchor_over_tag) -
+			((double) response_send_time - (double) matching_broadcast_recv_time);
+		double one_way_TOF = two_way_TOF / 2.0;
+
+
+		// Declare an array for sorting the ranges.
+		int distances_millimeters[NUM_RANGING_BROADCASTS] = {0};
+		uint8_t num_valid_distances = 0;
+
+		// Next we calculate the TOFs for each of the poll messages the tag sent.
+		for (uint8_t broadcast_index=0; broadcast_index<NUM_RANGING_BROADCASTS; broadcast_index++) {
+			uint64_t broadcast_send_time = _ranging_broadcast_ss_send_times[broadcast_index];
+			uint64_t broadcast_recv_time = aresp->tag_poll_TOAs[broadcast_index];
+
+			// Check that the anchor actually received the tag broadcast.
+			// We use 0 as a sentinel for the anchor not receiving the packet.
+			if (broadcast_recv_time == 0) {
+				continue;
+			}
+
+			// We use the reference packet (that we used to calculate one_way_TOF)
+			// to compensate for the unsynchronized clock.
+			int64_t broadcast_anchor_offset = (int64_t) broadcast_recv_time - (int64_t) matching_broadcast_recv_time;
+			int64_t broadcast_tag_offset = (int64_t) broadcast_send_time - (int64_t) matching_broadcast_send_time;
+			double TOF = (double) broadcast_anchor_offset - (((double) broadcast_tag_offset) * offset_anchor_over_tag) + one_way_TOF;
+
+			int distance_millimeters = dwtime_to_millimeterss(TOF);
+
+			// int distance_millimeters = (int)(TOF * DWT_TIME_UNITS * SPEED_OF_LIGHT*1000.0);
+			// return (int) (dist*1000.0);
+
+
+			// Check that the distance we have at this point is at all reasonable
+			if (distance_millimeters >= MIN_VALID_RANGE_MM && distance_millimeters <= MAX_VALID_RANGE_MM) {
+				// Add this to our sorted array of distances
+				insert_sortedddd(distances_millimeters, distance_millimeters, num_valid_distances);
+				num_valid_distances++;
+			}
+		}
+
+		// Check to make sure that we got enough ranges from this anchor.
+		// If not, we just skip it.
+		if (num_valid_distances < MIN_VALID_RANGES_PER_ANCHOR) {
+			continue;
+		}
+
+
+		// Now that we have all of the calculated ranges from all of the tag
+		// broadcasts we can calculate some percentile range.
+		uint8_t bot = (num_valid_distances*RANGE_PERCENTILE_NUMERATOR)/RANGE_PERCENTILE_DENOMENATOR;
+		uint8_t top = bot+1;
+		// bot represents the whole index of the item at the percentile.
+		// Then we are going to use the remainder decimal portion to get
+		// a scaled value to add to that base. And we are going to do this
+		// without floating point, so buckle up.
+		// EXAMPLE: if the 90th percentile would be index 3.4, we do:
+		//                  distances[3] + 0.4*(distances[4]-distances[3])
+		int result = distances_millimeters[bot] +
+			(((distances_millimeters[top]-distances_millimeters[bot]) * ((RANGE_PERCENTILE_NUMERATOR*num_valid_distances)
+			 - (bot*RANGE_PERCENTILE_DENOMENATOR))) / RANGE_PERCENTILE_DENOMENATOR);
 
 
 

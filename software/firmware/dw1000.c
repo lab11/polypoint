@@ -658,6 +658,39 @@ void dw1000_set_mode (dw1000_role_e role) {
 
 
 /******************************************************************************/
+// Decawave specific utility functions
+/******************************************************************************/
+
+// Convert a time of flight measurement to millimeters
+int dwtime_to_millimeters (double dwtime) {
+	// Get meters using the speed of light
+	double dist = dwtime * DWT_TIME_UNITS * SPEED_OF_LIGHT;
+
+	// And return millimeters
+	return (int) (dist*1000.0);
+}
+
+// Shoved this here for now.
+// Insert an element into a sorted array.
+// end is the number of elements in the array.
+// void insert_sorted (int arr[], int new, unsigned end) {
+// 	unsigned insert_at = 0;
+// 	while ((insert_at < end) && (new >= arr[insert_at])) {
+// 		insert_at++;
+// 	}
+// 	if (insert_at == end) {
+// 		arr[insert_at] = new;
+// 	} else {
+// 		while (insert_at <= end) {
+// 			int temp = arr[insert_at];
+// 			arr[insert_at] = new;
+// 			new = temp;
+// 			insert_at++;
+// 		}
+// 	}
+// }
+
+/******************************************************************************/
 // Ranging Protocol Algorithm Functions
 /******************************************************************************/
 
@@ -686,6 +719,27 @@ static uint8_t subsequence_number_to_antenna (dw1000_role_e role, uint8_t subseq
 		return ((subseq_num / NUM_RANGING_CHANNELS) / NUM_RANGING_CHANNELS) % NUM_ANTENNAS;
 	} else {
 		return 0;
+	}
+}
+
+// Go the opposite way and return the ss number based on the antenna used.
+// Returns the LAST valid slot that matches the sequence.
+static uint8_t antenna_and_channel_to_subsequence_number (uint8_t tag_antenna_index,
+                                                          uint8_t anchor_antenna_index,
+                                                          uint8_t channel_index) {
+	uint8_t anc_offset = anchor_antenna_index * NUM_RANGING_CHANNELS * NUM_RANGING_CHANNELS;
+	uint8_t tag_offset = tag_antenna_index * NUM_RANGING_CHANNELS;
+	uint8_t base_offset = anc_offset + tag_offset + channel_index;
+
+	// Now find the last one that matches this index.
+	// We do this by finding the last possible breaking point between
+	// repeated rounds and determining if we should go just pass that point
+	// or before it.
+	uint8_t a = (NUM_RANGING_BROADCASTS / NUM_UNIQUE_PACKET_CONFIGURATIONS) * NUM_UNIQUE_PACKET_CONFIGURATIONS;
+	if ((base_offset + a) < NUM_RANGING_BROADCASTS) {
+		return base_offset + a;
+	} else {
+		return a - (NUM_UNIQUE_PACKET_CONFIGURATIONS - base_offset);
 	}
 }
 
@@ -771,6 +825,20 @@ void dw1000_set_ranging_listening_window_settings (dw1000_role_e role,
 
 	// Change what antenna we're listening/sending on
 	dw1000_choose_antenna(listening_window_number_to_antenna(role, window_num));
+}
+
+// Get the subsequence slot number that a particular set of settings
+// (anchor antenna index, tag antenna index, channel) were used to send
+// a broadcast poll message. The tag antenna index and channel are derived
+// from the settings used in the listening window.
+uint8_t dw1000_get_ss_index_from_settings (uint8_t anchor_antenna_index,
+                                           uint8_t window_num) {
+	uint8_t tag_antenna_index = listening_window_number_to_antenna(TAG, window_num);
+	uint8_t channel_index = listening_window_number_to_channel(window_num);
+
+	return antenna_and_channel_to_subsequence_number(tag_antenna_index,
+	                                                 anchor_antenna_index,
+	                                                 channel_index);
 }
 
 

@@ -66,11 +66,16 @@
 // Parameters for the localization and ranging protocol
 /******************************************************************************/
 
+// How many of the DW1000 supported UWB channels we are using for ranging
+// packets.
 #define NUM_RANGING_CHANNELS 3
 
 // It's possible that someday the number of antennas should be configurable
 // to support different hardware...
 #define NUM_ANTENNAS 3
+
+// Number of packets with unique antenna and channel combinations
+#define NUM_UNIQUE_PACKET_CONFIGURATIONS NUM_RANGING_CHANNELS*NUM_ANTENNAS*NUM_ANTENNAS
 
 // Use 30 broadcasts from the tag for ranging.
 // (3 channels * 3 antennas on tag * 3 antennas on anchor) + 2
@@ -94,6 +99,24 @@
 
 // Maximum number of anchors a tag is willing to hear from
 #define MAX_NUM_ANCHOR_RESPONSES 6
+
+// Reasonable constants to rule out unreasonable ranges
+#define MIN_VALID_RANGE_MM -1000      // -1 meter
+#define MAX_VALID_RANGE_MM (50*1000)  // 50 meters
+
+// How many valid ranges we have to get from the anchor in order to bother
+// including it in our calculations.
+#define MIN_VALID_RANGES_PER_ANCHOR 10
+
+// When the tag is calculating range for each of the anchors given a bunch
+// of measurements, these define which percentile of the measurements to use.
+// They are split up to facilitate non-floating point math.
+// EXAMPLE: N=1, D=10 means take the 90th percentile.
+#define RANGE_PERCENTILE_NUMERATOR 1
+#define RANGE_PERCENTILE_DENOMENATOR 10
+
+// Constants
+#define SPEED_OF_LIGHT 299702547.0
 
 /******************************************************************************/
 // Data Structs for packet messages between tags and anchors
@@ -202,6 +225,10 @@ typedef void (*dw1000_callback)(dw1000_cb_e, dw1000_err_e);
 void dw1000_spi_fast ();
 // void dw1000_spi_slow ();
 
+int dwtime_to_millimeters (double dwtime);
+void insert_sorted (int arr[], int new, unsigned end);
+
+
 dw1000_err_e dw1000_init ();
 void dw1000_reset ();
 void dw1000_choose_antenna (uint8_t antenna_number);
@@ -209,6 +236,7 @@ void dw1000_read_eui (uint8_t *eui_buf);
 void dw1000_set_mode (dw1000_role_e role);
 void dw1000_set_ranging_broadcast_subsequence_settings (dw1000_role_e role, uint8_t subseq_num, bool reset);
 void dw1000_set_ranging_listening_slot_settings (dw1000_role_e role, uint8_t slot_num, bool reset);
+uint8_t dw1000_get_ss_index_from_settings (uint8_t anchor_antenna_index, uint8_t window_num);
 
 void dw1000_interrupt_fired ();
 
