@@ -165,6 +165,8 @@ void app_dw1000_rxcallback (const dwt_callback_data_t *rxd) {
 					REVISED_DELAY_FROM_PKT_LEN_US(frame_len) +
 					(2*ANC_FINAL_RX_TIME_ON_TAG*(ANCHOR_EUI-1))
 					);
+
+				// Consider looking into AAT on p86 of user guide?
 				*/
 			delay_time &= 0xFFFFFFFE;
 			pp_anc_final_pkt.dw_time_sent = delay_time;
