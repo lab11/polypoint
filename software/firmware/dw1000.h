@@ -24,6 +24,9 @@
 // Constant for the number of UWB channels
 #define DW1000_NUM_CHANNELS 8
 
+// Length of addresses in the system
+#define EUI_LEN 8
+
 
 /******************************************************************************/
 // Timing defines for this particular MCU
@@ -136,15 +139,15 @@ struct ieee154_header_broadcast {
 	uint8_t seqNum;                //  sequence_number 02
 	uint8_t panID[2];              //  PAN ID 03-04
 	uint8_t destAddr[2];
-	uint8_t sourceAddr[8];
+	uint8_t sourceAddr[EUI_LEN];
 };
 
 struct ieee154_header_unicast {
 	uint8_t frameCtrl[2];          //  frame control bytes 00-01
 	uint8_t seqNum;                //  sequence_number 02
 	uint8_t panID[2];              //  PAN ID 03-04
-	uint8_t destAddr[8];
-	uint8_t sourceAddr[8];
+	uint8_t destAddr[EUI_LEN];
+	uint8_t sourceAddr[EUI_LEN];
 };
 
 struct ieee154_footer {
@@ -166,9 +169,9 @@ struct pp_tag_poll  {
 struct pp_anc_final {
 	struct ieee154_header_unicast header;
 	uint8_t message_type;
-	uint8_t final_antenna;
-	uint32_t dw_time_sent;
-	uint64_t TOAs[NUM_RANGING_BROADCASTS];
+	uint8_t final_antenna;                 // The antenna the anchor used when sending this packet.
+	uint32_t dw_time_sent;                 // The anchor timestamp of when it sent this packet
+	uint64_t TOAs[NUM_RANGING_BROADCASTS]; // The anchor timestamps of when it received the tag poll messages.
 	struct ieee154_footer footer;
 } __attribute__ ((__packed__));
 
@@ -217,6 +220,7 @@ typedef enum {
 typedef enum {
 	DW1000_NO_ERR = 0,
 	DW1000_COMM_ERR,
+	DW1000_BUSY,
 } dw1000_err_e;
 
 // gets called with event that just finished and an error code

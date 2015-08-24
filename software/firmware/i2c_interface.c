@@ -81,6 +81,11 @@ uint32_t i2c_interface_init (i2c_interface_callback cb) {
 
 }
 
+// Send to the tag the ranges.
+uint32_t host_interface_notify_ranges (uint8_t* _anchor_ids_ranges, uint8_t _num_anchor_ranges) {
+
+}
+
 // Doesn't block, but waits for an I2C master to initiate a WRITE.
 uint32_t i2c_interface_wait () {
 	uint32_t ret;

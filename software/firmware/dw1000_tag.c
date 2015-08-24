@@ -27,10 +27,14 @@ static uint64_t _ranging_broadcast_ss_send_times[NUM_RANGING_BROADCASTS] = {0};
 static uint8_t _anchor_response_count = 0;
 
 // Array of when we received ANC_FINAL packets and from whom
-static anchor_response_times_t _anchor_response_times[MAX_NUM_ANCHOR_RESPONSES];
+static anchor_responses_t _anchor_responses[MAX_NUM_ANCHOR_RESPONSES];
 
+// These are the ranges we have calculated to a series of anchors.
+// They use the same index as the _anchor_responses array.
+// Invalid ranges are marked with INT32_MAX.
+int32_t _ranges_millimeters[MAX_NUM_ANCHOR_RESPONSES] = {0};
 
-
+// Prepopulated struct of the outgoing broadcast poll packet.
 static struct pp_tag_poll pp_tag_poll_pkt = {
 	{ // 802.15.4 HEADER
 		{
@@ -61,6 +65,7 @@ static void send_poll ();
 static void ranging_broadcast_subsequence_task ();
 static void ranging_listening_window_task ();
 static void calculate_ranges ();
+static void report_range ();
 
 void dw1000_tag_init () {
 
@@ -107,7 +112,13 @@ void dw1000_tag_init () {
 
 // This starts a ranging event by causing the tag to send a series of
 // ranging broadcasts.
-void dw1000_tag_start_ranging_event () {
+dw1000_err_e dw1000_tag_start_ranging_event () {
+	if (_tag_state != TSTATE_IDLE) {
+		// Cannot start a ranging event if we are currently busy with one.
+		return DW1000_BUSY;
+	}
+
+	// Move to the broadcast state
 	_tag_state = TSTATE_BROADCASTS;
 
 	// Clear state that we keep for each ranging event
@@ -183,17 +194,23 @@ void dw1000_tag_rxcallback (const dwt_callback_data_t* rxd) {
 			anc_final = (struct pp_anc_final*) buf;
 
 			// Save the anchor address
-			memcpy(_anchor_response_times[_anchor_response_count].anchor_addr,
-			       anc_final->header.sourceAddr, 8);
+			memcpy(_anchor_responses[_anchor_response_count].anchor_addr, anc_final->header.sourceAddr, EUI_LEN);
 
 			// Save the anchor's list of when it received the tag broadcasts
-			memcpy(_anchor_response_times[_anchor_response_count].tag_poll_TOAs,
-			       anc_final->TOAs, sizeof(anc_final->TOAs));
+			memcpy(_anchor_responses[_anchor_response_count].tag_poll_TOAs, anc_final->TOAs, sizeof(anc_final->TOAs));
+
+			// Save the antenna the anchor chose to use when responding to us
+			_anchor_responses[_anchor_response_count].anchor_final_antenna_index = anc_final->final_antenna;
 
 			// Save when the anchor sent the packet we just received
-			_anchor_response_times[_anchor_response_count].anc_final_tx_timestamp = ((uint64_t)anc_final->dw_time_sent) << 8;
+			_anchor_responses[_anchor_response_count].anc_final_tx_timestamp = ((uint64_t)anc_final->dw_time_sent) << 8;
 			// Save when we received the packet
-			_anchor_response_times[_anchor_response_count].anc_final_rx_timestamp = dw_rx_timestamp;
+			_anchor_responses[_anchor_response_count].anc_final_rx_timestamp = dw_rx_timestamp;
+
+			// Also need to save what window we are in when we received
+			// this packet. This is used so we know all of the settings
+			// that were used when this packet was sent to us.
+			_anchor_responses[_anchor_response_count].window_packet_recv = _ranging_listening_window_num - 1;
 
 			// Increment the number of anchors heard from
 			_anchor_response_count++;
@@ -267,6 +284,10 @@ static void ranging_broadcast_subsequence_task () {
 		// This is our last packet to send. Stop the timer so we don't generate
 		// more packets.
 		timer_stop(_ranging_broadcast_timer);
+
+		// Also update the state to say that we are moving to RX mode
+		// to listen for responses from the anchor
+		_tag_state = TSTATE_TRANSITION_TO_ANC_FINAL;
 	}
 
 	// Go ahead and setup and send a ranging broadcast
@@ -288,11 +309,8 @@ static void ranging_listening_window_task () {
 		// Stop the radio
 		dwt_forcetrxoff();
 
-		// New state
-		_tag_state = TSTATE_CALCULATE_RANGE;
-
-		// Calculate ranges
-		calculate_ranges();
+		// This function finishes up this ranging event.
+		report_range();
 
 	} else {
 
@@ -305,38 +323,43 @@ static void ranging_listening_window_task () {
 	}
 }
 
-static void insert_sortedddd (int* arr, int n, unsigned end) {
-	unsigned insert_at = 0;
-	while ((insert_at < end) && (n >= arr[insert_at])) {
-		insert_at++;
-	}
-	 if (insert_at == end) {
-	 	arr[insert_at] = n;
-	 } else {
-		while (insert_at <= end) {
-			int temp = arr[insert_at];
-			arr[insert_at] = n;
-			n = temp;
-			insert_at++;
-		}
+// Once we have heard from all of the anchors, calculate range.
+static void report_range () {
+	// New state
+	_tag_state = TSTATE_CALCULATE_RANGE;
+
+	// Calculate ranges
+	calculate_ranges();
+
+	// Decide what we should do with these ranges. We can either report
+	// these right back to the host, or we can try to get the anchors
+	// to calculate location.
+	dw1000_report_mode_e report_mode = main_get_report_mode();
+	if (report_mode == REPORT_MODE_RANGES) {
+		// Just need to send the ranges back to the host. Send the array
+		// of ranges to the main application and let it deal with it.
+		main_set_ranges(_ranges_millimeters, _anchor_responses);
+
+		// After we do that go back to idle. The state is now the main application's
+		// problem.
+		_tag_state = TSTATE_IDLE;
+
+	} else if (report_mode == REPORT_MODE_LOCATION) {
+		// TODO: implement this
 	}
 }
 
-static int dwtime_to_millimeterss (double dwtime) {
-	// Get meters using the speed of light
-	double dist = dwtime * DWT_TIME_UNITS * SPEED_OF_LIGHT;
 
-	// And return millimeters
-	return (int) (dist*1000.0);
-}
-
+// After getting responses from anchors calculate the range to each anchor.
+// These values are stored in _ranges_millimeters.
 static void calculate_ranges () {
-
+	// Clear array
+	memset(_ranges_millimeters, INT32_MAX, sizeof(_ranges_millimeters));
 
 	// Iterate through all anchors to calculate the range from the tag
 	// to each anchor
 	for (uint8_t anchor_index=0; anchor_index<_anchor_response_count; anchor_index++) {
-		anchor_response_times_t* aresp = &_anchor_response_times[anchor_index];
+		anchor_responses_t* aresp = &_anchor_responses[anchor_index];
 
 		// First need to calculate the crystal offset between the anchor and tag.
 		// To do this, we need to get the timestamps at the anchor and tag
@@ -422,16 +445,12 @@ static void calculate_ranges () {
 			int64_t broadcast_tag_offset = (int64_t) broadcast_send_time - (int64_t) matching_broadcast_send_time;
 			double TOF = (double) broadcast_anchor_offset - (((double) broadcast_tag_offset) * offset_anchor_over_tag) + one_way_TOF;
 
-			int distance_millimeters = dwtime_to_millimeterss(TOF);
-
-			// int distance_millimeters = (int)(TOF * DWT_TIME_UNITS * SPEED_OF_LIGHT*1000.0);
-			// return (int) (dist*1000.0);
-
+			int distance_millimeters = dwtime_to_millimeters(TOF);
 
 			// Check that the distance we have at this point is at all reasonable
 			if (distance_millimeters >= MIN_VALID_RANGE_MM && distance_millimeters <= MAX_VALID_RANGE_MM) {
 				// Add this to our sorted array of distances
-				insert_sortedddd(distances_millimeters, distance_millimeters, num_valid_distances);
+				insert_sorted(distances_millimeters, distance_millimeters, num_valid_distances);
 				num_valid_distances++;
 			}
 		}
@@ -453,17 +472,11 @@ static void calculate_ranges () {
 		// without floating point, so buckle up.
 		// EXAMPLE: if the 90th percentile would be index 3.4, we do:
 		//                  distances[3] + 0.4*(distances[4]-distances[3])
-		int result = distances_millimeters[bot] +
+		int32_t result = distances_millimeters[bot] +
 			(((distances_millimeters[top]-distances_millimeters[bot]) * ((RANGE_PERCENTILE_NUMERATOR*num_valid_distances)
 			 - (bot*RANGE_PERCENTILE_DENOMENATOR))) / RANGE_PERCENTILE_DENOMENATOR);
 
-
-
+		// Save the result
+		_ranges_millimeters[anchor_index] = result;
 	}
-
-
-
 }
-
-
-

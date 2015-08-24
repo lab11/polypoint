@@ -1,4 +1,6 @@
 
+#include <string.h>
+
 #include "stm32f0xx_tim.h"
 #include "stm32f0xx_pwr.h"
 
@@ -28,9 +30,29 @@
 // to get all of the functions it should call.
 bool interrupts_triggered[NUMBER_INTERRUPT_SOURCES]  = {FALSE};
 
+
+
+/******************************************************************************/
+// Current application settings as set by the host
+/******************************************************************************/
+dw1000_report_mode_e _report_mode = REPORT_MODE_RANGES;
+dw1000_update_mode_e _update_mode = UPDATE_MODE_PERIODIC;
+uint8_t _update_rate = 10;
+
+/******************************************************************************/
+// Current application state
+/******************************************************************************/
 // Timer for doing periodic operations (like TAG ranging events)
 timer_t* _periodic_timer;
 
+// Buffer of anchor IDs and ranges to the anchor.
+// Long enough to hold an anchor id followed by the range.
+uint8_t _anchor_ids_ranges[MAX_NUM_ANCHOR_RESPONSES*(EUI_LEN+sizeof(int32_t))];
+uint8_t _num_anchor_ranges = 0;
+
+/******************************************************************************/
+// "OS" like functions
+/******************************************************************************/
 
 // This gets called from interrupt context
 void mark_interrupt (interrupt_source_e src) {
@@ -50,25 +72,6 @@ void i2c_callback (uint8_t opcode, uint8_t* data) {
 
 
 void decawave_done (dw1000_cb_e evt, dw1000_err_e err) {
-	// if (err) {
-	// 	// do something
-	// 	// led_on(LED1);
-	// 	// led_on(LED2);
-
-	// } else {
-
-	// 	switch (evt) {
-	// 		case DW1000_INIT_DONE:
-	// 			state = STATE_DW1000_INIT_DONE;
-	// 			// led_on(LED1);
-	// 			dw1000_tag_init();
-
-	// 			break;
-
-	// 		default:
-	// 			break;
-	// 	}
-	// }
 }
 
 /******************************************************************************/
@@ -103,6 +106,38 @@ void run_tag (dw1000_report_mode_e report_mode,
 	//
 }
 
+
+/******************************************************************************/
+// Connection for the anchor/tag code to talk to the main applications
+/******************************************************************************/
+
+dw1000_report_mode_e main_get_report_mode () {
+	return _report_mode;
+}
+
+// Record ranges that the tag found.
+void main_set_ranges (int* ranges_millimeters, anchor_responses_t* anchor_responses) {
+	uint8_t buffer_index = 0;
+
+	// Reset
+	_num_anchor_ranges = 0;
+
+	// Iterate through all ranges, looking for valid ones, and copying the correct
+	// data into the ranges buffer.
+	for (uint8_t i=0; i<MAX_NUM_ANCHOR_RESPONSES; i++) {
+		if (ranges_millimeters[i] != INT32_MAX) {
+			// This is a valid range
+			memcpy(_anchor_ids_ranges+buffer_index, anchor_responses->anchor_addr, EUI_LEN);
+			buffer_index += EUI_LEN;
+			memcpy(_anchor_ids_ranges+buffer_index, &ranges_millimeters[i], sizeof(int32_t));
+			buffer_index += sizeof(int32_t);
+			_num_anchor_ranges++;
+		}
+	}
+
+	// Now let the host know so it can do something with the ranges.
+	host_interface_notify_ranges(_anchor_ids_ranges, _num_anchor_ranges);
+}
 
 /******************************************************************************/
 // Main

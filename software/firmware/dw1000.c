@@ -673,22 +673,22 @@ int dwtime_to_millimeters (double dwtime) {
 // Shoved this here for now.
 // Insert an element into a sorted array.
 // end is the number of elements in the array.
-// void insert_sorted (int arr[], int new, unsigned end) {
-// 	unsigned insert_at = 0;
-// 	while ((insert_at < end) && (new >= arr[insert_at])) {
-// 		insert_at++;
-// 	}
-// 	if (insert_at == end) {
-// 		arr[insert_at] = new;
-// 	} else {
-// 		while (insert_at <= end) {
-// 			int temp = arr[insert_at];
-// 			arr[insert_at] = new;
-// 			new = temp;
-// 			insert_at++;
-// 		}
-// 	}
-// }
+void insert_sorted (int arr[], int new, unsigned end) {
+	unsigned insert_at = 0;
+	while ((insert_at < end) && (new >= arr[insert_at])) {
+		insert_at++;
+	}
+	if (insert_at == end) {
+		arr[insert_at] = new;
+	} else {
+		while (insert_at <= end) {
+			int temp = arr[insert_at];
+			arr[insert_at] = new;
+			new = temp;
+			insert_at++;
+		}
+	}
+}
 
 /******************************************************************************/
 // Ranging Protocol Algorithm Functions
