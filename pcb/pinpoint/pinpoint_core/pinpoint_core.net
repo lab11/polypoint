@@ -1,7 +1,7 @@
 (export (version D)
   (design
     (source /home/user/repos/polypoint/pcb/pinpoint/pinpoint_core/pinpoint_core.sch)
-    (date "Mon 24 Aug 2015 01:37:38 PM EDT")
+    (date "Mon 24 Aug 2015 02:01:57 PM EDT")
     (tool "Eeschema 0.201508230901+6112~28~ubuntu15.04.1-product")
     (sheet (number 1) (name /) (tstamps /)
       (title_block
@@ -165,7 +165,7 @@
       (tstamp 55D8C4C2))
     (comp (ref P13)
       (value USB_B)
-      (footprint Connect:USB_Micro-B)
+      (footprint polypoint:USB_Micro-B_Vert)
       (libsource (lib conn) (part USB_B))
       (sheetpath (names "/PinPoint Edison/") (tstamps /55D74741/))
       (tstamp 55D8C924))
