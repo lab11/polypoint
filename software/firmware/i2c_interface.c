@@ -14,10 +14,6 @@ uint8_t rxBuffer[BUFFER_SIZE];
 uint8_t txBuffer[BUFFER_SIZE];
 
 
-// Save a callback to use when data comes in from i2c for the main application
-static i2c_interface_callback callback;
-
-
 /* CPAL local transfer structures */
 CPAL_TransferTypeDef rxStructure;
 CPAL_TransferTypeDef txStructure;
@@ -33,10 +29,7 @@ uint8_t* _interrupt_buffer;
 uint8_t _interrupt_ranges_count;
 
 
-uint32_t i2c_interface_init (i2c_interface_callback cb) {
-
-	// Save callback
-	callback = cb;
+uint32_t i2c_interface_init () {
 
 	// Enabled the Interrupt pin
 	GPIO_InitTypeDef  GPIO_InitStructure;

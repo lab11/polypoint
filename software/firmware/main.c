@@ -71,11 +71,6 @@ static void error () {
 }
 
 
-void i2c_callback (uint8_t opcode, uint8_t* data) {
-	// led_toggle(LED1);
-}
-
-
 void decawave_done (dw1000_cb_e evt, dw1000_err_e err) {
 }
 
@@ -167,7 +162,7 @@ int main () {
 	// Initialize the I2C listener. This is the main interface
 	// the host controller (that is using TriPoint for ranging/localization)
 	// uses to configure how this module operates.
-	err = i2c_interface_init(i2c_callback);
+	err = i2c_interface_init();
 	if (err) error();
 
 	// Next up do some preliminary setup of the DW1000. This mostly configures
