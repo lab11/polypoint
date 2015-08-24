@@ -5,7 +5,7 @@
 
 #include "board.h"
 #include "firmware.h"
-#include "i2c_interface.h"
+#include "host_interface.h"
 #include "dw1000.h"
 #include "operation_api.h"
 
@@ -29,7 +29,7 @@ uint8_t* _interrupt_buffer;
 uint8_t _interrupt_ranges_count;
 
 
-uint32_t i2c_interface_init () {
+uint32_t host_interface_init () {
 
 	// Enabled the Interrupt pin
 	GPIO_InitTypeDef  GPIO_InitStructure;
@@ -101,7 +101,7 @@ void host_interface_notify_ranges (uint8_t* anchor_ids_ranges, uint8_t num_ancho
 }
 
 // Doesn't block, but waits for an I2C master to initiate a WRITE.
-uint32_t i2c_interface_wait () {
+uint32_t host_interface_wait () {
 	uint32_t ret;
 
 	// Setup the buffer to receive the contents of the WRITE in
@@ -119,7 +119,7 @@ uint32_t i2c_interface_wait () {
 }
 
 // Wait for a READ from the master. Setup the buffers
-uint32_t i2c_interface_respond (uint8_t length) {
+uint32_t host_interface_respond (uint8_t length) {
 	uint32_t ret;
 
 	if (length > BUFFER_SIZE) {
@@ -143,23 +143,23 @@ uint32_t i2c_interface_respond (uint8_t length) {
 
 // Called when the I2C interface receives a WRITE message on the bus.
 // Based on what was received, either act or setup a response
-void i2c_interface_rx_fired () {
+void host_interface_rx_fired () {
 	uint8_t opcode;
 
 	// First byte of every correct WRITE packet is the opcode of the
 	// packet.
 	opcode = rxBuffer[0];
 	switch (opcode) {
-		case I2C_CMD_INFO:
+		case HOST_CMD_INFO:
 			// Info packet is a good way to check that I2C is working.
 			memcpy(txBuffer, INFO_PKT, 3);
-			i2c_interface_respond(3);
+			host_interface_respond(3);
 			break;
 
-		case I2C_CMD_CONFIG: {
+		case HOST_CMD_CONFIG: {
 
 			// Just go back to waiting for a WRITE after a config message
-			i2c_interface_wait();
+			host_interface_wait();
 
 			// This packet configures the TriPoint module and
 			// is what kicks off using it.
@@ -167,7 +167,7 @@ void i2c_interface_rx_fired () {
 			dw1000_role_e my_role;
 
 			// Check if this module should be an anchor or tag
-			if ((config_main & I2C_PKT_CONFIG_MAIN_ANCTAG_MASK) == I2C_PKT_CONFIG_MAIN_ANCTAG_ANCHOR) {
+			if ((config_main & HOST_PKT_CONFIG_MAIN_ANCTAG_MASK) == HOST_PKT_CONFIG_MAIN_ANCTAG_ANCHOR) {
 				my_role = ANCHOR;
 			} else {
 				my_role = TAG;
@@ -181,8 +181,8 @@ void i2c_interface_rx_fired () {
 				dw1000_report_mode_e report_mode;
 				dw1000_update_mode_e update_mode;
 
-				report_mode = (config_tag & I2C_PKT_CONFIG_TAG_RMODE_MASK) >> I2C_PKT_CONFIG_TAG_RMODE_SHIFT;
-				update_mode = (config_tag & I2C_PKT_CONFIG_TAG_UMODE_MASK) >> I2C_PKT_CONFIG_TAG_UMODE_SHIFT;
+				report_mode = (config_tag & HOST_PKT_CONFIG_TAG_RMODE_MASK) >> HOST_PKT_CONFIG_TAG_RMODE_SHIFT;
+				update_mode = (config_tag & HOST_PKT_CONFIG_TAG_UMODE_MASK) >> HOST_PKT_CONFIG_TAG_UMODE_SHIFT;
 
 				// Now that we know how we should operate,
 				// call the main tag function to get things rollin'.
@@ -194,7 +194,7 @@ void i2c_interface_rx_fired () {
 			break;
 		}
 
-		case I2C_CMD_READ_INTERRUPT: {
+		case HOST_CMD_READ_INTERRUPT: {
 			// Prepare a packet to send back to the host
 
 			// What the packet looks like depends on which type it is
@@ -212,7 +212,7 @@ void i2c_interface_rx_fired () {
 					txBuffer[1] = HOST_IFACE_INTERRUPT_RANGES;
 					txBuffer[2] = _interrupt_ranges_count;
 					memcpy(txBuffer+3, _interrupt_buffer, _interrupt_ranges_count*(EUI_LEN+sizeof(int32_t)));
-					i2c_interface_respond(txBuffer[0]+1);
+					host_interface_respond(txBuffer[0]+1);
 					break;
 
 				default:
@@ -233,12 +233,12 @@ void i2c_interface_rx_fired () {
 // Called after a READ message from the master.
 // We don't need to do anything after the master reads from us, except
 // to go back to waiting for a WRITE.
-void i2c_interface_tx_fired () {
-	i2c_interface_wait();
+void host_interface_tx_fired () {
+	host_interface_wait();
 }
 
 // Called after timeout
-void i2c_interface_timeout_fired () {
+void host_interface_timeout_fired () {
 }
 
 

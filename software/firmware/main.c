@@ -7,7 +7,7 @@
 #include "tripoint.h"
 #include "led.h"
 
-#include "i2c_interface.h"
+#include "host_interface.h"
 #include "dw1000.h"
 #include "dw1000_tag.h"
 #include "dw1000_anchor.h"
@@ -162,7 +162,7 @@ int main () {
 	// Initialize the I2C listener. This is the main interface
 	// the host controller (that is using TriPoint for ranging/localization)
 	// uses to configure how this module operates.
-	err = i2c_interface_init();
+	err = host_interface_init();
 	if (err) error();
 
 	// Next up do some preliminary setup of the DW1000. This mostly configures
@@ -173,7 +173,7 @@ int main () {
 
 	// Now we just wait for the host board to tell us what to do. Before
 	// it sets us up we just sit here.
-	err = i2c_interface_wait();
+	err = host_interface_wait();
 	if (err) error();
 
 
@@ -185,13 +185,13 @@ int main () {
 
 		// 		// Setup CPAL, the manager that provides an I2C interface
 		// 		// for the chip.
-		// 		err = i2c_interface_init(i2c_callback);
+		// 		err = host_interface_init(i2c_callback);
 		// 		if (err) error();
 
 
 
 		// 		uint8_t buf[5] = {4, 5, 6, 7, 8};
-		// 		err = i2c_interface_wait(5, buf);
+		// 		err = host_interface_wait(5, buf);
 		// 		if (err) error();
 		// 		break;
 
@@ -219,7 +219,7 @@ int main () {
 		// 		state = STATE_IDLE;
 
 		// 		// Now wait for commands from the host chip
-		// 		// i2c_interface_listen();
+		// 		// host_interface_listen();
 
 
 		// 		// uint8_t buf[5] = {4, 5, 6, 7, 8};
@@ -227,7 +227,7 @@ int main () {
 
 		// 		// led_toggle(LED2);
 
-		// 		// err = i2c_interface_send(0x74, 5, buf);
+		// 		// err = host_interface_send(0x74, 5, buf);
 		// 		// if (err) {
 		// 		// 	led_on(LED1);
 		// 		// }
@@ -274,19 +274,19 @@ int main () {
 			if (interrupts_triggered[INTERRUPT_I2C_RX] == TRUE) {
 				interrupts_triggered[INTERRUPT_I2C_RX] = FALSE;
 				interrupt_triggered = TRUE;
-				i2c_interface_rx_fired();
+				host_interface_rx_fired();
 			}
 
 			if (interrupts_triggered[INTERRUPT_I2C_TX] == TRUE) {
 				interrupts_triggered[INTERRUPT_I2C_TX] = FALSE;
 				interrupt_triggered = TRUE;
-				i2c_interface_tx_fired();
+				host_interface_tx_fired();
 			}
 
 			if (interrupts_triggered[INTERRUPT_I2C_TIMEOUT] == TRUE) {
 				interrupts_triggered[INTERRUPT_I2C_TIMEOUT] = FALSE;
 				interrupt_triggered = TRUE;
-				i2c_interface_timeout_fired();
+				host_interface_timeout_fired();
 			}
 		} while (interrupt_triggered == TRUE);
 
