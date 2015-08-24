@@ -167,7 +167,7 @@ struct pp_tag_poll  {
 
 // Packet the anchor sends back to the tag.
 struct pp_anc_final {
-	struct ieee154_header_unicast header;
+	struct ieee154_header_unicast ieee154_header_unicast;
 	uint8_t message_type;
 	uint8_t final_antenna;                 // The antenna the anchor used when sending this packet.
 	uint32_t dw_time_sent;                 // The anchor timestamp of when it sent this packet

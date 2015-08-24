@@ -194,7 +194,7 @@ void dw1000_tag_rxcallback (const dwt_callback_data_t* rxd) {
 			anc_final = (struct pp_anc_final*) buf;
 
 			// Save the anchor address
-			memcpy(_anchor_responses[_anchor_response_count].anchor_addr, anc_final->header.sourceAddr, EUI_LEN);
+			memcpy(_anchor_responses[_anchor_response_count].anchor_addr, anc_final->ieee154_header_unicast.sourceAddr, EUI_LEN);
 
 			// Save the anchor's list of when it received the tag broadcasts
 			memcpy(_anchor_responses[_anchor_response_count].tag_poll_TOAs, anc_final->TOAs, sizeof(anc_final->TOAs));

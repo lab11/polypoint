@@ -23,24 +23,23 @@ static uint8_t _ranging_broadcast_ss_num = 0;
 
 // Packet that the anchor unicasts to the tag
 static struct pp_anc_final pp_anc_final_pkt = {
-	{ // 802.15.4 HEADER
-		{
+	.ieee154_header_unicast = {
+		.frameCtrl = {
 			0x41, // FCF[0]: data frame, panid compression
 			0xCC  // FCF[1]: ext source, ext destination
 		},
-		0,        // Sequence number
-		{
-			POLYPOINT_PANID & 0xFF, // PAN ID
-			POLYPOINT_PANID >> 8
+		.seqNum = 0,
+		.panID = {
+			POLYPOINT_PANID & 0xFF,
+			POLYPOINT_PANID >> 8,
 		},
-		{ 0 },    // Dest (blank for now)
-		{ 0 }     // Source (blank for now)
+		.destAddr = { 0 },    // (blank for now)
+		.sourceAddr = { 0 },  // (blank for now)
 	},
-	// PACKET BODY
-	MSG_TYPE_PP_ONEWAY_ANC_FINAL,  // Message type
-	0,                             // Final Antenna
-	0,                             // Time Sent
-	{ 0 }                          // TOAs
+	.message_type  = MSG_TYPE_PP_ONEWAY_ANC_FINAL,
+	.final_antenna = 0,
+	.dw_time_sent  = 0,
+	.TOAs          = { 0 },
 };
 
 
@@ -70,7 +69,7 @@ dw1000_err_e dw1000_anchor_init () {
 	dwt_rxenable(FALSE);
 
 	// Load our EUI into the outgoing packet
-	dw1000_read_eui(pp_anc_final_pkt.header.sourceAddr);
+	dw1000_read_eui(pp_anc_final_pkt.ieee154_header_unicast.sourceAddr);
 
 	// Need a timer
 	_ranging_broadcast_timer = timer_init();
@@ -152,7 +151,7 @@ void dw1000_anchor_rxcallback (const dwt_callback_data_t *rxd) {
 					// ranging broadcast packets.
 					_state = ASTATE_RANGING;
 					// Record the EUI of the tag so that we don't get mixed up
-					memcpy(pp_anc_final_pkt.header.destAddr, rx_poll_pkt->header.sourceAddr, 8);
+					memcpy(pp_anc_final_pkt.ieee154_header_unicast.destAddr, rx_poll_pkt->header.sourceAddr, 8);
 					// Record which ranging subsequence the tag is on
 					_ranging_broadcast_ss_num = rx_poll_pkt->subsequence;
 					// Record the timestamp
@@ -176,7 +175,7 @@ void dw1000_anchor_rxcallback (const dwt_callback_data_t *rxd) {
 				// ranging broadcast packets.
 
 				// First check if this is from the same tag
-				if (memcmp(pp_anc_final_pkt.header.destAddr, rx_poll_pkt->header.sourceAddr, 8) == 0) {
+				if (memcmp(pp_anc_final_pkt.ieee154_header_unicast.destAddr, rx_poll_pkt->header.sourceAddr, 8) == 0) {
 					// Same tag
 
 					if (rx_poll_pkt->subsequence == _ranging_broadcast_ss_num) {
@@ -202,7 +201,7 @@ void dw1000_anchor_rxcallback (const dwt_callback_data_t *rxd) {
 
 						// Prepare the outgoing packet to send back to the
 						// tag with our TOAs.
-						pp_anc_final_pkt.header.seqNum++;
+						pp_anc_final_pkt.ieee154_header_unicast.seqNum++;
 						const uint16_t frame_len = sizeof(struct pp_anc_final);
 						dwt_writetxfctrl(frame_len, 0);
 
