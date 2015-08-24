@@ -735,7 +735,7 @@ static uint8_t antenna_and_channel_to_subsequence_number (uint8_t tag_antenna_in
 	// We do this by finding the last possible breaking point between
 	// repeated rounds and determining if we should go just pass that point
 	// or before it.
-	uint8_t a = (NUM_RANGING_BROADCASTS / NUM_UNIQUE_PACKET_CONFIGURATIONS) * NUM_UNIQUE_PACKET_CONFIGURATIONS;
+	uint8_t a = (uint8_t) ((NUM_RANGING_BROADCASTS / NUM_UNIQUE_PACKET_CONFIGURATIONS) * NUM_UNIQUE_PACKET_CONFIGURATIONS);
 	if ((base_offset + a) < NUM_RANGING_BROADCASTS) {
 		return base_offset + a;
 	} else {

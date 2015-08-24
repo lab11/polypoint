@@ -92,7 +92,18 @@ Byte 0: 0x03  Opcode
 
 Read:
 ```
-Byte 0: Length.
+Byte 0: Length of the following message.
+
+Byte 1: Interrupt reason
+  1 = Ranges to anchors are available
+
+
+IF byte1 == 0x1:
+Byte 2: Number of ranges.
+Bytes 3-n: 8 bytes of anchor EUI then 4 bytes of range in millimeters.
+
+
+
 TODO
 ```
 

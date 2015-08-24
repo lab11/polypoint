@@ -25,11 +25,14 @@
 // state_e state = STATE_START;
 
 
+/******************************************************************************/
+// OS state
+/******************************************************************************/
+
 // Array of interrupt sources. When an interrupt fires, this array gets marked
 // noting that the interrupt fired. The main thread then processes this array
 // to get all of the functions it should call.
 bool interrupts_triggered[NUMBER_INTERRUPT_SOURCES]  = {FALSE};
-
 
 
 /******************************************************************************/
@@ -38,6 +41,7 @@ bool interrupts_triggered[NUMBER_INTERRUPT_SOURCES]  = {FALSE};
 dw1000_report_mode_e _report_mode = REPORT_MODE_RANGES;
 dw1000_update_mode_e _update_mode = UPDATE_MODE_PERIODIC;
 uint8_t _update_rate = 10;
+
 
 /******************************************************************************/
 // Current application state
@@ -49,6 +53,7 @@ timer_t* _periodic_timer;
 // Long enough to hold an anchor id followed by the range.
 uint8_t _anchor_ids_ranges[MAX_NUM_ANCHOR_RESPONSES*(EUI_LEN+sizeof(int32_t))];
 uint8_t _num_anchor_ranges = 0;
+
 
 /******************************************************************************/
 // "OS" like functions
@@ -74,9 +79,17 @@ void i2c_callback (uint8_t opcode, uint8_t* data) {
 void decawave_done (dw1000_cb_e evt, dw1000_err_e err) {
 }
 
+
 /******************************************************************************/
 // Main operation functions called by the I2C interface
 /******************************************************************************/
+
+// Called by periodic timer
+void tag_execute_range_callback () {
+	// TODO: get return value from this function and slow the timer if
+	// we starting ranging events too quickly.
+	dw1000_tag_start_ranging_event();
+}
 
 // This is called after we've heard from the host board that this should be
 // a tag with the given settings.
@@ -94,7 +107,7 @@ void run_tag (dw1000_report_mode_e report_mode,
 		// get microseconds, then divide by 10 because update_rate is in
 		// tenths of hertz.
 		uint32_t period = (((uint32_t) update_rate) * 1000000) / 10;
-		timer_start(_periodic_timer, period, dw1000_tag_start_ranging_event);
+		timer_start(_periodic_timer, period, tag_execute_range_callback);
 
 	} else if (update_mode == UPDATE_MODE_DEMAND) {
 		// Just wait for the host to request a ranging event
@@ -116,7 +129,7 @@ dw1000_report_mode_e main_get_report_mode () {
 }
 
 // Record ranges that the tag found.
-void main_set_ranges (int* ranges_millimeters, anchor_responses_t* anchor_responses) {
+void main_set_ranges (int32_t* ranges_millimeters, anchor_responses_t* anchor_responses) {
 	uint8_t buffer_index = 0;
 
 	// Reset

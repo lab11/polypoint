@@ -26,6 +26,12 @@ CPAL_TransferTypeDef txStructure;
 // Last byte is the version. Set to 1 for now
 uint8_t INFO_PKT[3] = {0xb0, 0x1a, 1};
 
+// Keep track of why we interrupted the host
+interrupt_reason_e _interrupt_reason;
+uint8_t* _interrupt_buffer;
+// Also need to keep track of other state for certain interrupt reasons
+uint8_t _interrupt_ranges_count;
+
 
 uint32_t i2c_interface_init (i2c_interface_callback cb) {
 
@@ -81,9 +87,24 @@ uint32_t i2c_interface_init (i2c_interface_callback cb) {
 
 }
 
-// Send to the tag the ranges.
-uint32_t host_interface_notify_ranges (uint8_t* _anchor_ids_ranges, uint8_t _num_anchor_ranges) {
+static void interrupt_host_set () {
+	GPIO_WriteBit(INTERRUPT_PORT, INTERRUPT_PIN, Bit_SET);
+}
 
+static void interrupt_host_clear () {
+	GPIO_WriteBit(INTERRUPT_PORT, INTERRUPT_PIN, Bit_RESET);
+}
+
+// Send to the tag the ranges.
+void host_interface_notify_ranges (uint8_t* anchor_ids_ranges, uint8_t num_anchor_ranges) {
+
+	// Save the relevant state for when the host asks for it
+	_interrupt_reason = HOST_IFACE_INTERRUPT_RANGES;
+	_interrupt_buffer = anchor_ids_ranges;
+	_interrupt_ranges_count = num_anchor_ranges;
+
+	// Let the host know it should ask
+	interrupt_host_set();
 }
 
 // Doesn't block, but waits for an I2C master to initiate a WRITE.
@@ -105,7 +126,7 @@ uint32_t i2c_interface_wait () {
 }
 
 // Wait for a READ from the master. Setup the buffers
-uint32_t i2c_interface_respond (uint8_t length, uint8_t* buf) {
+uint32_t i2c_interface_respond (uint8_t length) {
 	uint32_t ret;
 
 	if (length > BUFFER_SIZE) {
@@ -114,7 +135,6 @@ uint32_t i2c_interface_respond (uint8_t length, uint8_t* buf) {
 
 	// Setup outgoing data
 	txStructure.wNumData = length;
-	memcpy(txBuffer, buf, length);
 	txStructure.pbBuffer = txBuffer;
 
 	// Device is ready, not clear if this is needed
@@ -139,7 +159,8 @@ void i2c_interface_rx_fired () {
 	switch (opcode) {
 		case I2C_CMD_INFO:
 			// Info packet is a good way to check that I2C is working.
-			i2c_interface_respond(3, INFO_PKT);
+			memcpy(txBuffer, INFO_PKT, 3);
+			i2c_interface_respond(3);
 			break;
 
 		case I2C_CMD_CONFIG: {
@@ -179,6 +200,36 @@ void i2c_interface_rx_fired () {
 			}
 			break;
 		}
+
+		case I2C_CMD_READ_INTERRUPT: {
+			// Prepare a packet to send back to the host
+
+			// What the packet looks like depends on which type it is
+			switch (_interrupt_reason) {
+				case HOST_IFACE_INTERRUPT_RANGES:
+					// Start by clearing the interrupt
+					interrupt_host_clear();
+
+					// Need a packet that looks like:
+					//    <length>
+					//    HOST_IFACE_INTERRUPT_RANGES
+					//    <number of anchor,range pairs>
+					//    <array of pairs>
+					txBuffer[0] = 2 + (_interrupt_ranges_count*(EUI_LEN+sizeof(int32_t)));
+					txBuffer[1] = HOST_IFACE_INTERRUPT_RANGES;
+					txBuffer[2] = _interrupt_ranges_count;
+					memcpy(txBuffer+3, _interrupt_buffer, _interrupt_ranges_count*(EUI_LEN+sizeof(int32_t)));
+					i2c_interface_respond(txBuffer[0]+1);
+					break;
+
+				default:
+					break;
+			}
+
+			break;
+		}
+
+
 		default:
 			break;
 	}

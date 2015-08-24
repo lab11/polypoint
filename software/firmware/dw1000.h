@@ -239,7 +239,7 @@ void dw1000_choose_antenna (uint8_t antenna_number);
 void dw1000_read_eui (uint8_t *eui_buf);
 void dw1000_set_mode (dw1000_role_e role);
 void dw1000_set_ranging_broadcast_subsequence_settings (dw1000_role_e role, uint8_t subseq_num, bool reset);
-void dw1000_set_ranging_listening_slot_settings (dw1000_role_e role, uint8_t slot_num, bool reset);
+void dw1000_set_ranging_listening_window_settings (dw1000_role_e role, uint8_t slot_num, bool reset);
 uint8_t dw1000_get_ss_index_from_settings (uint8_t anchor_antenna_index, uint8_t window_num);
 
 void dw1000_interrupt_fired ();

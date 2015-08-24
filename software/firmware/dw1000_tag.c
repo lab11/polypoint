@@ -7,6 +7,7 @@
 #include "dw1000.h"
 #include "dw1000_tag.h"
 #include "firmware.h"
+#include "operation_api.h"
 
 // Our timer object that we use for timing packet transmissions
 timer_t* _ranging_broadcast_timer;
@@ -127,6 +128,8 @@ dw1000_err_e dw1000_tag_start_ranging_event () {
 
 	// Start a timer that will kick off the broadcast ranging events
 	timer_start(_ranging_broadcast_timer, RANGING_BROADCASTS_PERIOD_US, ranging_broadcast_subsequence_task);
+
+	return DW1000_NO_ERR;
 }
 
 
@@ -274,6 +277,11 @@ static void send_poll () {
 
 	// MP bug - TX antenna delay needs reprogramming as it is not preserved
 	dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
+
+	if (err != DWT_SUCCESS) {
+		// This likely means our delay was too short when sending this packet.
+		// TODO: do something here...
+	}
 }
 
 // This is called for each broadcast ranging subsequence interval where
