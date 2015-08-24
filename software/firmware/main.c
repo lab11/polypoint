@@ -76,7 +76,7 @@ void decawave_done (dw1000_cb_e evt, dw1000_err_e err) {
 
 
 /******************************************************************************/
-// Main operation functions called by the I2C interface
+// Main operation functions called by the host interface
 /******************************************************************************/
 
 // Called by periodic timer
@@ -106,7 +106,7 @@ void run_tag (dw1000_report_mode_e report_mode,
 
 	} else if (update_mode == UPDATE_MODE_DEMAND) {
 		// Just wait for the host to request a ranging event
-		// over the I2C interface.
+		// over the host interface.
 	}
 
 	//
