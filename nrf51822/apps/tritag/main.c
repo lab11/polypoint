@@ -10,6 +10,7 @@ UWB Localization Tag
 #include "nordic_common.h"
 #include "nrf.h"
 #include "nrf_sdm.h"
+#include "nrf_delay.h"
 #include "ble.h"
 #include "ble_db_discovery.h"
 #include "softdevice_handler.h"
@@ -289,12 +290,25 @@ static void sys_evt_dispatch(uint32_t sys_evt)
     // on_sys_evt(sys_evt);
 }
 
+void tripointData(uint8_t* data, uint32_t len) {
+	//update the data value and notify on the data
+	ble_gatts_hvx_params_t notify_params;
+	notify_params.handle = 	app.char_location_handles.value_handle;
+	notify_params.type =	BLE_GATT_HVX_NOTIFICATION;
+	notify_params.offset =  0;
+	notify_params.p_len = 	&len;
+	notify_params.p_data = 	data;
+	
+	uint32_t err_code;
+	err_code = sd_ble_gatts_hvx(app.conn_handle, &notify_params);
+	APP_ERROR_CHECK(err_code);
+}
 
 static void timer_handler (void* p_context) {
     uint32_t err_code;
 
     if (!tripoint_inited) {
-        err_code = tripoint_init();
+        err_code = tripoint_init(tripointData);
         if (err_code == NRF_SUCCESS) {
             tripoint_inited = true;
             tripoint_start_ranging(true, 10);
@@ -379,7 +393,7 @@ static void advertising_init(void) {
 //init services
 static void services_init (void)
 {
-    uint32_t err_code;
+    volatile uint32_t err_code;
 
     // Setup our long UUID so that nRF recognizes it. This is done by
     // storing the full UUID and essentially using `tritag_uuid`
@@ -396,7 +410,7 @@ static void services_init (void)
     APP_ERROR_CHECK(err_code);
 
     // Add the LOCATION characteristic to the service
-    {
+    /*{
         ble_gatts_char_md_t char_md;
         ble_gatts_attr_t    attr_char_value;
         ble_uuid_t          char_uuid;
@@ -449,8 +463,59 @@ static void services_init (void)
                                                    &attr_char_value,
                                                    &app.char_location_handles);
         APP_ERROR_CHECK(err_code);
-    }
+    }*/
 
+	//add the characteristic that exposes a blob of interrupt response
+	{
+		ble_gatts_char_md_t char_md;
+        ble_gatts_attr_t    attr_char_value;
+        ble_uuid_t          char_uuid;
+        ble_gatts_attr_md_t attr_md;
+
+        memset(&char_md, 0, sizeof(char_md));
+
+        // The characteristic properties
+        char_md.char_props.read          = 1;
+        char_md.char_props.write         = 0;
+        char_md.char_props.notify        = 1;
+        char_md.p_char_user_desc         = NULL;
+        char_md.p_char_pf                = NULL;
+        char_md.p_user_desc_md           = NULL;
+        char_md.p_cccd_md                = NULL;
+        char_md.p_sccd_md                = NULL;
+
+        char_uuid.type = app.uuid_type;
+        char_uuid.uuid = TRITAG_CHAR_LOCATION_SHORT_UUID;
+
+        memset(&attr_md, 0, sizeof(attr_md));
+
+        BLE_GAP_CONN_SEC_MODE_SET_OPEN(&attr_md.read_perm);
+        // BLE_GAP_CONN_SEC_MODE_SET_OPEN(&attr_md.write_perm);
+
+        attr_md.vloc    = BLE_GATTS_VLOC_USER;
+        attr_md.rd_auth = 0;
+        attr_md.wr_auth = 0;
+        attr_md.vlen    = 0;
+
+        memset(&attr_char_value, 0, sizeof(attr_char_value));
+		
+		static uint8_t init = 0;
+
+        attr_char_value.p_uuid    = &char_uuid;
+        attr_char_value.p_attr_md = &attr_md;
+        attr_char_value.init_len  = 1;
+        attr_char_value.init_offs = 0;
+
+		//when this is 512 we get a data size error? it seems unlikely we are actually out of memory though
+        attr_char_value.max_len   = 72;
+        attr_char_value.p_value   = &init;
+
+        err_code = sd_ble_gatts_characteristic_add(app.service_handle,
+                                                   &char_md,
+                                                   &attr_char_value,
+                                                   &app.char_location_handles);
+        APP_ERROR_CHECK(err_code);
+	}
 }
 
 
@@ -536,6 +601,7 @@ static void power_manage (void) {
 }
 
 
+
 int main(void) {
     uint32_t err_code;
 
@@ -552,11 +618,13 @@ int main(void) {
     advertising_init();
     timers_init();
     conn_params_init();
+	
+	nrf_delay_us(500000);
 
     err_code = tripoint_hw_init();
     APP_ERROR_CHECK(err_code);
 
-    err_code = tripoint_init();
+    err_code = tripoint_init(tripointData);
     if (err_code == NRF_SUCCESS) {
         tripoint_inited = true;
     }

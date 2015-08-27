@@ -9,8 +9,10 @@
 
 #include "tripoint_interface.h"
 
-nrf_drv_twi_t twi_instance = NRF_DRV_TWI_INSTANCE(1);
+uint8_t response[256];
 
+nrf_drv_twi_t twi_instance = NRF_DRV_TWI_INSTANCE(1);
+void (*dataCallback)(uint8_t* data, uint32_t len);
 
 void tripoint_i2c_callback (nrf_drv_twi_evt_t* event) {
 	uint8_t buf[10];
@@ -18,7 +20,31 @@ void tripoint_i2c_callback (nrf_drv_twi_evt_t* event) {
 }
 
 void tripoint_interrupt_handler (nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action) {
+	//verify interrupt is from tripoint
+	if(pin == TRIPOINT_INTERRUPT_PIN) {
+		//ask whats up over I2C
+		uint32_t ret;
+		uint8_t cmd = TRIPOINT_CMD_READ_INTERRUPT;
+		ret = nrf_drv_twi_tx(&twi_instance, TRIPOINT_ADDRESS, &cmd, 1, false);
+		if (ret != NRF_SUCCESS) return ret;
 
+		//figure out the length of what we need to receive (its the first rsp byte)
+		uint8_t len = 0;
+		ret = nrf_drv_twi_rx(&twi_instance, TRIPOINT_ADDRESS, &len, 1, true);
+		if (ret != NRF_SUCCESS) return ret;
+
+		//read rest of the packet
+		if(len == 0) {
+			//some error?
+		} else {
+			ret = nrf_drv_twi_rx(&twi_instance, TRIPOINT_ADDRESS, response, len, false);
+			if (ret != NRF_SUCCESS) return ret;
+		}
+
+
+		//send back the I2C data
+		dataCallback(response, len);
+	}
 }
 
 ret_code_t tripoint_hw_init () {
@@ -48,7 +74,10 @@ ret_code_t tripoint_hw_init () {
 	return NRF_SUCCESS;
 }
 
-ret_code_t tripoint_init () {
+ret_code_t tripoint_init (void (*dataCall)(uint8_t* data, uint32_t len)) {
+
+	dataCallback = dataCall;
+
 	ret_code_t ret;
 	// Now try to read the info byte to make sure we have I2C connection
 	{
