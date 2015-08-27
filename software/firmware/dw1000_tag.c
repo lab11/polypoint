@@ -361,8 +361,10 @@ static void report_range () {
 // After getting responses from anchors calculate the range to each anchor.
 // These values are stored in _ranges_millimeters.
 static void calculate_ranges () {
-	// Clear array
-	memset(_ranges_millimeters, INT32_MAX, sizeof(_ranges_millimeters));
+	// Clear array, don't use memset
+	for (uint8_t i=0; i<MAX_NUM_ANCHOR_RESPONSES; i++) {
+		_ranges_millimeters[i] = INT32_MAX;
+	}
 
 	// Iterate through all anchors to calculate the range from the tag
 	// to each anchor
