@@ -29,6 +29,9 @@ static uint8_t getXtalTrim() {
 	return 8;
 }
 
+// Keep track of whether we have inited the STM hardware
+bool _stm_dw1000_interface_setup = FALSE;
+
 const uint8_t pgDelay[DW1000_NUM_CHANNELS] = {
 	0x0,
 	0xc9,
@@ -248,6 +251,9 @@ static void setup () {
 	DMA_InitStructure.DMA_PeripheralInc      = DMA_PeripheralInc_Disable;
 	DMA_InitStructure.DMA_Mode               = DMA_Mode_Normal;
 	DMA_InitStructure.DMA_M2M                = DMA_M2M_Disable;
+
+	// Mark that this function has run so we don't do it again.
+	_stm_dw1000_interface_setup = TRUE;
 }
 
 // Functions to configure the SPI speed
@@ -563,7 +569,9 @@ void dw1000_read_eui (uint8_t *eui_buf) {
 dw1000_err_e dw1000_init () {
 
 	// Do the STM setup that initializes pin and peripherals and whatnot.
-	setup();
+	if (!_stm_dw1000_interface_setup) {
+		setup();
+	}
 
 	// Reset the dw1000...for some reason
 	dw1000_reset();
