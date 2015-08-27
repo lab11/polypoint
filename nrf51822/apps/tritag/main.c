@@ -298,10 +298,10 @@ void tripointData(uint8_t* data, uint32_t len) {
 	notify_params.offset =  0;
 	notify_params.p_len = 	&len;
 	notify_params.p_data = 	data;
-	
-	uint32_t err_code;
-	err_code = sd_ble_gatts_hvx(app.conn_handle, &notify_params);
-	APP_ERROR_CHECK(err_code);
+
+	// uint32_t err_code;
+	// err_code = sd_ble_gatts_hvx(app.conn_handle, &notify_params);
+	// APP_ERROR_CHECK(err_code);
 }
 
 static void timer_handler (void* p_context) {
@@ -498,7 +498,7 @@ static void services_init (void)
         attr_md.vlen    = 0;
 
         memset(&attr_char_value, 0, sizeof(attr_char_value));
-		
+
 		static uint8_t init = 0;
 
         attr_char_value.p_uuid    = &char_uuid;
@@ -618,7 +618,7 @@ int main(void) {
     advertising_init();
     timers_init();
     conn_params_init();
-	
+
 	nrf_delay_us(500000);
 
     err_code = tripoint_hw_init();
