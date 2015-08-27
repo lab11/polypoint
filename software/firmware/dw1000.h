@@ -97,8 +97,12 @@
 // How much time the tag listens on each channel when receiving packets from the anchor
 #define RANGING_LISTENING_WINDOW_US 10000
 
+// How many slots should be in each listening window for the anchors to respond
+// in.
+#define NUM_RANGING_LISTENING_SLOTS 20
+
 // How long the slots inside each window should be for the anchors to choose from
-#define RANGING_LISTENING_SLOT_US RANGING_LISTENING_WINDOW_US/20
+#define RANGING_LISTENING_SLOT_US RANGING_LISTENING_WINDOW_US/NUM_RANGING_LISTENING_SLOTS
 
 // Maximum number of anchors a tag is willing to hear from
 #define MAX_NUM_ANCHOR_RESPONSES 6
@@ -108,7 +112,7 @@
 #define MAX_VALID_RANGE_MM (50*1000)  // 50 meters
 
 // How many valid ranges we have to get from the anchor in order to bother
-// including it in our calculations.
+// including it in our calculations for the distance to the tag.
 #define MIN_VALID_RANGES_PER_ANCHOR 10
 
 // When the tag is calculating range for each of the anchors given a bunch
@@ -238,8 +242,9 @@ void dw1000_reset ();
 void dw1000_choose_antenna (uint8_t antenna_number);
 void dw1000_read_eui (uint8_t *eui_buf);
 void dw1000_set_mode (dw1000_role_e role);
+uint8_t subsequence_number_to_antenna (dw1000_role_e role, uint8_t subseq_num);
 void dw1000_set_ranging_broadcast_subsequence_settings (dw1000_role_e role, uint8_t subseq_num, bool reset);
-void dw1000_set_ranging_listening_window_settings (dw1000_role_e role, uint8_t slot_num, bool reset);
+void dw1000_set_ranging_listening_window_settings (dw1000_role_e role, uint8_t slot_num, uint8_t antenna_num,bool reset);
 uint8_t dw1000_get_ss_index_from_settings (uint8_t anchor_antenna_index, uint8_t window_num);
 
 void dw1000_interrupt_fired ();

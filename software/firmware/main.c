@@ -69,6 +69,11 @@ void mark_interrupt (interrupt_source_e src) {
 static void error () {
 	// dw1000_init();
 	// led_on(LED2);
+	// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
+
+			GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
+			uDelay(10000);
+			GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
 }
 
 
@@ -155,6 +160,22 @@ void main_set_ranges (int32_t* ranges_millimeters, anchor_responses_t* anchor_re
 int main () {
 	uint32_t err;
 	bool interrupt_triggered = FALSE;
+
+
+
+	GPIO_InitTypeDef GPIO_InitStructure;
+	RCC_AHBPeriphClockCmd(STM_GPIO3_CLK, ENABLE);
+	GPIO_InitStructure.GPIO_Pin = STM_GPIO3_PIN;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+	GPIO_Init(STM_GPIO3_PORT, &GPIO_InitStructure);
+	GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
+	GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
+	GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
+
+
 
 	// In case we need a timer, get one. This is used for things like periodic
 	// ranging events.

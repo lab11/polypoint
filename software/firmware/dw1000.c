@@ -586,6 +586,10 @@ dw1000_err_e dw1000_init () {
 		return DW1000_COMM_ERR;
 	}
 
+	GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
+	uDelay(1000);
+	GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
+
 	// Choose antenna 0 as a default
 	dw1000_choose_antenna(0);
 
@@ -715,7 +719,7 @@ static uint8_t subsequence_number_to_channel (uint8_t subseq_num) {
 }
 
 // Return the Antenna index to use for a given subsequence number
-static uint8_t subsequence_number_to_antenna (dw1000_role_e role, uint8_t subseq_num) {
+uint8_t subsequence_number_to_antenna (dw1000_role_e role, uint8_t subseq_num) {
 	// ALGORITHM
 	// We must rotate the anchor and tag antennas differently so the same
 	// ones don't always overlap. This should also be different from the
@@ -754,12 +758,6 @@ static uint8_t antenna_and_channel_to_subsequence_number (uint8_t tag_antenna_in
 // Return the RF channel to use when the anchors respond to the tag
 static uint8_t listening_window_number_to_channel (uint8_t window_num) {
 	return window_num % NUM_RANGING_CHANNELS;
-}
-
-// Return the Antenna index to use in anchor response period
-static uint8_t listening_window_number_to_antenna (dw1000_role_e role, uint8_t window_num) {
-	// For now just use a default antenna.
-	return 0;
 }
 
 // Called when dw1000 tx/rx config settings and constants should be re applied
@@ -815,12 +813,8 @@ void dw1000_set_ranging_broadcast_subsequence_settings (dw1000_role_e role,
 // reset:      force settings update on the dw1000 when the channel is changed
 void dw1000_set_ranging_listening_window_settings (dw1000_role_e role,
                                                    uint8_t window_num,
+                                                   uint8_t antenna_num,
                                                    bool reset) {
-	// Stop the transceiver on the anchor. Don't know why.
-	if (role == ANCHOR) {
-		dwt_forcetrxoff();
-	}
-
 	// Change the channel depending on what window number we're at
 	global_ranging_config.chan = listening_window_number_to_channel(window_num);
 
@@ -832,7 +826,7 @@ void dw1000_set_ranging_listening_window_settings (dw1000_role_e role,
 	}
 
 	// Change what antenna we're listening/sending on
-	dw1000_choose_antenna(listening_window_number_to_antenna(role, window_num));
+	dw1000_choose_antenna(antenna_num);
 }
 
 // Get the subsequence slot number that a particular set of settings
@@ -841,7 +835,8 @@ void dw1000_set_ranging_listening_window_settings (dw1000_role_e role,
 // from the settings used in the listening window.
 uint8_t dw1000_get_ss_index_from_settings (uint8_t anchor_antenna_index,
                                            uint8_t window_num) {
-	uint8_t tag_antenna_index = listening_window_number_to_antenna(TAG, window_num);
+	// NOTE: need something more rigorous than setting 0 here
+	uint8_t tag_antenna_index = 0;
 	uint8_t channel_index = listening_window_number_to_channel(window_num);
 
 	return antenna_and_channel_to_subsequence_number(tag_antenna_index,

@@ -12,8 +12,15 @@
 
 typedef enum {
 	ASTATE_IDLE,
-	ASTATE_RANGING
+	ASTATE_RANGING,
+	ASTATE_RESPONDING
 } dw1000_anchor_state_e;
+
+typedef struct {
+	uint8_t  reply_after_subsequence;
+	uint16_t anchor_reply_window_in_us;
+	uint16_t anchor_reply_slot_time_in_us;
+} dw1000_anchor_tag_config_t;
 
 dw1000_err_e dw1000_anchor_init ();
 void dw1000_anchor_start ();
