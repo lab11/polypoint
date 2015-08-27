@@ -12,6 +12,7 @@
 #include "dw1000_tag.h"
 #include "dw1000_anchor.h"
 #include "timer.h"
+#include "timing.h"
 #include "firmware.h"
 
 
@@ -168,8 +169,13 @@ int main () {
 	// Next up do some preliminary setup of the DW1000. This mostly configures
 	// pins and hardware peripherals, as well as straightening out some
 	// of the settings on the DW1000.
-	err = dw1000_init();
-	if (err) error();
+	do {
+		err = dw1000_init();
+		if (err) {
+			uDelay(10000);
+		}
+	} while (err);
+
 
 	// Now we just wait for the host board to tell us what to do. Before
 	// it sets us up we just sit here.
