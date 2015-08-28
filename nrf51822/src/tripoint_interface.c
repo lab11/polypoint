@@ -3,6 +3,7 @@
 #include "app_util_platform.h"
 #include "nrf_drv_config.h"
 #include "nrf_drv_gpiote.h"
+#include "nrf_delay.h"
 
 #include "boards.h"
 #include "led.h"
@@ -15,7 +16,6 @@ nrf_drv_twi_t twi_instance = NRF_DRV_TWI_INSTANCE(1);
 void (*dataCallback)(uint8_t* data, uint32_t len);
 
 void tripoint_i2c_callback (nrf_drv_twi_evt_t* event) {
-	uint8_t buf[10];
 	led_toggle(LED_0);
 }
 
@@ -75,10 +75,12 @@ ret_code_t tripoint_hw_init () {
 }
 
 ret_code_t tripoint_init (void (*dataCall)(uint8_t* data, uint32_t len)) {
-
 	dataCallback = dataCall;
-
 	ret_code_t ret;
+
+	// Wait for 500 ms to make sure the tripoint module is ready
+	nrf_delay_us(500000);
+
 	// Now try to read the info byte to make sure we have I2C connection
 	{
 		uint16_t id;
@@ -131,6 +133,33 @@ ret_code_t tripoint_start_ranging (bool periodic, uint8_t rate) {
 	buf_cmd[3] = rate;
 
 	ret = nrf_drv_twi_tx(&twi_instance, TRIPOINT_ADDRESS, buf_cmd, 4, false);
+	if (ret != NRF_SUCCESS) return ret;
+
+	return NRF_SUCCESS;
+}
+
+// Tell the attached TriPoint module to become an anchor.
+ret_code_t tripoint_start_anchor () {
+	uint8_t buf_cmd[4];
+	ret_code_t ret;
+
+	buf_cmd[0] = TRIPOINT_CMD_CONFIG;
+
+	// Make ANCHOR
+	buf_cmd[1] = 1;
+
+	// // TAG options
+	// buf_cmd[2] = 0;
+	// if (periodic) {
+	// 	// leave 0
+	// } else {
+	// 	buf_cmd[2] |= 0x2;
+	// }
+
+	// // And rate
+	// buf_cmd[3] = rate;
+
+	ret = nrf_drv_twi_tx(&twi_instance, TRIPOINT_ADDRESS, buf_cmd, 2, false);
 	if (ret != NRF_SUCCESS) return ret;
 
 	return NRF_SUCCESS;

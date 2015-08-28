@@ -1,6 +1,6 @@
 /*
 
-UWB Localization Tag
+UWB Localization Tag used as an Anchor
 
 */
 
@@ -35,17 +35,19 @@ UWB Localization Tag
 #include "ble_config.h"
 #include "tripoint_interface.h"
 
+#define DEVICE_NAME "tritaganc"
+
 
 bool bcp_irq_advertisements = false;
 
 
-#define TRITAG_SHORT_UUID                  0x3152
-#define TRITAG_CHAR_LOCATION_SHORT_UUID    0x3153
+#define TRITAG_SHORT_UUID                  0x3162
+#define TRITAG_CHAR_LOCATION_SHORT_UUID    0x3163
 
 // Randomly generated UUID
 const ble_uuid128_t tritag_uuid128 = {
     {0x2e, 0x5d, 0x5e, 0x39, 0x31, 0x52, 0x45, 0x0c,
-     0x90, 0xee, 0x3f, 0xa2, 0x9c, 0x86, 0x8c, 0xd6}
+     0x90, 0xee, 0x3f, 0xa2, 0x9c, 0x86, 0x8c, 0xd7}
 };
 
 
@@ -289,17 +291,7 @@ static void sys_evt_dispatch(uint32_t sys_evt)
 }
 
 void tripointData(uint8_t* data, uint32_t len) {
-	//update the data value and notify on the data
-	ble_gatts_hvx_params_t notify_params;
-	notify_params.handle = 	app.char_location_handles.value_handle;
-	notify_params.type =	BLE_GATT_HVX_NOTIFICATION;
-	notify_params.offset =  0;
-	notify_params.p_len = 	&len;
-	notify_params.p_data = 	data;
 
-	// uint32_t err_code;
-	// err_code = sd_ble_gatts_hvx(app.conn_handle, &notify_params);
-	// APP_ERROR_CHECK(err_code);
 }
 
 static void timer_handler (void* p_context) {
@@ -309,7 +301,7 @@ static void timer_handler (void* p_context) {
         err_code = tripoint_init(tripointData);
         if (err_code == NRF_SUCCESS) {
             tripoint_inited = true;
-            tripoint_start_ranging(true, 10);
+            tripoint_start_anchor();
         }
     }
 }
@@ -625,12 +617,11 @@ int main(void) {
         tripoint_inited = true;
     }
 
-    // Advertise that we are a TORCH board
     advertising_start();
 
-    // Start the ranging!!!
+    // Make this node an anchor
     if (tripoint_inited) {
-        tripoint_start_ranging(true, 10);
+        tripoint_start_anchor();
     }
 
     led_on(LED_0);
