@@ -190,6 +190,7 @@ void host_interface_rx_fired () {
 
 			} else if (my_role == ANCHOR) {
 				// TODO: setup this node as an anchor
+				run_anchor();
 			}
 			break;
 		}

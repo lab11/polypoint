@@ -120,6 +120,15 @@ void run_tag (dw1000_report_mode_e report_mode,
 	//
 }
 
+// This is called to put the tripoint into anchor mode
+void run_anchor () {
+	// Tell the protocol library that we are an anchor
+	dw1000_set_mode(ANCHOR);
+
+	// And start the anchor state machine
+	dw1000_anchor_start();
+}
+
 
 /******************************************************************************/
 // Connection for the anchor/tag code to talk to the main applications
