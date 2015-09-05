@@ -78,7 +78,7 @@
 #define NUM_ANTENNAS 3
 
 // Number of packets with unique antenna and channel combinations
-#define NUM_UNIQUE_PACKET_CONFIGURATIONS NUM_RANGING_CHANNELS*NUM_ANTENNAS*NUM_ANTENNAS
+#define NUM_UNIQUE_PACKET_CONFIGURATIONS (NUM_RANGING_CHANNELS*NUM_ANTENNAS*NUM_ANTENNAS)
 
 // Use 30 broadcasts from the tag for ranging.
 // (3 channels * 3 antennas on tag * 3 antennas on anchor) + 2
@@ -102,7 +102,7 @@
 #define NUM_RANGING_LISTENING_SLOTS 20
 
 // How long the slots inside each window should be for the anchors to choose from
-#define RANGING_LISTENING_SLOT_US RANGING_LISTENING_WINDOW_US/NUM_RANGING_LISTENING_SLOTS
+#define RANGING_LISTENING_SLOT_US (RANGING_LISTENING_WINDOW_US/NUM_RANGING_LISTENING_SLOTS)
 
 // Maximum number of anchors a tag is willing to hear from
 #define MAX_NUM_ANCHOR_RESPONSES 6
@@ -136,7 +136,7 @@
 #define MSG_TYPE_PP_NOSLOTS_ANC_FINAL  0x81
 
 // Size buffers for reading in packets
-#define DW1000_TAG_MAX_RX_PKT_LEN 128
+#define DW1000_TAG_MAX_RX_PKT_LEN 296
 
 struct ieee154_header_broadcast {
 	uint8_t frameCtrl[2];          //  frame control bytes 00-01

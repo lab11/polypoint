@@ -196,27 +196,42 @@ void dw1000_tag_rxcallback (const dwt_callback_data_t* rxd) {
 			// Continue parsing the received packet
 			anc_final = (struct pp_anc_final*) buf;
 
-			// Save the anchor address
-			memcpy(_anchor_responses[_anchor_response_count].anchor_addr, anc_final->ieee154_header_unicast.sourceAddr, EUI_LEN);
+			// Check that we haven't already received a packet from this anchor.
+			// The anchors should check for an ACK and not retransmit, but that
+			// could still fail.
+			bool anc_already_found = FALSE;
+			for (uint8_t i=0; i<_anchor_response_count; i++) {
+				if (memcmp(_anchor_responses[i].anchor_addr, anc_final->ieee154_header_unicast.sourceAddr, EUI_LEN) == 0) {
+					anc_already_found = TRUE;
+					break;
+				}
+			}
 
-			// Save the anchor's list of when it received the tag broadcasts
-			memcpy(_anchor_responses[_anchor_response_count].tag_poll_TOAs, anc_final->TOAs, sizeof(anc_final->TOAs));
+			// Only save this response if we haven't already seen this anchor
+			if (!anc_already_found) {
 
-			// Save the antenna the anchor chose to use when responding to us
-			_anchor_responses[_anchor_response_count].anchor_final_antenna_index = anc_final->final_antenna;
+				// Save the anchor address
+				memcpy(_anchor_responses[_anchor_response_count].anchor_addr, anc_final->ieee154_header_unicast.sourceAddr, EUI_LEN);
 
-			// Save when the anchor sent the packet we just received
-			_anchor_responses[_anchor_response_count].anc_final_tx_timestamp = ((uint64_t)anc_final->dw_time_sent) << 8;
-			// Save when we received the packet
-			_anchor_responses[_anchor_response_count].anc_final_rx_timestamp = dw_rx_timestamp;
+				// Save the anchor's list of when it received the tag broadcasts
+				memcpy(_anchor_responses[_anchor_response_count].tag_poll_TOAs, anc_final->TOAs, sizeof(anc_final->TOAs));
 
-			// Also need to save what window we are in when we received
-			// this packet. This is used so we know all of the settings
-			// that were used when this packet was sent to us.
-			_anchor_responses[_anchor_response_count].window_packet_recv = _ranging_listening_window_num - 1;
+				// Save the antenna the anchor chose to use when responding to us
+				_anchor_responses[_anchor_response_count].anchor_final_antenna_index = anc_final->final_antenna;
 
-			// Increment the number of anchors heard from
-			_anchor_response_count++;
+				// Save when the anchor sent the packet we just received
+				_anchor_responses[_anchor_response_count].anc_final_tx_timestamp = ((uint64_t)anc_final->dw_time_sent) << 8;
+				// Save when we received the packet
+				_anchor_responses[_anchor_response_count].anc_final_rx_timestamp = dw_rx_timestamp;
+
+				// Also need to save what window we are in when we received
+				// this packet. This is used so we know all of the settings
+				// that were used when this packet was sent to us.
+				_anchor_responses[_anchor_response_count].window_packet_recv = _ranging_listening_window_num - 1;
+
+				// Increment the number of anchors heard from
+				_anchor_response_count++;
+			}
 
 		} else {
 			// TAGs don't expect to receive any other types of packets.
@@ -408,11 +423,15 @@ static void calculate_ranges () {
 		// If we didn't get any matching pairs in the first and last rounds
 		// then we have to skip this anchor.
 		if (valid_offset_calculations == 0) {
-			continue;
+			// continue;
 		}
 
 		// Calculate the average clock offset multiplier
 		double offset_anchor_over_tag = offset_ratios_sum / (double) valid_offset_calculations;
+
+		// DEBUGGING
+		// set this to one so it wont mess with anything
+		offset_anchor_over_tag = 1.0;
 
 
 		// Now we need to use the one packet we have from the anchor
@@ -438,6 +457,8 @@ static void calculate_ranges () {
 		int distances_millimeters[NUM_RANGING_BROADCASTS] = {0};
 		uint8_t num_valid_distances = 0;
 
+int dm = 0;
+
 		// Next we calculate the TOFs for each of the poll messages the tag sent.
 		for (uint8_t broadcast_index=0; broadcast_index<NUM_RANGING_BROADCASTS; broadcast_index++) {
 			uint64_t broadcast_send_time = _ranging_broadcast_ss_send_times[broadcast_index];
@@ -456,19 +477,20 @@ static void calculate_ranges () {
 			double TOF = (double) broadcast_anchor_offset - (((double) broadcast_tag_offset) * offset_anchor_over_tag) + one_way_TOF;
 
 			int distance_millimeters = dwtime_to_millimeters(TOF);
+if (dm == 0) dm = distance_millimeters;
 
 			// Check that the distance we have at this point is at all reasonable
-			if (distance_millimeters >= MIN_VALID_RANGE_MM && distance_millimeters <= MAX_VALID_RANGE_MM) {
+			// if (distance_millimeters >= MIN_VALID_RANGE_MM && distance_millimeters <= MAX_VALID_RANGE_MM) {
 				// Add this to our sorted array of distances
 				insert_sorted(distances_millimeters, distance_millimeters, num_valid_distances);
 				num_valid_distances++;
-			}
+			// }
 		}
 
 		// Check to make sure that we got enough ranges from this anchor.
 		// If not, we just skip it.
 		if (num_valid_distances < MIN_VALID_RANGES_PER_ANCHOR) {
-			continue;
+			// continue;
 		}
 
 
@@ -488,5 +510,14 @@ static void calculate_ranges () {
 
 		// Save the result
 		_ranges_millimeters[anchor_index] = result;
+		// _ranges_millimeters[anchor_index] = (int32_t) one_way_TOF;
+		// _ranges_millimeters[anchor_index] = dm;
+		// _ranges_millimeters[anchor_index] = distances_millimeters[bot];
+		// _ranges_millimeters[anchor_index] = _ranging_broadcast_ss_send_times[0];
+		// _ranges_millimeters[anchor_index] = ss_index_matching;
+		// _ranges_millimeters[anchor_index] = num_valid_distances;
+		if (_ranges_millimeters[anchor_index] == INT32_MAX) {
+			_ranges_millimeters[anchor_index] = 0xBB;
+		}
 	}
 }
