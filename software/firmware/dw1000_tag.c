@@ -429,11 +429,6 @@ static void calculate_ranges () {
 		// Calculate the average clock offset multiplier
 		double offset_anchor_over_tag = offset_ratios_sum / (double) valid_offset_calculations;
 
-		// DEBUGGING
-		// set this to one so it wont mess with anything
-		offset_anchor_over_tag = 1.0;
-
-
 		// Now we need to use the one packet we have from the anchor
 		// to calculate a one-way time of flight measurement so that we can
 		// account for the time offset between the anchor and tag (i.e. the
