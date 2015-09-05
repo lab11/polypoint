@@ -57,6 +57,7 @@ static struct pp_anc_final pp_anc_final_pkt = {
 	.TOAs          = { 0 },
 };
 
+static void ranging_listening_window_setup();
 
 
 dw1000_err_e dw1000_anchor_init () {
@@ -119,11 +120,19 @@ static void ranging_broadcast_subsequence_task () {
 	// slot, so we must increment our counter
 	_ranging_broadcast_ss_num++;
 
-	// Update the anchor listening settings
-	dw1000_set_ranging_broadcast_subsequence_settings(ANCHOR, _ranging_broadcast_ss_num, FALSE);
+	// Check if we are done listening for packets from the TAG. If we get
+	// a packet on the last subsequence we won't get here, but if we
+	// don't get that packet we need this check.
+	if (_ranging_broadcast_ss_num > _ranging_operation_config.reply_after_subsequence) {
+		ranging_listening_window_setup();
 
-	// And re-enable RX. The set_broadcast_settings function disables tx and rx.
-	dwt_rxenable(0);
+	} else {
+		// Update the anchor listening settings
+		dw1000_set_ranging_broadcast_subsequence_settings(ANCHOR, _ranging_broadcast_ss_num, FALSE);
+
+		// And re-enable RX. The set_broadcast_settings function disables tx and rx.
+		dwt_rxenable(0);
+	}
 }
 
 // Called at the beginning of each listening window for transmitting to
@@ -137,6 +146,9 @@ static void ranging_listening_window_task () {
 		_state = ASTATE_IDLE;
 		// Stop the timer for the window
 		timer_stop(_ranging_broadcast_timer);
+
+		// Restart being an anchor
+		dw1000_anchor_start();
 
 	} else {
 
@@ -174,6 +186,41 @@ static void ranging_listening_window_task () {
 
 		_ranging_listening_window_num++;
 	}
+}
+
+// Prepare to transmit a response to the TAG.
+// TODO: check to see if we should even bother. Did we get enough packets?
+static void ranging_listening_window_setup () {
+	// Stop iterating through timing channels
+	timer_stop(_ranging_broadcast_timer);
+
+	// We no longer need to receive and need to instead
+	// start transmitting.
+	dwt_forcetrxoff();
+
+	// Update our state to the TX response state
+	_state = ASTATE_RESPONDING;
+	// Set the listening window index
+	_ranging_listening_window_num = 0;
+
+	// Determine which antenna we are going to use for
+	// the response.
+	uint8_t max_packets = 0;
+	uint8_t max_index = 0;
+	for (uint8_t i=0; i<NUM_ANTENNAS; i++) {
+		if (_anchor_antenna_recv_num[i] > max_packets) {
+			max_packets = _anchor_antenna_recv_num[i];
+			max_index = i;
+		}
+	}
+	pp_anc_final_pkt.final_antenna = max_index;
+
+	// Now we need to setup a timer to iterate through
+	// the response windows so we can send a packet
+	// back to the tag
+	timer_start(_ranging_broadcast_timer,
+	            _ranging_operation_config.anchor_reply_window_in_us,
+	            ranging_listening_window_task);
 }
 
 
@@ -279,36 +326,7 @@ void dw1000_anchor_rxcallback (const dwt_callback_data_t *rxd) {
 					// Check to see if we got the last of the ranging broadcasts
 					if (_ranging_broadcast_ss_num == _ranging_operation_config.reply_after_subsequence) {
 						// We did!
-						// Stop iterating through timing channels
-						timer_stop(_ranging_broadcast_timer);
-
-						// We no longer need to receive and need to instead
-						// start transmitting.
-						dwt_forcetrxoff();
-
-						// Update our state to the TX response state
-						_state = ASTATE_RESPONDING;
-						// Set the listening window index
-						_ranging_listening_window_num = 0;
-
-						// Determine which antenna we are going to use for
-						// the response.
-						uint8_t max_packets = 0;
-						uint8_t max_index = 0;
-						for (uint8_t i=0; i<NUM_ANTENNAS; i++) {
-							if (_anchor_antenna_recv_num[i] > max_packets) {
-								max_packets = _anchor_antenna_recv_num[i];
-								max_index = i;
-							}
-						}
-						pp_anc_final_pkt.final_antenna = max_index;
-
-						// Now we need to setup a timer to iterate through
-						// the response windows so we can send a packet
-						// back to the tag
-						timer_start(_ranging_broadcast_timer,
-						            _ranging_operation_config.anchor_reply_window_in_us,
-						            ranging_listening_window_task);
+						ranging_listening_window_setup();
 					}
 
 				} else {
