@@ -290,6 +290,9 @@ static void sys_evt_dispatch(uint32_t sys_evt)
 
 void tripointData(uint8_t* data, uint32_t len) {
 	//update the data value and notify on the data
+    if (len > 5) {
+        led_toggle(LED_0);
+    }
 	ble_gatts_hvx_params_t notify_params;
 	notify_params.handle = 	app.char_location_handles.value_handle;
 	notify_params.type =	BLE_GATT_HVX_NOTIFICATION;

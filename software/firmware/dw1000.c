@@ -554,7 +554,7 @@ void dw1000_choose_antenna(uint8_t antenna_number) {
 
 // Read this node's EUI from the correct address in flash
 void dw1000_read_eui (uint8_t *eui_buf) {
-	eui_buf[0] = 0x22;
+	eui_buf[0] = 0x23;
 	eui_buf[1] = 0x33;
 	eui_buf[2] = 0x44;
 	eui_buf[3] = 0x54;
@@ -614,6 +614,7 @@ dw1000_err_e dw1000_init () {
 	                 DWT_INT_RFTO |
 	                 DWT_INT_RXPTO |
 	                 DWT_INT_SFDT |
+	                 DWT_INT_RXOVRR |
 	                 DWT_INT_ARFE, 1);
 
 	dwt_setcallbacks(txcallback, rxcallback);
@@ -714,6 +715,7 @@ static uint8_t subsequence_number_to_channel (uint8_t subseq_num) {
 	// as possible so that they can join the sequence as early as possible. This
 	// increases the number of successful packet transmissions and increases
 	// ranging accuracy.
+return 1;
 	uint8_t channel_index = subseq_num % NUM_RANGING_CHANNELS;
 	return channel_index_to_channel_rf_number[channel_index];
 }
@@ -725,6 +727,7 @@ uint8_t subsequence_number_to_antenna (dw1000_role_e role, uint8_t subseq_num) {
 	// ones don't always overlap. This should also be different from the
 	// channel sequence. This math is a little weird but somehow works out,
 	// even if NUM_RANGING_CHANNELS != NUM_ANTENNAS.
+return 0;
 	if (role == TAG) {
 		return (subseq_num / NUM_RANGING_CHANNELS) % NUM_ANTENNAS;
 	} else if (role == ANCHOR) {
@@ -757,6 +760,7 @@ static uint8_t antenna_and_channel_to_subsequence_number (uint8_t tag_antenna_in
 
 // Return the RF channel to use when the anchors respond to the tag
 static uint8_t listening_window_number_to_channel (uint8_t window_num) {
+return 1;
 	return window_num % NUM_RANGING_CHANNELS;
 }
 
@@ -795,11 +799,11 @@ void dw1000_set_ranging_broadcast_subsequence_settings (dw1000_role_e role,
 	global_ranging_config.chan = subsequence_number_to_channel(subseq_num);
 
 	// If we were requested to force a reset of settings do that now.
-	if (reset) {
+	// if (reset) {
 		reset_configuration();
-	} else {
-		dwt_setchannel(&global_ranging_config, 0);
-	}
+	// } else {
+		// dwt_setchannel(&global_ranging_config, 0);
+	// }
 
 	// Change what antenna we're listening/sending on
 	dw1000_choose_antenna(subsequence_number_to_antenna(role, subseq_num));
@@ -819,11 +823,11 @@ void dw1000_set_ranging_listening_window_settings (dw1000_role_e role,
 	global_ranging_config.chan = listening_window_number_to_channel(window_num);
 
 	// If we were requested to force a reset of settings do that now.
-	if (reset) {
+	// if (reset) {
 		reset_configuration();
-	} else {
-		dwt_setchannel(&global_ranging_config, 0);
-	}
+	// } else {
+	// 	dwt_setchannel(&global_ranging_config, 0);
+	// }
 
 	// Change what antenna we're listening/sending on
 	dw1000_choose_antenna(antenna_num);

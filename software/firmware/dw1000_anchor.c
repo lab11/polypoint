@@ -162,6 +162,7 @@ static void ranging_listening_window_task () {
 		// tag with our TOAs.
 		pp_anc_final_pkt.ieee154_header_unicast.seqNum++;
 		const uint16_t frame_len = sizeof(struct pp_anc_final);
+		// const uint16_t frame_len = sizeof(struct pp_anc_final) - (sizeof(uint64_t)*NUM_RANGING_BROADCASTS);
 		dwt_writetxfctrl(frame_len, 0);
 
 		// Pick a slot to respond in. Generate a random number and mod it
@@ -296,7 +297,9 @@ void dw1000_anchor_rxcallback (const dwt_callback_data_t *rxd) {
 				} else {
 					// We found this tag ranging sequence late. We don't want
 					// to use this because we won't get enough range estimates.
-					// Just stay idle.
+					// Just stay idle, but we do need to re-enable RX to
+					// keep receiving packets.
+					dwt_rxenable(0);
 				}
 
 			} else if (_state == ASTATE_RANGING) {
