@@ -675,6 +675,11 @@ int dwtime_to_millimeters (double dwtime) {
 	return (int) (dist*1000.0);
 }
 
+
+/******************************************************************************/
+// Misc Utility
+/******************************************************************************/
+
 // Shoved this here for now.
 // Insert an element into a sorted array.
 // end is the number of elements in the array.
@@ -707,7 +712,7 @@ static uint8_t subsequence_number_to_channel (uint8_t subseq_num) {
 	// as possible so that they can join the sequence as early as possible. This
 	// increases the number of successful packet transmissions and increases
 	// ranging accuracy.
-return 1;
+// return 1;
 	uint8_t channel_index = subseq_num % NUM_RANGING_CHANNELS;
 	return channel_index_to_channel_rf_number[channel_index];
 }
@@ -719,7 +724,7 @@ uint8_t subsequence_number_to_antenna (dw1000_role_e role, uint8_t subseq_num) {
 	// ones don't always overlap. This should also be different from the
 	// channel sequence. This math is a little weird but somehow works out,
 	// even if NUM_RANGING_CHANNELS != NUM_ANTENNAS.
-return 0;
+// return 0;
 	if (role == TAG) {
 		return (subseq_num / NUM_RANGING_CHANNELS) % NUM_ANTENNAS;
 	} else if (role == ANCHOR) {
@@ -752,7 +757,7 @@ static uint8_t antenna_and_channel_to_subsequence_number (uint8_t tag_antenna_in
 
 // Return the RF channel to use when the anchors respond to the tag
 static uint8_t listening_window_number_to_channel (uint8_t window_num) {
-return 1;
+// return 1;
 	return window_num % NUM_RANGING_CHANNELS;
 }
 

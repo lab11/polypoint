@@ -290,8 +290,6 @@ void dw1000_anchor_rxcallback (const dwt_callback_data_t *rxd) {
 					// Now we need to start our own state machine to iterate
 					// through the antenna / channel combinations while listening
 					// for packets from the same tag.
-	// _ranging_broadcast_ss_num++;
-	// dw1000_set_ranging_broadcast_subsequence_settings(ANCHOR, _ranging_broadcast_ss_num, FALSE);
 					timer_start(_ranging_broadcast_timer, RANGING_BROADCASTS_PERIOD_US, ranging_broadcast_subsequence_task);
 
 				} else {
