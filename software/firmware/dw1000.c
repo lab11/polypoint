@@ -554,15 +554,7 @@ void dw1000_choose_antenna(uint8_t antenna_number) {
 
 // Read this node's EUI from the correct address in flash
 void dw1000_read_eui (uint8_t *eui_buf) {
-	eui_buf[0] = 0x23;
-	eui_buf[1] = 0x33;
-	eui_buf[2] = 0x44;
-	eui_buf[3] = 0x54;
-	eui_buf[4] = 0x56;
-	eui_buf[5] = 0xe5;
-	eui_buf[6] = 0x98;
-	eui_buf[7] = 0xc0;
-	// memcpy(eui_buf, (uint8_t*) EUI_FLASH_LOCATION, 8);
+	memcpy(eui_buf, (uint8_t*) EUI_FLASH_LOCATION, 8);
 }
 
 // First (generic) init of the DW1000
