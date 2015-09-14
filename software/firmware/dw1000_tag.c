@@ -132,6 +132,11 @@ dw1000_err_e dw1000_tag_start_ranging_event () {
 	return DW1000_NO_ERR;
 }
 
+// Put the TAG into sleep mode
+void dw1000_tag_stop () {
+
+}
+
 
 void dw1000_tag_txcallback (const dwt_callback_data_t *data) {
 

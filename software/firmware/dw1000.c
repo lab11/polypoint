@@ -263,8 +263,8 @@ void dw1000_spi_fast () {
 	SPI_Init(SPI1, &SPI_InitStructure);
 }
 
-static void dw1000_spi_slow () {
-	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_32;
+void dw1000_spi_slow () {
+	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_64;
 	SPI_Init(SPI1, &SPI_InitStructure);
 }
 
@@ -596,6 +596,12 @@ dw1000_err_e dw1000_init () {
 		return DW1000_COMM_ERR;
 	}
 
+	// Configure sleep parameters.
+	// Note: This is taken from the decawave fast2wr_t.c file. I don't have
+	//       a great idea as to whether this is right or not.
+	dwt_configuresleep(DWT_LOADLDO|DWT_LOADUCODE|DWT_PRESRV_SLEEP|DWT_LOADOPSET|DWT_CONFIG,
+	                   DWT_WAKE_CS|DWT_SLP_EN);
+
 	// Configure interrupts and callbacks
 	dwt_setinterrupt(0xFFFFFFFF, 0);
 	dwt_setinterrupt(DWT_INT_TFRS |
@@ -659,6 +665,11 @@ void dw1000_set_mode (dw1000_role_e role) {
 	} else if (role == ANCHOR) {
 		dw1000_anchor_init();
 	}
+}
+
+// Returns the mode this device is set to.
+dw1000_role_e dw1000_get_mode () {
+	return _my_role;
 }
 
 

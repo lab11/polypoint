@@ -223,6 +223,16 @@ void host_interface_rx_fired () {
 			break;
 		}
 
+		case HOST_CMD_SLEEP:
+
+			// Just need to go back to waiting for the host to write more
+			// after getting a sleep command
+			host_interface_wait();
+
+			// Tell the application to stop the dw1000 chip
+			stop();
+			break;
+
 
 		default:
 			break;

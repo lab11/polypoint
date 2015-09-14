@@ -231,7 +231,7 @@ typedef enum {
 typedef void (*dw1000_callback)(dw1000_cb_e, dw1000_err_e);
 
 void dw1000_spi_fast ();
-// void dw1000_spi_slow ();
+void dw1000_spi_slow ();
 
 int dwtime_to_millimeters (double dwtime);
 void insert_sorted (int arr[], int new, unsigned end);
@@ -242,6 +242,7 @@ void dw1000_reset ();
 void dw1000_choose_antenna (uint8_t antenna_number);
 void dw1000_read_eui (uint8_t *eui_buf);
 void dw1000_set_mode (dw1000_role_e role);
+dw1000_role_e dw1000_get_mode ();
 uint8_t subsequence_number_to_antenna (dw1000_role_e role, uint8_t subseq_num);
 void dw1000_set_ranging_broadcast_subsequence_settings (dw1000_role_e role, uint8_t subseq_num, bool reset);
 void dw1000_set_ranging_listening_window_settings (dw1000_role_e role, uint8_t slot_num, uint8_t antenna_num,bool reset);

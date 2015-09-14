@@ -11,6 +11,8 @@
 #define DW1000_ANCHOR_MAX_RX_PKT_LEN 64
 
 typedef enum {
+	ASTATE_SLEEP,
+	ASTATE_WAKING,
 	ASTATE_IDLE,
 	ASTATE_RANGING,
 	ASTATE_RESPONDING
@@ -24,6 +26,7 @@ typedef struct {
 
 dw1000_err_e dw1000_anchor_init ();
 void dw1000_anchor_start ();
+void dw1000_anchor_stop ();
 
 void dw1000_anchor_txcallback (const dwt_callback_data_t *data);
 void dw1000_anchor_rxcallback (const dwt_callback_data_t *data);

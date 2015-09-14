@@ -25,6 +25,7 @@ typedef struct {
 
 void dw1000_tag_init ();
 dw1000_err_e dw1000_tag_start_ranging_event ();
+void dw1000_tag_stop ();
 
 void dw1000_tag_txcallback (const dwt_callback_data_t *data);
 void dw1000_tag_rxcallback (const dwt_callback_data_t *data);

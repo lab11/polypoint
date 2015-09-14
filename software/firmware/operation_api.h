@@ -7,6 +7,7 @@ void run_tag (dw1000_report_mode_e report_mode,
               dw1000_update_mode_e update_mode,
               uint8_t update_rate);
 void run_anchor ();
+void stop ();
 
 dw1000_report_mode_e main_get_report_mode ();
 void main_set_ranges (int32_t* ranges_millimeters, anchor_responses_t* anchor_responses);

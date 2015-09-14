@@ -11,7 +11,7 @@
 #include "firmware.h"
 
 // Our timer object that we use for timing packet transmissions
-timer_t* _ranging_broadcast_timer;
+timer_t* _anchor_timer;
 
 // State for the PRNG
 ranctx _prng_state;
@@ -88,7 +88,7 @@ dw1000_err_e dw1000_anchor_init () {
 	dw1000_read_eui(pp_anc_final_pkt.ieee154_header_unicast.sourceAddr);
 
 	// Need a timer
-	_ranging_broadcast_timer = timer_init();
+	_anchor_timer = timer_init();
 
 	// Init the PRNG for determining when to respond to the tag
 	raninit(&_prng_state, eui_array[0]<<8|eui_array[1]);
@@ -99,17 +99,66 @@ dw1000_err_e dw1000_anchor_init () {
 	return DW1000_NO_ERR;
 }
 
-// Tell the anchor to start its job of being an anchor
-void dw1000_anchor_start () {
-	// Choose to wait in the first default position.
-	// This could change to wait in any of the first NUM_CHANNEL-1 positions.
-	dw1000_set_ranging_broadcast_subsequence_settings(ANCHOR, 0, TRUE);
+// This gets the anchor state machine going.
+void anchor_startup_task () {
+	if (_state == ASTATE_WAKING) {
+		// Stop the timer if it was set after coming out of sleep)
+		timer_stop(_anchor_timer);
+	}
 
 	// Also we start over in case the anchor was doing anything before
 	_state = ASTATE_IDLE;
 
+	// Choose to wait in the first default position.
+	// This could change to wait in any of the first NUM_CHANNEL-1 positions.
+	dw1000_set_ranging_broadcast_subsequence_settings(ANCHOR, 0, TRUE);
+
 	// Obviously we want to be able to receive packets
 	dwt_rxenable(0);
+}
+
+// Tell the anchor to start its job of being an anchor
+void dw1000_anchor_start () {
+
+	// Check if we are in sleep mode. If we are, then we need to wake the chip
+	// and wait to set the SPI clock back fast before starting the anchor
+	// state machine again.
+	if (_state == ASTATE_SLEEP) {
+		// Move to the waking up state
+		_state = ASTATE_WAKING;
+
+		// Slow down SPI before chip has crystals crankin'
+		dw1000_spi_slow();
+
+		// Issue a benign SPI transaction to wake the chip
+		dwt_readdevid();
+
+		// Wait 5ms before continuing. This should be enough time for the
+		timer_start(_anchor_timer, 5000, anchor_startup_task);
+
+	} else {
+		// In any other state, just get going.
+		anchor_startup_task();
+	}
+}
+
+// Tell the anchor to stop ranging with TAGs.
+// This cancels whatever the anchor was doing.
+void dw1000_anchor_stop () {
+	// Put the anchor in SLEEP state. This is useful in case we need to
+	// re-init some stuff after the anchor comes back alive.
+	_state = ASTATE_SLEEP;
+
+	// Stop the timer in case it was in use
+	timer_stop(_anchor_timer);
+
+	// Don't need the DW1000 to be in TX or RX mode
+	dwt_forcetrxoff();
+
+	// Put the ANCHOR into sleep mode at this point.
+	// The chip should come out of sleep automatically when the next
+	// SPI transaction is written to it.
+	dwt_entersleep();
 }
 
 // This is called by the periodic timer that tracks the tag's periodic
@@ -145,7 +194,7 @@ static void ranging_listening_window_task () {
 		// Go back to IDLE
 		_state = ASTATE_IDLE;
 		// Stop the timer for the window
-		timer_stop(_ranging_broadcast_timer);
+		timer_stop(_anchor_timer);
 
 		// Restart being an anchor
 		dw1000_anchor_start();
@@ -193,7 +242,7 @@ static void ranging_listening_window_task () {
 // TODO: check to see if we should even bother. Did we get enough packets?
 static void ranging_listening_window_setup () {
 	// Stop iterating through timing channels
-	timer_stop(_ranging_broadcast_timer);
+	timer_stop(_anchor_timer);
 
 	// We no longer need to receive and need to instead
 	// start transmitting.
@@ -219,7 +268,7 @@ static void ranging_listening_window_setup () {
 	// Now we need to setup a timer to iterate through
 	// the response windows so we can send a packet
 	// back to the tag
-	timer_start(_ranging_broadcast_timer,
+	timer_start(_anchor_timer,
 	            _ranging_operation_config.anchor_reply_window_in_us,
 	            ranging_listening_window_task);
 }
@@ -290,7 +339,7 @@ void dw1000_anchor_rxcallback (const dwt_callback_data_t *rxd) {
 					// Now we need to start our own state machine to iterate
 					// through the antenna / channel combinations while listening
 					// for packets from the same tag.
-					timer_start(_ranging_broadcast_timer, RANGING_BROADCASTS_PERIOD_US, ranging_broadcast_subsequence_task);
+					timer_start(_anchor_timer, RANGING_BROADCASTS_PERIOD_US, ranging_broadcast_subsequence_task);
 
 				} else {
 					// We found this tag ranging sequence late. We don't want

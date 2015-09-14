@@ -129,6 +129,17 @@ void run_anchor () {
 	dw1000_anchor_start();
 }
 
+// This is called when the host tells us to sleep
+void stop () {
+	dw1000_role_e my_role = dw1000_get_mode();
+
+	if (my_role == ANCHOR) {
+		dw1000_anchor_stop();
+	} else if (my_role == TAG) {
+		dw1000_tag_stop();
+	}
+}
+
 
 /******************************************************************************/
 // Connection for the anchor/tag code to talk to the main applications
