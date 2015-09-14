@@ -150,12 +150,18 @@ void host_interface_rx_fired () {
 	// packet.
 	opcode = rxBuffer[0];
 	switch (opcode) {
+		/**********************************************************************/
+		// Return the INFO array
+		/**********************************************************************/
 		case HOST_CMD_INFO:
 			// Info packet is a good way to check that I2C is working.
 			memcpy(txBuffer, INFO_PKT, 3);
 			host_interface_respond(3);
 			break;
 
+		/**********************************************************************/
+		// Configure the TriPoint. This can be called multiple times to change the setup.
+		/**********************************************************************/
 		case HOST_CMD_CONFIG: {
 
 			// Just go back to waiting for a WRITE after a config message
@@ -197,6 +203,9 @@ void host_interface_rx_fired () {
 			break;
 		}
 
+		/**********************************************************************/
+		// Ask the TriPoint why it asserted the interrupt line.
+		/**********************************************************************/
 		case HOST_CMD_READ_INTERRUPT: {
 			// Prepare a packet to send back to the host
 
@@ -225,6 +234,22 @@ void host_interface_rx_fired () {
 			break;
 		}
 
+		/**********************************************************************/
+		// Tell the TriPoint that it should take a range/location measurement
+		/**********************************************************************/
+		case HOST_CMD_DO_RANGE:
+
+			// Just need to go back to waiting for the host to write more
+			// after getting a sleep command
+			host_interface_wait();
+
+			// Tell the application to perform a range
+			app_tag_do_range();
+			break;
+
+		/**********************************************************************/
+		// Put the TriPoint to sleep.
+		/**********************************************************************/
 		case HOST_CMD_SLEEP:
 
 			// Just need to go back to waiting for the host to write more
@@ -235,6 +260,16 @@ void host_interface_rx_fired () {
 			app_stop();
 			break;
 
+		/**********************************************************************/
+		// Resume the application.
+		/**********************************************************************/
+		case HOST_CMD_RESUME:
+			// Keep listening for the next command.
+			host_interface_wait();
+
+			// And we just have to start the application.
+			app_start();
+			break;
 
 		default:
 			break;

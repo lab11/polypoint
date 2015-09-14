@@ -10,6 +10,8 @@ void app_configure_anchor ();
 void app_start ();
 void app_stop ();
 
+void app_tag_do_range ();
+
 dw1000_report_mode_e app_get_report_mode ();
 void app_set_ranges (int32_t* ranges_millimeters, anchor_responses_t* anchor_responses);
 

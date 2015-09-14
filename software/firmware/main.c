@@ -112,7 +112,7 @@ void app_configure_tag (dw1000_report_mode_e report_mode,
 		app_stop();
 	}
 
-	// Check if we have been configured as a TAG before. If we have, we don't
+	// Check if we are already configured as a tag. If we have, we don't
 	// need to reset this.
 	if (dw1000_get_mode() != TAG) {
 		// If we need to, complete the init() process now that we know we are a tag.
@@ -158,6 +158,11 @@ void app_configure_anchor () {
 
 // Start this node! This will run the anchor and tag algorithms.
 void app_start () {
+	// Don't start if we are already started
+	if (_state == APPSTATE_RUNNING) {
+		return;
+	}
+
 	dw1000_role_e my_role = dw1000_get_mode();
 
 	if (my_role == ANCHOR) {
@@ -205,6 +210,21 @@ void app_stop () {
 	} else if (my_role == TAG) {
 		dw1000_tag_stop();
 	}
+}
+
+// Assuming we are a TAG, and we are in on-demand ranging mode, tell
+// the dw1000 algorithm to perform a range.
+void app_tag_do_range () {
+	// If the application isn't running, we are not a tag, or we are not
+	// in on-demand ranging mode, don't do anything.
+	if (_state != APPSTATE_RUNNING ||
+	    dw1000_get_mode() != TAG ||
+	    _app_tag_config.update_mode != UPDATE_MODE_DEMAND) {
+		return;
+	}
+
+	// TODO: this does return an error if we are already ranging.
+	dw1000_tag_start_ranging_event();
 }
 
 
