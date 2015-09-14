@@ -4,15 +4,16 @@
 #include "deca_regs.h"
 
 #include "timer.h"
+#include "timing.h"
 #include "dw1000.h"
 #include "dw1000_tag.h"
 #include "firmware.h"
 #include "operation_api.h"
 
 // Our timer object that we use for timing packet transmissions
-timer_t* _ranging_broadcast_timer;
+timer_t* _tag_timer;
 
-tag_state_e _tag_state = TSTATE_IDLE;
+tag_state_e _state = TSTATE_IDLE;
 
 // Which subsequence slot we are on when transmitting broadcast packets
 // for ranging.
@@ -105,7 +106,7 @@ void dw1000_tag_init () {
 	dw1000_read_eui(pp_tag_poll_pkt.header.sourceAddr);
 
 	// Create a timer for use when sending ranging broadcast packets
-	_ranging_broadcast_timer = timer_init();
+	_tag_timer = timer_init();
 
 	// Make SPI fast now that everything has been setup
 	dw1000_spi_fast();
@@ -114,27 +115,58 @@ void dw1000_tag_init () {
 // This starts a ranging event by causing the tag to send a series of
 // ranging broadcasts.
 dw1000_err_e dw1000_tag_start_ranging_event () {
-	if (_tag_state != TSTATE_IDLE) {
+	// Check if we are coming out of sleep to do this ranging event.
+	// If so, we need to wake the chip.
+	if (_state == TSTATE_SLEEP) {
+		// Slow SPI to communicate and wake the chip
+		dw1000_spi_slow();
+
+		// Issue a benign SPI transaction to wake the chip.
+		dwt_readdevid();
+
+		// Can speed up SPI at this point because we just wait for some time
+		// before doing anything else
+		dw1000_spi_fast();
+
+		// Now wait for 5ms for the chip to move from the wakeup to the idle
+		// state. The datasheet says 4ms, but we buffer a little in case things
+		// take longer or mDelay isn't exact.
+		mDelay(5);
+
+	} else if (_state != TSTATE_IDLE) {
 		// Cannot start a ranging event if we are currently busy with one.
 		return DW1000_BUSY;
 	}
 
 	// Move to the broadcast state
-	_tag_state = TSTATE_BROADCASTS;
+	_state = TSTATE_BROADCASTS;
 
 	// Clear state that we keep for each ranging event
 	memset(_ranging_broadcast_ss_send_times, 0, sizeof(_ranging_broadcast_ss_send_times));
 	_ranging_broadcast_ss_num = 0;
 
 	// Start a timer that will kick off the broadcast ranging events
-	timer_start(_ranging_broadcast_timer, RANGING_BROADCASTS_PERIOD_US, ranging_broadcast_subsequence_task);
+	timer_start(_tag_timer, RANGING_BROADCASTS_PERIOD_US, ranging_broadcast_subsequence_task);
 
 	return DW1000_NO_ERR;
 }
 
 // Put the TAG into sleep mode
 void dw1000_tag_stop () {
+	// Put the tag in SLEEP state. This is useful in case we need to
+	// re-init some stuff after the tag comes back alive.
+	_state = TSTATE_SLEEP;
 
+	// Stop the timer in case it was in use
+	timer_stop(_tag_timer);
+
+	// Don't need the DW1000 to be in TX or RX mode
+	dwt_forcetrxoff();
+
+	// Put the TAG into sleep mode at this point.
+	// The chip should come out of sleep automatically when the next
+	// SPI transaction is written to it.
+	dwt_entersleep();
 }
 
 
@@ -147,17 +179,17 @@ void dw1000_tag_txcallback (const dwt_callback_data_t *data) {
 		// We use TX_callback because it will get called after we have sent
 		// all of the broadcast packets. (Now of course we will get this
 		// callback multiple times, but that is ok.)
-		if (_tag_state == TSTATE_TRANSITION_TO_ANC_FINAL) {
+		if (_state == TSTATE_TRANSITION_TO_ANC_FINAL) {
 			// At this point we have sent all of our ranging broadcasts.
 			// Now we move to listening for responses from anchors.
-			_tag_state = TSTATE_LISTENING;
+			_state = TSTATE_LISTENING;
 
 			// Init some state
 			_ranging_listening_window_num = 0;
 			_anchor_response_count = 0;
 
 			// Start a timer to switch between the windows
-			timer_start(_ranging_broadcast_timer, RANGING_LISTENING_WINDOW_US, ranging_listening_window_task);
+			timer_start(_tag_timer, RANGING_LISTENING_WINDOW_US, ranging_listening_window_task);
 
 		} else {
 			// We don't need to do anything on TX done for any other states
@@ -165,7 +197,7 @@ void dw1000_tag_txcallback (const dwt_callback_data_t *data) {
 
 
 	} else {
-		timer_stop(_ranging_broadcast_timer);
+		timer_stop(_tag_timer);
 	}
 
 }
@@ -311,11 +343,11 @@ static void ranging_broadcast_subsequence_task () {
 	if (_ranging_broadcast_ss_num == NUM_RANGING_BROADCASTS-1) {
 		// This is our last packet to send. Stop the timer so we don't generate
 		// more packets.
-		timer_stop(_ranging_broadcast_timer);
+		timer_stop(_tag_timer);
 
 		// Also update the state to say that we are moving to RX mode
 		// to listen for responses from the anchor
-		_tag_state = TSTATE_TRANSITION_TO_ANC_FINAL;
+		_state = TSTATE_TRANSITION_TO_ANC_FINAL;
 	}
 
 	// Go ahead and setup and send a ranging broadcast
@@ -332,7 +364,7 @@ static void ranging_listening_window_task () {
 
 	// Stop after the last of the receive windows
 	if (_ranging_listening_window_num == NUM_RANGING_LISTENING_WINDOWS) {
-		timer_stop(_ranging_broadcast_timer);
+		timer_stop(_tag_timer);
 
 		// Stop the radio
 		dwt_forcetrxoff();
@@ -354,7 +386,7 @@ static void ranging_listening_window_task () {
 // Once we have heard from all of the anchors, calculate range.
 static void report_range () {
 	// New state
-	_tag_state = TSTATE_CALCULATE_RANGE;
+	_state = TSTATE_CALCULATE_RANGE;
 
 	// Calculate ranges
 	calculate_ranges();
@@ -370,7 +402,7 @@ static void report_range () {
 
 		// After we do that go back to idle. The state is now the main application's
 		// problem.
-		_tag_state = TSTATE_IDLE;
+		_state = TSTATE_IDLE;
 
 	} else if (report_mode == REPORT_MODE_LOCATION) {
 		// TODO: implement this

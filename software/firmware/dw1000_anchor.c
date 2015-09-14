@@ -7,6 +7,7 @@
 #include "dw1000_anchor.h"
 #include "dw1000.h"
 #include "timer.h"
+#include "timing.h"
 #include "prng.h"
 #include "firmware.h"
 
@@ -99,11 +100,26 @@ dw1000_err_e dw1000_anchor_init () {
 	return DW1000_NO_ERR;
 }
 
-// This gets the anchor state machine going.
-void anchor_startup_task () {
-	if (_state == ASTATE_WAKING) {
-		// Stop the timer if it was set after coming out of sleep)
-		timer_stop(_anchor_timer);
+// Tell the anchor to start its job of being an anchor
+void dw1000_anchor_start () {
+
+	// Check if we are in sleep mode. If we are, then we need to wake the chip
+	// and wait to set the SPI clock back fast before starting the anchor
+	// state machine again.
+	if (_state == ASTATE_SLEEP) {
+		// Slow down SPI before chip has crystals crankin'
+		dw1000_spi_slow();
+
+		// Issue a benign SPI transaction to wake the chip
+		dwt_readdevid();
+
+		// Can speed up SPI at this point because we just wait for some time
+		// before doing anything else
+		dw1000_spi_fast();
+
+		// Wait 5ms before continuing. This should be enough time for the
+		mDelay(5);
+
 	}
 
 	// Also we start over in case the anchor was doing anything before
@@ -115,31 +131,6 @@ void anchor_startup_task () {
 
 	// Obviously we want to be able to receive packets
 	dwt_rxenable(0);
-}
-
-// Tell the anchor to start its job of being an anchor
-void dw1000_anchor_start () {
-
-	// Check if we are in sleep mode. If we are, then we need to wake the chip
-	// and wait to set the SPI clock back fast before starting the anchor
-	// state machine again.
-	if (_state == ASTATE_SLEEP) {
-		// Move to the waking up state
-		_state = ASTATE_WAKING;
-
-		// Slow down SPI before chip has crystals crankin'
-		dw1000_spi_slow();
-
-		// Issue a benign SPI transaction to wake the chip
-		dwt_readdevid();
-
-		// Wait 5ms before continuing. This should be enough time for the
-		timer_start(_anchor_timer, 5000, anchor_startup_task);
-
-	} else {
-		// In any other state, just get going.
-		anchor_startup_task();
-	}
 }
 
 // Tell the anchor to stop ranging with TAGs.
@@ -230,7 +221,9 @@ static void ranging_listening_window_task () {
 		dwt_setdelayedtrxtime(delay_time);
 
 		// Send the response packet
-		int err = dwt_starttx(DWT_START_TX_DELAYED);
+		// TODO: handle if starttx errors. I'm not sure what to do about it,
+		//       other than just wait for the next slot.
+		dwt_starttx(DWT_START_TX_DELAYED);
 		dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
 		dwt_writetxdata(frame_len, (uint8_t*) &pp_anc_final_pkt, 0);
 
