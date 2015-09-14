@@ -201,6 +201,11 @@ void app_start () {
 
 // This is called when the host tells us to sleep
 void app_stop () {
+	// Don't stop if we are already stopped
+	if (_state == APPSTATE_STOPPED) {
+		return;
+	}
+
 	dw1000_role_e my_role = dw1000_get_mode();
 
 	_state = APPSTATE_STOPPED;

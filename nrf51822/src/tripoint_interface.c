@@ -20,8 +20,8 @@ void tripoint_i2c_callback (nrf_drv_twi_evt_t* event) {
 }
 
 void tripoint_interrupt_handler (nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action) {
-	//verify interrupt is from tripoint
-	if(pin == TRIPOINT_INTERRUPT_PIN) {
+	// verify interrupt is from tripoint
+	if (pin == TRIPOINT_INTERRUPT_PIN) {
 		//ask whats up over I2C
 		uint32_t ret;
 		uint8_t cmd = TRIPOINT_CMD_READ_INTERRUPT;
@@ -160,6 +160,30 @@ ret_code_t tripoint_start_anchor () {
 	// buf_cmd[3] = rate;
 
 	ret = nrf_drv_twi_tx(&twi_instance, TRIPOINT_ADDRESS, buf_cmd, 2, false);
+	if (ret != NRF_SUCCESS) return ret;
+
+	return NRF_SUCCESS;
+}
+
+// Stop the TriPoint module and put it in sleep mode
+ret_code_t tripoint_sleep () {
+	uint8_t buf_cmd[1] = {TRIPOINT_CMD_SLEEP};
+	ret_code_t ret;
+
+	ret = nrf_drv_twi_tx(&twi_instance, TRIPOINT_ADDRESS, buf_cmd, 1, false);
+	if (ret != NRF_SUCCESS) return ret;
+
+	return NRF_SUCCESS;
+}
+
+// Restart the TriPoint module. This should only be called if the TriPoint was
+// once running and then was stopped. If the TriPoint was never configured,
+// this won't do anything.
+ret_code_t tripoint_resume () {
+	uint8_t buf_cmd[1] = {TRIPOINT_CMD_RESUME};
+	ret_code_t ret;
+
+	ret = nrf_drv_twi_tx(&twi_instance, TRIPOINT_ADDRESS, buf_cmd, 1, false);
 	if (ret != NRF_SUCCESS) return ret;
 
 	return NRF_SUCCESS;

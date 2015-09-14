@@ -1,6 +1,6 @@
 /*
 
-UWB Localization Tag
+  UWB Localization Tag
 
 */
 
@@ -22,7 +22,6 @@ UWB Localization Tag
 #include "boards.h"
 #include "nrf_gpio.h"
 #include "pstorage.h"
-// #include "device_manager.h"
 #include "app_trace.h"
 #include "ble_hrs_c.h"
 #include "ble_bas_c.h"
@@ -39,8 +38,9 @@ UWB Localization Tag
 bool bcp_irq_advertisements = false;
 
 
-#define TRITAG_SHORT_UUID                  0x3152
-#define TRITAG_CHAR_LOCATION_SHORT_UUID    0x3153
+#define TRITAG_SHORT_UUID                     0x3152
+#define TRITAG_CHAR_LOCATION_SHORT_UUID       0x3153
+#define TRITAG_CHAR_RANGING_ENABLE_SHORT_UUID 0x3154
 
 // Randomly generated UUID
 const ble_uuid128_t tritag_uuid128 = {
@@ -48,7 +48,7 @@ const ble_uuid128_t tritag_uuid128 = {
      0x90, 0xee, 0x3f, 0xa2, 0x9c, 0x86, 0x8c, 0xd6}
 };
 
-
+// UUID for the TriTag service
 ble_uuid_t tritag_uuid;
 
 // Security requirements for this application.
@@ -61,16 +61,29 @@ static ble_gap_sec_params_t m_sec_params = {
     SEC_PARAM_MAX_KEY_SIZE,
 };
 
-// State for this application
+/*******************************************************************************
+ *   State for this application
+ ******************************************************************************/
+ // Main application state
 static ble_app_t app;
 
 static ble_gap_adv_params_t m_adv_params;
 
-static app_timer_id_t  test_timer;
+// GP Timer. Used to retry initializing the TriPoint.
+static app_timer_id_t  app_timer;
 
+// Whether or not we successfully got through to the TriPoint module
+// and got it configured properly.
 bool tripoint_inited = false;
 
 
+
+static void advertising_start (void);
+static void advertising_stop (void);
+
+/*******************************************************************************
+ *   nRF Error Functions
+ ******************************************************************************/
 
 /**@brief Function for error handling, which is called when an error has occurred.
  *
@@ -111,51 +124,45 @@ void app_error_handler(uint32_t error_code, uint32_t line_num, const uint8_t * p
  * @param[in] line_num     Line number of the failing ASSERT call.
  * @param[in] p_file_name  File name of the failing ASSERT call.
  */
-void assert_nrf_callback(uint16_t line_num, const uint8_t * p_file_name)
-{
+void assert_nrf_callback(uint16_t line_num, const uint8_t * p_file_name) {
     app_error_handler(0xDEADBEEF, line_num, p_file_name);
 }
 
-
-static void advertising_start(void) {
-
-    //start advertising
-    uint32_t err_code;
-    err_code = sd_ble_gap_adv_start(&m_adv_params);
-    APP_ERROR_CHECK(err_code);
-}
-
-static void advertising_stop(void) {
-    //start advertising
-    uint32_t err_code;
-    err_code = sd_ble_gap_adv_stop();
-    APP_ERROR_CHECK(err_code);
-}
-
-
-//service error callback
+// Service error callback
 static void service_error_handler(uint32_t nrf_error) {
     APP_ERROR_HANDLER(nrf_error);
 }
 
 
-// /**@brief Function for handling the WRITE event.
-//  */
-// static void on_write (ble_evt_t* p_ble_evt)
-// {
-//     ble_gatts_evt_write_t* p_evt_write = &p_ble_evt->evt.gatts_evt.params.write;
 
-//     if (p_evt_write->handle == app.char_led_handles.value_handle) {
-//         app.led_state = p_evt_write->data[0];
+/*******************************************************************************
+ *   nRF CALLBACKS - In response to various BLE/hardware events.
+ ******************************************************************************/
 
-//         // Notify the CC2538 that the LED characteristic was written to
-//         interrupt_event_queue_add(BCP_RSP_LED, 1, p_evt_write->data);
-//     }
-// }
+// Function for handling the WRITE CHARACTERISTIC BLE event.
+static void on_write (ble_evt_t* p_ble_evt) {
+    ble_gatts_evt_write_t* p_evt_write = &p_ble_evt->evt.gatts_evt.params.write;
+
+    // Handle a write to the characteristic that starts and stops
+    // TriPoint ranging.
+    if (p_evt_write->handle == app.char_ranging_enable_handles.value_handle) {
+        app.app_ranging = p_evt_write->data[0];
+
+        led_toggle(LED_0);
+
+        // Stop or start the tripoint based on the value we just got
+        if (app.app_ranging == 1) {
+            tripoint_resume();
+        } else {
+            tripoint_sleep();
+        }
+
+    }
+}
 
 
-//connection parameters event handler callback
-static void on_conn_params_evt(ble_conn_params_evt_t * p_evt) {
+// Connection parameters event handler callback
+static void on_conn_params_evt (ble_conn_params_evt_t * p_evt) {
     uint32_t err_code;
 
     if (p_evt->evt_type == BLE_CONN_PARAMS_EVT_FAILED) {
@@ -165,7 +172,7 @@ static void on_conn_params_evt(ble_conn_params_evt_t * p_evt) {
     }
 }
 
-//connection parameters error callback
+// Connection parameters error callback
 static void conn_params_error_handler(uint32_t nrf_error) {
     APP_ERROR_HANDLER(nrf_error);
 }
@@ -196,7 +203,7 @@ static void on_ble_evt(ble_evt_t * p_ble_evt) {
             break;
 
         case BLE_GATTS_EVT_WRITE:
-            // on_write(p_ble_evt);
+            on_write(p_ble_evt);
             break;
 
         case BLE_GAP_EVT_SEC_PARAMS_REQUEST:
@@ -288,21 +295,30 @@ static void sys_evt_dispatch(uint32_t sys_evt)
     // on_sys_evt(sys_evt);
 }
 
-void tripointData(uint8_t* data, uint32_t len) {
-	//update the data value and notify on the data
+
+
+
+/*******************************************************************************
+ *   PolyPoint Callbacks
+ ******************************************************************************/
+
+
+
+void tripointData (uint8_t* data, uint32_t len) {
+    //update the data value and notify on the data
     if (len > 5) {
         led_toggle(LED_0);
     }
-	ble_gatts_hvx_params_t notify_params;
-	notify_params.handle = 	app.char_location_handles.value_handle;
-	notify_params.type =	BLE_GATT_HVX_NOTIFICATION;
-	notify_params.offset =  0;
-	notify_params.p_len = 	&len;
-	notify_params.p_data = 	data;
+    ble_gatts_hvx_params_t notify_params;
+    notify_params.handle =  app.char_location_handles.value_handle;
+    notify_params.type   =  BLE_GATT_HVX_NOTIFICATION;
+    notify_params.offset =  0;
+    notify_params.p_len  =  &len;
+    notify_params.p_data =  data;
 
-	// uint32_t err_code;
-	// err_code = sd_ble_gatts_hvx(app.conn_handle, &notify_params);
-	// APP_ERROR_CHECK(err_code);
+    // uint32_t err_code;
+    // err_code = sd_ble_gatts_hvx(app.conn_handle, &notify_params);
+    // APP_ERROR_CHECK(err_code);
 }
 
 static void timer_handler (void* p_context) {
@@ -316,6 +332,28 @@ static void timer_handler (void* p_context) {
         }
     }
 }
+
+
+
+
+/*******************************************************************************
+ *   BLE OPERATIONS and FUNCTIONS
+ ******************************************************************************/
+
+
+
+// Tell the nrf to start advertising
+static void advertising_start (void) {
+    uint32_t err_code = sd_ble_gap_adv_start(&m_adv_params);
+    APP_ERROR_CHECK(err_code);
+}
+
+static void advertising_stop (void) {
+    uint32_t err_code = sd_ble_gap_adv_stop();
+    APP_ERROR_CHECK(err_code);
+}
+
+
 
 
 /*******************************************************************************
@@ -347,12 +385,12 @@ static void timers_init(void) {
 
     APP_TIMER_INIT(APP_TIMER_PRESCALER, APP_TIMER_MAX_TIMERS, APP_TIMER_OP_QUEUE_SIZE, false);
 
-    err_code = app_timer_create(&test_timer,
+    err_code = app_timer_create(&app_timer,
                                 APP_TIMER_MODE_REPEATED,
                                 timer_handler);
     APP_ERROR_CHECK(err_code);
 
-    err_code = app_timer_start(test_timer, UPDATE_RATE, NULL);
+    err_code = app_timer_start(app_timer, UPDATE_RATE, NULL);
     APP_ERROR_CHECK(err_code);
 }
 
@@ -391,9 +429,8 @@ static void advertising_init(void) {
     m_adv_params.timeout            = APP_ADV_TIMEOUT_IN_SECONDS;
 }
 
-//init services
-static void services_init (void)
-{
+// Init services
+static void services_init (void) {
     volatile uint32_t err_code;
 
     // Setup our long UUID so that nRF recognizes it. This is done by
@@ -466,9 +503,9 @@ static void services_init (void)
         APP_ERROR_CHECK(err_code);
     }*/
 
-	//add the characteristic that exposes a blob of interrupt response
-	{
-		ble_gatts_char_md_t char_md;
+    //add the characteristic that exposes a blob of interrupt response
+    {
+        ble_gatts_char_md_t char_md;
         ble_gatts_attr_t    attr_char_value;
         ble_uuid_t          char_uuid;
         ble_gatts_attr_md_t attr_md;
@@ -500,23 +537,71 @@ static void services_init (void)
 
         memset(&attr_char_value, 0, sizeof(attr_char_value));
 
-		static uint8_t init = 0;
-
         attr_char_value.p_uuid    = &char_uuid;
         attr_char_value.p_attr_md = &attr_md;
         attr_char_value.init_len  = 1;
         attr_char_value.init_offs = 0;
 
-		//when this is 512 we get a data size error? it seems unlikely we are actually out of memory though
+        //when this is 512 we get a data size error? it seems unlikely we are actually out of memory though
         attr_char_value.max_len   = 72;
-        attr_char_value.p_value   = &init;
+        attr_char_value.p_value   = app.app_raw_response_buffer;
 
         err_code = sd_ble_gatts_characteristic_add(app.service_handle,
                                                    &char_md,
                                                    &attr_char_value,
                                                    &app.char_location_handles);
         APP_ERROR_CHECK(err_code);
-	}
+    }
+
+    // Add the characteristic that enables/disables ranging
+    {
+        ble_gatts_char_md_t char_md;
+        ble_gatts_attr_t    attr_char_value;
+        ble_uuid_t          char_uuid;
+        ble_gatts_attr_md_t attr_md;
+
+        memset(&char_md, 0, sizeof(char_md));
+
+        // The characteristic properties
+        char_md.char_props.read          = 1;
+        char_md.char_props.write         = 1;
+        char_md.char_props.notify        = 0;
+        char_md.p_char_user_desc         = NULL;
+        char_md.p_char_pf                = NULL;
+        char_md.p_user_desc_md           = NULL;
+        char_md.p_cccd_md                = NULL;
+        char_md.p_sccd_md                = NULL;
+
+        char_uuid.type = app.uuid_type;
+        char_uuid.uuid = TRITAG_CHAR_RANGING_ENABLE_SHORT_UUID;
+
+        memset(&attr_md, 0, sizeof(attr_md));
+
+        BLE_GAP_CONN_SEC_MODE_SET_OPEN(&attr_md.read_perm);
+        BLE_GAP_CONN_SEC_MODE_SET_OPEN(&attr_md.write_perm);
+
+        attr_md.vloc    = BLE_GATTS_VLOC_USER;
+        attr_md.rd_auth = 0;
+        attr_md.wr_auth = 0;
+        attr_md.vlen    = 0;
+
+        memset(&attr_char_value, 0, sizeof(attr_char_value));
+
+        attr_char_value.p_uuid    = &char_uuid;
+        attr_char_value.p_attr_md = &attr_md;
+        attr_char_value.init_len  = 1;
+        attr_char_value.init_offs = 0;
+
+        //when this is 512 we get a data size error? it seems unlikely we are actually out of memory though
+        attr_char_value.max_len   = 1;
+        attr_char_value.p_value   = &app.app_ranging;
+
+        err_code = sd_ble_gatts_characteristic_add(app.service_handle,
+                                                   &char_md,
+                                                   &attr_char_value,
+                                                   &app.char_ranging_enable_handles);
+        APP_ERROR_CHECK(err_code);
+    }
 }
 
 
@@ -612,6 +697,9 @@ int main(void) {
 
     led_init(LED_0);
 
+    // We default to doing ranging at the start
+    app.app_ranging = 1;
+
     // Setup BLE and services
     ble_stack_init();
     gap_params_init();
@@ -620,9 +708,11 @@ int main(void) {
     timers_init();
     conn_params_init();
 
+    // Init the nRF hardware to work with the tripoint module.
     err_code = tripoint_hw_init();
     APP_ERROR_CHECK(err_code);
 
+    // Init the state machine on the tripoint
     err_code = tripoint_init(tripointData);
     if (err_code == NRF_SUCCESS) {
         tripoint_inited = true;
