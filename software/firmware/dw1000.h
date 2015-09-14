@@ -227,6 +227,15 @@ typedef enum {
 	DW1000_BUSY,
 } dw1000_err_e;
 
+// Keep config settings for the TAG
+typedef struct {
+	dw1000_report_mode_e report_mode;
+	dw1000_update_mode_e update_mode;
+	uint8_t update_rate;
+} dw1000_tag_config_t;
+
+
+
 // gets called with event that just finished and an error code
 typedef void (*dw1000_callback)(dw1000_cb_e, dw1000_err_e);
 

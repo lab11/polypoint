@@ -14,16 +14,15 @@
 #include "timer.h"
 #include "timing.h"
 #include "firmware.h"
+#include "operation_api.h"
 
 
-// typedef enum {
-// 	STATE_START,
-// 	STATE_IDLE,
-// 	STATE_DW1000_INIT_DONE,
-// } state_e;
 
-
-// state_e state = STATE_START;
+// Put this somewhere??
+typedef enum {
+	APPSTATE_STOPPED,
+	APPSTATE_RUNNING
+} app_state_e;
 
 
 /******************************************************************************/
@@ -39,16 +38,21 @@ bool interrupts_triggered[NUMBER_INTERRUPT_SOURCES]  = {FALSE};
 /******************************************************************************/
 // Current application settings as set by the host
 /******************************************************************************/
-dw1000_report_mode_e _report_mode = REPORT_MODE_RANGES;
-dw1000_update_mode_e _update_mode = UPDATE_MODE_PERIODIC;
-uint8_t _update_rate = 10;
+dw1000_tag_config_t _app_tag_config = {
+	.report_mode = REPORT_MODE_RANGES,
+	.update_mode = UPDATE_MODE_PERIODIC,
+	.update_rate = 10
+};
 
 
 /******************************************************************************/
 // Current application state
 /******************************************************************************/
+// Keep track of if the application is active or not
+static app_state_e _state = APPSTATE_STOPPED;
+
 // Timer for doing periodic operations (like TAG ranging events)
-timer_t* _periodic_timer;
+static timer_t* _periodic_timer;
 
 // Buffer of anchor IDs and ranges to the anchor.
 // Long enough to hold an anchor id followed by the range.
@@ -92,46 +96,111 @@ void tag_execute_range_callback () {
 	dw1000_tag_start_ranging_event();
 }
 
-// This is called after we've heard from the host board that this should be
-// a tag with the given settings.
-void run_tag (dw1000_report_mode_e report_mode,
-              dw1000_update_mode_e update_mode,
-              uint8_t update_rate) {
+// Call this to configure this TriPoint as a TAG. These settings will be
+// preserved, so after this is called, start() and stop() can be used.
+// If this is called while the application is stopped, it will not be
+// automatically started.
+// If this is called when the app is running, the app will be restarted.
+void app_configure_tag (dw1000_report_mode_e report_mode,
+                        dw1000_update_mode_e update_mode,
+                        uint8_t update_rate) {
+	bool resume = FALSE;
 
-	// Start by completing the init() process now that we know we are a tag
-	dw1000_set_mode(TAG);
-
-	if (update_mode == UPDATE_MODE_PERIODIC) {
-		// dw1000_tag_start_ranging_event();
-		// Host requested periodic updates.
-		// Set the timer to fire at the correct rate. Multiply by 1000000 to
-		// get microseconds, then divide by 10 because update_rate is in
-		// tenths of hertz.
-		uint32_t period = (((uint32_t) update_rate) * 1000000) / 10;
-		timer_start(_periodic_timer, period, tag_execute_range_callback);
-
-	} else if (update_mode == UPDATE_MODE_DEMAND) {
-		// Just wait for the host to request a ranging event
-		// over the host interface.
+	// Check if this application is running.
+	if (_state == APPSTATE_RUNNING) {
+		// Resume with new settings.
+		resume = TRUE;
+		// Stop this first
+		app_stop();
 	}
 
-	//
-	// TODO: implement selecting between reporting ranges and locations
-	//
+	// Check if we have been configured as a TAG before. If we have, we don't
+	// need to reset this.
+	if (dw1000_get_mode() != TAG) {
+		// If we need to, complete the init() process now that we know we are a tag.
+		dw1000_set_mode(TAG);
+	}
+
+	// Save settings so that we can start and stop as needed.
+	_app_tag_config.report_mode = report_mode;
+	_app_tag_config.update_mode = update_mode;
+	_app_tag_config.update_rate = update_rate;
+
+	// We were running when this function was called, so we start things back
+	// up here.
+	if (resume) {
+		app_start();
+	}
 }
 
-// This is called to put the tripoint into anchor mode
-void run_anchor () {
-	// Tell the protocol library that we are an anchor
-	dw1000_set_mode(ANCHOR);
+// Configure this as an ANCHOR.
+void app_configure_anchor () {
+	bool resume = FALSE;
 
-	// And start the anchor state machine
-	dw1000_anchor_start();
+	// Check if this application is running.
+	if (_state == APPSTATE_RUNNING) {
+		// Resume with new settings.
+		resume = TRUE;
+		// Stop this first
+		app_stop();
+	}
+
+	// Check if we have been configured as a ANCHOR before. If we have, we don't
+	// need to reset this.
+	if (dw1000_get_mode() != ANCHOR) {
+		// If we need to, complete the init() process now that we know we are a anchor.
+		dw1000_set_mode(ANCHOR);
+	}
+
+	// Resume if we were running before.
+	if (resume) {
+		app_start();
+	}
+}
+
+// Start this node! This will run the anchor and tag algorithms.
+void app_start () {
+	dw1000_role_e my_role = dw1000_get_mode();
+
+	if (my_role == ANCHOR) {
+		_state = APPSTATE_RUNNING;
+
+		// Start the anchor state machine. The app doesn't have to do anything
+		// for this, it just runs.
+		dw1000_anchor_start();
+
+	} else if (my_role == TAG) {
+		_state = APPSTATE_RUNNING;
+
+		if (_app_tag_config.update_mode == UPDATE_MODE_PERIODIC) {
+			// dw1000_tag_start_ranging_event();
+			// Host requested periodic updates.
+			// Set the timer to fire at the correct rate. Multiply by 1000000 to
+			// get microseconds, then divide by 10 because update_rate is in
+			// tenths of hertz.
+			uint32_t period = (((uint32_t) _app_tag_config.update_rate) * 1000000) / 10;
+			timer_start(_periodic_timer, period, tag_execute_range_callback);
+
+		} else if (_app_tag_config.update_mode == UPDATE_MODE_DEMAND) {
+			// Just wait for the host to request a ranging event
+			// over the host interface.
+		}
+
+		//
+		// TODO: implement selecting between reporting ranges and locations
+		//
+
+
+	} else {
+		// We don't know what we are, so we just don't do anything.
+	}
 }
 
 // This is called when the host tells us to sleep
-void stop () {
+void app_stop () {
 	dw1000_role_e my_role = dw1000_get_mode();
+
+	_state = APPSTATE_STOPPED;
 
 	if (my_role == ANCHOR) {
 		dw1000_anchor_stop();
@@ -145,8 +214,8 @@ void stop () {
 // Connection for the anchor/tag code to talk to the main applications
 /******************************************************************************/
 
-dw1000_report_mode_e main_get_report_mode () {
-	return _report_mode;
+dw1000_report_mode_e app_get_report_mode () {
+	return _app_tag_config.report_mode;
 }
 
 // Record ranges that the tag found.

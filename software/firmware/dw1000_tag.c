@@ -394,7 +394,7 @@ static void report_range () {
 	// Decide what we should do with these ranges. We can either report
 	// these right back to the host, or we can try to get the anchors
 	// to calculate location.
-	dw1000_report_mode_e report_mode = main_get_report_mode();
+	dw1000_report_mode_e report_mode = app_get_report_mode();
 	if (report_mode == REPORT_MODE_RANGES) {
 		// Just need to send the ranges back to the host. Send the array
 		// of ranges to the main application and let it deal with it.

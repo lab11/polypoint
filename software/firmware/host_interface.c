@@ -186,11 +186,13 @@ void host_interface_rx_fired () {
 
 				// Now that we know how we should operate,
 				// call the main tag function to get things rollin'.
-				run_tag(report_mode, update_mode, config_tur);
+				app_configure_tag(report_mode, update_mode, config_tur);
+				app_start();
 
 			} else if (my_role == ANCHOR) {
 				// TODO: setup this node as an anchor
-				run_anchor();
+				app_configure_anchor();
+				app_start();
 			}
 			break;
 		}
@@ -230,7 +232,7 @@ void host_interface_rx_fired () {
 			host_interface_wait();
 
 			// Tell the application to stop the dw1000 chip
-			stop();
+			app_stop();
 			break;
 
 
