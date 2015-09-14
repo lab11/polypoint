@@ -150,7 +150,7 @@ void main_set_ranges (int32_t* ranges_millimeters, anchor_responses_t* anchor_re
 	for (uint8_t i=0; i<MAX_NUM_ANCHOR_RESPONSES; i++) {
 		if (ranges_millimeters[i] != INT32_MAX) {
 			// This is a valid range
-			memcpy(_anchor_ids_ranges+buffer_index, anchor_responses->anchor_addr, EUI_LEN);
+			memcpy(_anchor_ids_ranges+buffer_index, anchor_responses[i].anchor_addr, EUI_LEN);
 			buffer_index += EUI_LEN;
 			memcpy(_anchor_ids_ranges+buffer_index, &ranges_millimeters[i], sizeof(int32_t));
 			buffer_index += sizeof(int32_t);
