@@ -11,6 +11,6 @@ void app_start ();
 void app_stop ();
 
 dw1000_report_mode_e app_get_report_mode ();
-void main_set_ranges (int32_t* ranges_millimeters, anchor_responses_t* anchor_responses);
+void app_set_ranges (int32_t* ranges_millimeters, anchor_responses_t* anchor_responses);
 
 #endif

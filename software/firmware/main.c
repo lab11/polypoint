@@ -64,7 +64,9 @@ uint8_t _num_anchor_ranges = 0;
 // "OS" like functions
 /******************************************************************************/
 
-// This gets called from interrupt context
+// This gets called from interrupt context.
+// TODO: Changing interrupts_triggered should be in an atomic block as it is
+//       also read from the main loop on the main thread.
 void mark_interrupt (interrupt_source_e src) {
 	interrupts_triggered[src] = TRUE;
 }
@@ -78,10 +80,6 @@ static void error () {
 			GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
 			uDelay(10000);
 			GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
-}
-
-
-void decawave_done (dw1000_cb_e evt, dw1000_err_e err) {
 }
 
 
@@ -219,7 +217,7 @@ dw1000_report_mode_e app_get_report_mode () {
 }
 
 // Record ranges that the tag found.
-void main_set_ranges (int32_t* ranges_millimeters, anchor_responses_t* anchor_responses) {
+void app_set_ranges (int32_t* ranges_millimeters, anchor_responses_t* anchor_responses) {
 	uint8_t buffer_index = 0;
 
 	// Reset
@@ -293,71 +291,8 @@ int main () {
 	if (err) error();
 
 
+	// MAIN LOOP
 	while (1) {
-
-		// switch (state) {
-		// 	case STATE_START: {
-		// 		state = STATE_IDLE;
-
-		// 		// Setup CPAL, the manager that provides an I2C interface
-		// 		// for the chip.
-		// 		err = host_interface_init(i2c_callback);
-		// 		if (err) error();
-
-
-
-		// 		uint8_t buf[5] = {4, 5, 6, 7, 8};
-		// 		err = host_interface_wait(5, buf);
-		// 		if (err) error();
-		// 		break;
-
-		// 		// Setup the DW1000 decawave chip
-		// 		err = dw1000_init();
-
-		// 		if (err == DW1000_NO_ERR) {
-
-		// 			// Make it a tag
-		// 			dw1000_set_mode(TAG);
-
-		// 			// Do a test run
-		// 			dw1000_tag_start_ranging_event();
-		// 		}
-
-		// 		// dw1000_set_mode(ANCHOR);
-		// 		// dw1000_anchor_start();
-
-
-		// 		break;
-		// 	}
-
-
-		// 	case STATE_DW1000_INIT_DONE: {
-		// 		state = STATE_IDLE;
-
-		// 		// Now wait for commands from the host chip
-		// 		// host_interface_listen();
-
-
-		// 		// uint8_t buf[5] = {4, 5, 6, 7, 8};
-		// 		// uint32_t err;
-
-		// 		// led_toggle(LED2);
-
-		// 		// err = host_interface_send(0x74, 5, buf);
-		// 		// if (err) {
-		// 		// 	led_on(LED1);
-		// 		// }
-
-
-		// 		break;
-		// 	}
-
-
-
-		// 	default:
-		// 		break;
-		// }
-
 
 		PWR_EnterSleepMode(PWR_SLEEPEntry_WFI);
 
@@ -405,9 +340,6 @@ int main () {
 				host_interface_timeout_fired();
 			}
 		} while (interrupt_triggered == TRUE);
-
-
-
 	}
 
 
