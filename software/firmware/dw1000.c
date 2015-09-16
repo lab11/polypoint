@@ -213,6 +213,17 @@ static void setup () {
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
 	GPIO_Init(DW_RESET_PORT, &GPIO_InitStructure);
 
+	// Setup wakeup pin.
+	RCC_AHBPeriphClockCmd(DW_WAKEUP_CLK, ENABLE);
+	GPIO_InitStructure.GPIO_Pin = DW_WAKEUP_PIN;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+	GPIO_Init(DW_WAKEUP_PORT, &GPIO_InitStructure);
+
+	GPIO_WriteBit(DW_WAKEUP_PORT, DW_WAKEUP_PIN, Bit_RESET);
+
 	// Setup antenna pins - select no antennas
 	RCC_AHBPeriphClockCmd(ANT_SEL0_CLK, ENABLE);
 	RCC_AHBPeriphClockCmd(ANT_SEL1_CLK, ENABLE);
@@ -512,8 +523,8 @@ void dw1000_reset () {
 	GPIO_Init(DW_RESET_PORT, &GPIO_InitStructure);
 
 
-	GPIO_InitStructure.GPIO_Pin = DW_WAKEUP_PIN;
-	GPIO_Init(DW_WAKEUP_PORT, &GPIO_InitStructure);
+	// GPIO_InitStructure.GPIO_Pin = DW_WAKEUP_PIN;
+	// GPIO_Init(DW_WAKEUP_PORT, &GPIO_InitStructure);
 
 	//reset logic
 	// Set it high
@@ -524,7 +535,7 @@ void dw1000_reset () {
 	DW_RESET_PORT->BSRR = DW_RESET_PIN;
 
 	//wakeup logic?
-	DW_WAKEUP_PORT->BSRR = DW_WAKEUP_PIN;
+	// DW_WAKEUP_PORT->BSRR = DW_WAKEUP_PIN;
 
 	// Set it back to an input
 	/*GPIO_InitStructure.GPIO_Pin = DW_RESET_PIN;
@@ -565,6 +576,10 @@ dw1000_err_e dw1000_init () {
 		setup();
 	}
 
+	// Make sure the SPI clock is slow so that the DW1000 doesn't miss any
+	// edges.
+	dw1000_spi_slow();
+
 	// Reset the dw1000...for some reason
 	dw1000_reset();
 	uDelay(100);
@@ -596,11 +611,31 @@ dw1000_err_e dw1000_init () {
 		return DW1000_COMM_ERR;
 	}
 
+	// Setup our settings for the DW1000
+	dw1000_configure_settings();
+
+	// Put the SPI back.
+	dw1000_spi_fast();
+
+	return DW1000_NO_ERR;
+}
+
+// Apply a suite of baseline settings that we care about.
+// This is split out so we can call it after sleeping.
+void dw1000_configure_settings () {
+
+	// Also need the SPI slow here.
+	dw1000_spi_slow();
+
 	// Configure sleep parameters.
 	// Note: This is taken from the decawave fast2wr_t.c file. I don't have
 	//       a great idea as to whether this is right or not.
-	dwt_configuresleep(DWT_LOADLDO|DWT_LOADUCODE|DWT_PRESRV_SLEEP|DWT_LOADOPSET|DWT_CONFIG,
-	                   DWT_WAKE_CS|DWT_SLP_EN);
+	dwt_configuresleep(DWT_LOADLDO |
+	                   DWT_LOADUCODE |
+	                   DWT_PRESRV_SLEEP |
+	                   DWT_LOADOPSET |
+	                   DWT_CONFIG,
+	                   DWT_WAKE_WK | DWT_SLP_EN);
 
 	// Configure interrupts and callbacks
 	dwt_setinterrupt(0xFFFFFFFF, 0);
@@ -653,7 +688,8 @@ dw1000_err_e dw1000_init () {
 	dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
 #endif
 
-	return DW1000_NO_ERR;
+	// Always good to make sure we don't trap the SPI speed too slow
+	dw1000_spi_fast();
 }
 
 // This allows the code to select if this device is a TAG or ANCHOR.
@@ -670,6 +706,46 @@ void dw1000_set_mode (dw1000_role_e role) {
 // Returns the mode this device is set to.
 dw1000_role_e dw1000_get_mode () {
 	return _my_role;
+}
+
+// Wake the DW1000 from sleep by asserting the WAKEUP pin
+dw1000_err_e dw1000_wakeup () {
+	// Assert the WAKEUP pin for a while to get the chip to come out of sleep
+	// mode.
+	GPIO_WriteBit(DW_WAKEUP_PORT, DW_WAKEUP_PIN, Bit_SET);
+	uDelay(1000);
+	GPIO_WriteBit(DW_WAKEUP_PORT, DW_WAKEUP_PIN, Bit_RESET);
+
+	// Now wait for 5ms for the chip to move from the wakeup to the idle
+	// state. The datasheet says 4ms, but we buffer a little in case things
+	// take longer or mDelay isn't exact.
+	mDelay(5);
+
+	// Slow SPI and wait for the DW1000 to respond.
+	dw1000_spi_slow();
+	uint32_t devID;
+	uint8_t tries = 0;
+	do {
+		devID = dwt_readdevid();
+		if (devID != DWT_DEVICE_ID) {
+			//if we can't talk to dw1000, try again
+			uDelay(100);
+			tries++;
+		}
+	} while (devID != DWT_DEVICE_ID && tries <= DW1000_NUM_CONTACT_TRIES_BEFORE_RESET);
+
+	if (tries > DW1000_NUM_CONTACT_TRIES_BEFORE_RESET) {
+		// Something went wrong with wakeup. In theory, this won't happen,
+		// but having an unterminated while() loop is probably bad, so we
+		// have this escape hatch. At this point I have no idea what went wrong,
+		// but we probably need to reset the chip at this point.
+		return DW1000_WAKEUP_ERR;
+	}
+
+	// Go back fast again
+	dw1000_spi_fast();
+
+	return DW1000_NO_ERR;
 }
 
 

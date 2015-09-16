@@ -9,6 +9,7 @@ void app_configure_tag (dw1000_report_mode_e report_mode,
 void app_configure_anchor ();
 void app_start ();
 void app_stop ();
+void app_reset ();
 
 void app_tag_do_range ();
 

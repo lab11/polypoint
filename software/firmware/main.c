@@ -89,9 +89,18 @@ static void error () {
 
 // Called by periodic timer
 void tag_execute_range_callback () {
-	// TODO: get return value from this function and slow the timer if
-	// we starting ranging events too quickly.
-	dw1000_tag_start_ranging_event();
+	dw1000_err_e err;
+
+
+	err = dw1000_tag_start_ranging_event();
+	if (err == DW1000_BUSY) {
+		// TODO: get return value from this function and slow the timer if
+		// we starting ranging events too quickly.
+	} else if (err == DW1000_WAKEUP_ERR) {
+		// DW1000 apparently was in sleep and didn't come back.
+		// Not sure why, but we need to reset at this point.
+		app_reset();
+	}
 }
 
 // Call this to configure this TriPoint as a TAG. These settings will be
@@ -176,7 +185,6 @@ void app_start () {
 		_state = APPSTATE_RUNNING;
 
 		if (_app_tag_config.update_mode == UPDATE_MODE_PERIODIC) {
-			// dw1000_tag_start_ranging_event();
 			// Host requested periodic updates.
 			// Set the timer to fire at the correct rate. Multiply by 1000000 to
 			// get microseconds, then divide by 10 because update_rate is in
@@ -213,7 +221,43 @@ void app_stop () {
 	if (my_role == ANCHOR) {
 		dw1000_anchor_stop();
 	} else if (my_role == TAG) {
+		// Check if we need to stop our periodic timer so we don't keep ranging.
+		if (_app_tag_config.update_mode == UPDATE_MODE_PERIODIC) {
+			timer_stop(_periodic_timer);
+		}
 		dw1000_tag_stop();
+	}
+}
+
+// Drop the big hammer on the DW1000 and reset the chip (along with the app).
+// All state should be preserved, so after the reset the tripoint should go
+// back to what it was doing, just after a reset and re-init of the dw1000.
+void app_reset () {
+	uint32_t err;
+	dw1000_role_e my_role = dw1000_get_mode();
+
+	// Stop the timer in case it was in use.
+	timer_stop(_periodic_timer);
+
+	// Init the dw1000, and loop until it works.
+	// init() does a reset.
+	do {
+		err = dw1000_init();
+		if (err) {
+			uDelay(10000);
+		}
+	} while (err);
+
+	// Re init the role of this device
+	if (my_role != UNDECIDED) {
+		dw1000_set_mode(my_role);
+
+		// If we were running before, run now
+		if (_state == APPSTATE_RUNNING) {
+			_state = APPSTATE_STOPPED;
+			// This call will set it back to running
+			app_start();
+		}
 	}
 }
 

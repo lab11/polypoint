@@ -69,6 +69,11 @@
 // Parameters for the localization and ranging protocol
 /******************************************************************************/
 
+// Param for making sure the application doesn't deadlock.
+// This is the number of times we try to read the status/ID register on the
+// DW1000 before giving up and reseting the dw1000.
+#define DW1000_NUM_CONTACT_TRIES_BEFORE_RESET 15
+
 // How many of the DW1000 supported UWB channels we are using for ranging
 // packets.
 #define NUM_RANGING_CHANNELS 3
@@ -225,6 +230,7 @@ typedef enum {
 	DW1000_NO_ERR = 0,
 	DW1000_COMM_ERR,
 	DW1000_BUSY,
+	DW1000_WAKEUP_ERR,
 } dw1000_err_e;
 
 // Keep config settings for the TAG
@@ -247,11 +253,14 @@ void insert_sorted (int arr[], int new, unsigned end);
 
 
 dw1000_err_e dw1000_init ();
+void dw1000_configure_settings ();
 void dw1000_reset ();
 void dw1000_choose_antenna (uint8_t antenna_number);
 void dw1000_read_eui (uint8_t *eui_buf);
 void dw1000_set_mode (dw1000_role_e role);
 dw1000_role_e dw1000_get_mode ();
+dw1000_err_e dw1000_wakeup ();
+
 uint8_t subsequence_number_to_antenna (dw1000_role_e role, uint8_t subseq_num);
 void dw1000_set_ranging_broadcast_subsequence_settings (dw1000_role_e role, uint8_t subseq_num, bool reset);
 void dw1000_set_ranging_listening_window_settings (dw1000_role_e role, uint8_t slot_num, uint8_t antenna_num,bool reset);

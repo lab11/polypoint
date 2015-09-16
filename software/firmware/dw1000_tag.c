@@ -11,7 +11,7 @@
 #include "operation_api.h"
 
 // Our timer object that we use for timing packet transmissions
-timer_t* _tag_timer;
+timer_t* _tag_timer = NULL;
 
 tag_state_e _state = TSTATE_IDLE;
 
@@ -70,13 +70,14 @@ static void calculate_ranges ();
 static void report_range ();
 
 void dw1000_tag_init () {
-
-	uint8_t eui_array[8];
+	// Make sure the SPI speed is slow for this function
+	dw1000_spi_slow();
 
 	// Allow data and ack frames
 	dwt_enableframefilter(DWT_FF_DATA_EN | DWT_FF_ACK_EN);
 
 	// Set this node's ID and the PAN ID for our DW1000 ranging system
+	uint8_t eui_array[8];
 	dw1000_read_eui(eui_array);
 	dwt_seteui(eui_array);
 	dwt_setpanid(POLYPOINT_PANID);
@@ -86,52 +87,45 @@ void dw1000_tag_init () {
 	dwt_setdblrxbuffmode(TRUE);
 	dwt_enableautoack(DW1000_ACK_RESPONSE_TIME);
 
-	// Configure sleep
-	{
-		int mode = DWT_LOADUCODE    |
-		           DWT_PRESRV_SLEEP |
-		           DWT_CONFIG       |
-		           DWT_TANDV;
-		if (dwt_getldotune() != 0) {
-			// If we need to use LDO tune value from OTP kick it after sleep
-			mode |= DWT_LOADLDO;
-		}
-
-		// NOTE: on the EVK1000 the DEEPSLEEP is not actually putting the
-		// DW1000 into full DEEPSLEEP mode as XTAL is kept on
-		dwt_configuresleep(mode, DWT_WAKE_CS | DWT_SLP_EN);
-	}
-
 	// Put source EUI in the pp_tag_poll packet
 	dw1000_read_eui(pp_tag_poll_pkt.header.sourceAddr);
 
 	// Create a timer for use when sending ranging broadcast packets
-	_tag_timer = timer_init();
+	if (_tag_timer == NULL) {
+		_tag_timer = timer_init();
+	}
 
 	// Make SPI fast now that everything has been setup
 	dw1000_spi_fast();
+
+	// Reset our state because nothing should be in progress if we call init()
+	_state = TSTATE_IDLE;
 }
 
 // This starts a ranging event by causing the tag to send a series of
 // ranging broadcasts.
 dw1000_err_e dw1000_tag_start_ranging_event () {
+	dw1000_err_e err;
+
 	// Check if we are coming out of sleep to do this ranging event.
 	// If so, we need to wake the chip.
 	if (_state == TSTATE_SLEEP) {
-		// Slow SPI to communicate and wake the chip
-		dw1000_spi_slow();
+		// Start the DW1000 back up. This both wakes it up and makes sure
+		// the chip responds.
+		err = dw1000_wakeup();
+		if (err) {
+			// Chip did not seem to wakeup. This is not good, so we have
+			// to reset the application.
+			return err;
+		}
 
-		// Issue a benign SPI transaction to wake the chip.
-		dwt_readdevid();
+		// This puts all of the settings back on the DW1000. In theory it
+		// is capable of remembering these, but that doesn't seem to work
+		// very well. This does work, so we do it and move on.
+		dw1000_configure_settings();
 
-		// Can speed up SPI at this point because we just wait for some time
-		// before doing anything else
-		dw1000_spi_fast();
-
-		// Now wait for 5ms for the chip to move from the wakeup to the idle
-		// state. The datasheet says 4ms, but we buffer a little in case things
-		// take longer or mDelay isn't exact.
-		mDelay(5);
+		// Also put back the TAG settings.
+		dw1000_tag_init();
 
 	} else if (_state != TSTATE_IDLE) {
 		// Cannot start a ranging event if we are currently busy with one.
