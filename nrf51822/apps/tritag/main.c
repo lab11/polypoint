@@ -316,6 +316,9 @@ void tripointData (uint8_t* data, uint32_t len) {
     notify_params.p_len  =  &len;
     notify_params.p_data =  data;
 
+    // TODO: bounds checking!
+    memcpy(app.app_raw_response_buffer, data, len);
+
     // uint32_t err_code;
     // err_code = sd_ble_gatts_hvx(app.conn_handle, &notify_params);
     // APP_ERROR_CHECK(err_code);
