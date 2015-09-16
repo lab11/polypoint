@@ -593,10 +593,6 @@ dw1000_err_e dw1000_init () {
 		return DW1000_COMM_ERR;
 	}
 
-	GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
-	uDelay(1000);
-	GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
-
 	// Choose antenna 0 as a default
 	dw1000_choose_antenna(0);
 
@@ -732,7 +728,7 @@ dw1000_err_e dw1000_wakeup () {
 			uDelay(100);
 			tries++;
 		}
-	} while (devID != DWT_DEVICE_ID && tries <= DW1000_NUM_CONTACT_TRIES_BEFORE_RESET);
+	} while ((devID != DWT_DEVICE_ID) && (tries <= DW1000_NUM_CONTACT_TRIES_BEFORE_RESET));
 
 	if (tries > DW1000_NUM_CONTACT_TRIES_BEFORE_RESET) {
 		// Something went wrong with wakeup. In theory, this won't happen,

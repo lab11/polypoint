@@ -60,6 +60,8 @@ uint8_t _anchor_ids_ranges[MAX_NUM_ANCHOR_RESPONSES*(EUI_LEN+sizeof(int32_t))];
 uint8_t _num_anchor_ranges = 0;
 
 
+void start_dw1000 ();
+
 /******************************************************************************/
 // "OS" like functions
 /******************************************************************************/
@@ -233,20 +235,14 @@ void app_stop () {
 // All state should be preserved, so after the reset the tripoint should go
 // back to what it was doing, just after a reset and re-init of the dw1000.
 void app_reset () {
-	uint32_t err;
 	dw1000_role_e my_role = dw1000_get_mode();
 
 	// Stop the timer in case it was in use.
 	timer_stop(_periodic_timer);
 
 	// Init the dw1000, and loop until it works.
-	// init() does a reset.
-	do {
-		err = dw1000_init();
-		if (err) {
-			uDelay(10000);
-		}
-	} while (err);
+	// start does a reset.
+	start_dw1000();
 
 	// Re init the role of this device
 	if (my_role != UNDECIDED) {
@@ -313,6 +309,37 @@ void app_set_ranges (int32_t* ranges_millimeters, anchor_responses_t* anchor_res
 // Main
 /******************************************************************************/
 
+// Loop until the DW1000 is inited and ready to go.
+void start_dw1000 () {
+	uint32_t err;
+
+	while (1) {
+		// Do some preliminary setup of the DW1000. This mostly configures
+		// pins and hardware peripherals, as well as straightening out some
+		// of the settings on the DW1000.
+		uint8_t tries = 0;
+		do {
+			err = dw1000_init();
+			if (err) {
+				uDelay(10000);
+				tries++;
+			}
+		} while (err && tries <= DW1000_NUM_CONTACT_TRIES_BEFORE_RESET);
+
+		if (err) {
+			// We never got the DW1000 to respond. This puts us in a really
+			// bad spot. Maybe if we just wait for a while things will get
+			// better?
+			mDelay(50000);
+		} else {
+			// Success
+			break;
+		}
+	}
+
+}
+
+
 int main () {
 	uint32_t err;
 	bool interrupt_triggered = FALSE;
@@ -346,13 +373,7 @@ int main () {
 	// Next up do some preliminary setup of the DW1000. This mostly configures
 	// pins and hardware peripherals, as well as straightening out some
 	// of the settings on the DW1000.
-	do {
-		err = dw1000_init();
-		if (err) {
-			uDelay(10000);
-		}
-	} while (err);
-
+	start_dw1000();
 
 	// Now we just wait for the host board to tell us what to do. Before
 	// it sets us up we just sit here.
