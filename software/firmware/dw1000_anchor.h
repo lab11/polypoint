@@ -23,8 +23,8 @@ typedef struct {
 	uint16_t anchor_reply_slot_time_in_us;
 } dw1000_anchor_tag_config_t;
 
-dw1000_err_e dw1000_anchor_init ();
-void dw1000_anchor_start ();
+void dw1000_anchor_init ();
+dw1000_err_e dw1000_anchor_start ();
 void dw1000_anchor_stop ();
 
 void dw1000_anchor_txcallback (const dwt_callback_data_t *data);

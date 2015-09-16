@@ -93,7 +93,6 @@ static void error () {
 void tag_execute_range_callback () {
 	dw1000_err_e err;
 
-
 	err = dw1000_tag_start_ranging_event();
 	if (err == DW1000_BUSY) {
 		// TODO: get return value from this function and slow the timer if
@@ -169,6 +168,8 @@ void app_configure_anchor () {
 
 // Start this node! This will run the anchor and tag algorithms.
 void app_start () {
+	dw1000_err_e err;
+
 	// Don't start if we are already started
 	if (_state == APPSTATE_RUNNING) {
 		return;
@@ -181,7 +182,10 @@ void app_start () {
 
 		// Start the anchor state machine. The app doesn't have to do anything
 		// for this, it just runs.
-		dw1000_anchor_start();
+		err = dw1000_anchor_start();
+		if (err == DW1000_WAKEUP_ERR) {
+			app_reset();
+		}
 
 	} else if (my_role == TAG) {
 		_state = APPSTATE_RUNNING;
@@ -260,6 +264,8 @@ void app_reset () {
 // Assuming we are a TAG, and we are in on-demand ranging mode, tell
 // the dw1000 algorithm to perform a range.
 void app_tag_do_range () {
+	dw1000_err_e err;
+
 	// If the application isn't running, we are not a tag, or we are not
 	// in on-demand ranging mode, don't do anything.
 	if (_state != APPSTATE_RUNNING ||
@@ -269,7 +275,10 @@ void app_tag_do_range () {
 	}
 
 	// TODO: this does return an error if we are already ranging.
-	dw1000_tag_start_ranging_event();
+	err = dw1000_tag_start_ranging_event();
+	if (err == DW1000_WAKEUP_ERR) {
+		app_reset();
+	}
 }
 
 

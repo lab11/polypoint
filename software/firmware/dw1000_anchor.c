@@ -12,7 +12,7 @@
 #include "firmware.h"
 
 // Our timer object that we use for timing packet transmissions
-timer_t* _anchor_timer;
+timer_t* _anchor_timer = NULL;
 
 // State for the PRNG
 ranctx _prng_state;
@@ -61,8 +61,9 @@ static struct pp_anc_final pp_anc_final_pkt = {
 static void ranging_listening_window_setup();
 
 
-dw1000_err_e dw1000_anchor_init () {
-	uint8_t eui_array[8];
+void dw1000_anchor_init () {
+	// Make sure the SPI speed is slow for this function
+	dw1000_spi_slow();
 
 	// Make sure the radio starts off
 	dwt_forcetrxoff();
@@ -71,6 +72,7 @@ dw1000_err_e dw1000_anchor_init () {
 	dwt_enableframefilter(DWT_FF_DATA_EN | DWT_FF_ACK_EN);
 
 	// Set the ID and PAN ID for this anchor
+	uint8_t eui_array[8];
 	dw1000_read_eui(eui_array);
 	dwt_seteui(eui_array);
 	dwt_setpanid(POLYPOINT_PANID);
@@ -89,7 +91,9 @@ dw1000_err_e dw1000_anchor_init () {
 	dw1000_read_eui(pp_anc_final_pkt.ieee154_header_unicast.sourceAddr);
 
 	// Need a timer
-	_anchor_timer = timer_init();
+	if (_anchor_timer == NULL) {
+		_anchor_timer = timer_init();
+	}
 
 	// Init the PRNG for determining when to respond to the tag
 	raninit(&_prng_state, eui_array[0]<<8|eui_array[1]);
@@ -97,29 +101,34 @@ dw1000_err_e dw1000_anchor_init () {
 	// Make SPI fast now that everything has been setup
 	dw1000_spi_fast();
 
-	return DW1000_NO_ERR;
+	// Reset our state because nothing should be in progress if we call init()
+	_state = ASTATE_IDLE;
 }
 
 // Tell the anchor to start its job of being an anchor
-void dw1000_anchor_start () {
+dw1000_err_e dw1000_anchor_start () {
+	dw1000_err_e err;
 
 	// Check if we are in sleep mode. If we are, then we need to wake the chip
 	// and wait to set the SPI clock back fast before starting the anchor
 	// state machine again.
 	if (_state == ASTATE_SLEEP) {
-		// Slow down SPI before chip has crystals crankin'
-		dw1000_spi_slow();
+		// Start the DW1000 back up. This both wakes it up and makes sure
+		// the chip responds.
+		err = dw1000_wakeup();
+		if (err) {
+			// Chip did not seem to wakeup. This is not good, so we have
+			// to reset the application.
+			return err;
+		}
 
-		// Issue a benign SPI transaction to wake the chip
-		dwt_readdevid();
+		// This puts all of the settings back on the DW1000. In theory it
+		// is capable of remembering these, but that doesn't seem to work
+		// very well. This does work, so we do it and move on.
+		dw1000_configure_settings();
 
-		// Can speed up SPI at this point because we just wait for some time
-		// before doing anything else
-		dw1000_spi_fast();
-
-		// Wait 5ms before continuing. This should be enough time for the
-		mDelay(5);
-
+		// Also put back the ANCHOR settings.
+		dw1000_anchor_init();
 	}
 
 	// Also we start over in case the anchor was doing anything before
@@ -131,6 +140,8 @@ void dw1000_anchor_start () {
 
 	// Obviously we want to be able to receive packets
 	dwt_rxenable(0);
+
+	return DW1000_NO_ERR;
 }
 
 // Tell the anchor to stop ranging with TAGs.
