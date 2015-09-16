@@ -1,4 +1,3 @@
-
 #include <string.h>
 
 #include "stm32f0xx_tim.h"
@@ -72,7 +71,6 @@ void start_dw1000 ();
 void mark_interrupt (interrupt_source_e src) {
 	interrupts_triggered[src] = TRUE;
 }
-
 
 static void error () {
 	// dw1000_init();
@@ -441,11 +439,5 @@ int main () {
 		} while (interrupt_triggered == TRUE);
 	}
 
-
-
 	return 0;
 }
-
-
-
-
