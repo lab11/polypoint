@@ -74,6 +74,11 @@
 // DW1000 before giving up and reseting the dw1000.
 #define DW1000_NUM_CONTACT_TRIES_BEFORE_RESET 15
 
+// Number of consecutive DW1000 interrupts we handle before resetting the chip.
+// The DW1000 can get in a bad state and just continuously assert the interrupt
+// line (this may happen because it thinks we switched the interrupt polarity).
+#define DW1000_NUM_CONSECUTIVE_INTERRUPTS_BEFORE_RESET 10
+
 // How many of the DW1000 supported UWB channels we are using for ranging
 // packets.
 #define NUM_RANGING_CHANNELS 3

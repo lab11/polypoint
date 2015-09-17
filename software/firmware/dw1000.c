@@ -15,6 +15,7 @@
 #include "dw1000_anchor.h"
 #include "timing.h"
 #include "firmware.h"
+#include "operation_api.h"
 
 
 
@@ -376,10 +377,20 @@ void EXTI2_3_IRQHandler(void) {
 
 void dw1000_interrupt_fired () {
 	// Keep calling the decawave interrupt handler as long as the interrupt pin
-	// is asserted.
+	// is asserted, but add an escape hatch so we don't get stuck forever.
+	uint8_t count = 0;
 	do {
 		dwt_isr();
-	} while (GPIO_ReadInputDataBit(DW_INTERRUPT_PORT, DW_INTERRUPT_PIN));
+		count++;
+	} while (GPIO_ReadInputDataBit(DW_INTERRUPT_PORT, DW_INTERRUPT_PIN) &&
+	         count < DW1000_NUM_CONSECUTIVE_INTERRUPTS_BEFORE_RESET);
+
+	if (count >= DW1000_NUM_CONSECUTIVE_INTERRUPTS_BEFORE_RESET) {
+		// Well this is not good. It looks like the interrupt got stuck high,
+		// so we'd spend the rest of the time just reading this interrupt.
+		// Not much we can do here but reset everything.
+		app_reset();
+	}
 }
 
 
