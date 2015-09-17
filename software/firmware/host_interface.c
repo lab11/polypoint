@@ -91,6 +91,8 @@ static void interrupt_host_clear () {
 // Send to the tag the ranges.
 void host_interface_notify_ranges (uint8_t* anchor_ids_ranges, uint8_t num_anchor_ranges) {
 
+	// TODO: this should be in an atomic block
+
 	// Save the relevant state for when the host asks for it
 	_interrupt_reason = HOST_IFACE_INTERRUPT_RANGES;
 	_interrupt_buffer = anchor_ids_ranges;
@@ -146,18 +148,14 @@ uint32_t host_interface_respond (uint8_t length) {
 void host_interface_rx_fired () {
 	uint8_t opcode;
 
+// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
+// uDelay(10);
+// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
+
 	// First byte of every correct WRITE packet is the opcode of the
 	// packet.
 	opcode = rxBuffer[0];
 	switch (opcode) {
-		/**********************************************************************/
-		// Return the INFO array
-		/**********************************************************************/
-		case HOST_CMD_INFO:
-			// Info packet is a good way to check that I2C is working.
-			memcpy(txBuffer, INFO_PKT, 3);
-			host_interface_respond(3);
-			break;
 
 		/**********************************************************************/
 		// Configure the TriPoint. This can be called multiple times to change the setup.
@@ -203,36 +201,6 @@ void host_interface_rx_fired () {
 			break;
 		}
 
-		/**********************************************************************/
-		// Ask the TriPoint why it asserted the interrupt line.
-		/**********************************************************************/
-		case HOST_CMD_READ_INTERRUPT: {
-			// Prepare a packet to send back to the host
-
-			// What the packet looks like depends on which type it is
-			switch (_interrupt_reason) {
-				case HOST_IFACE_INTERRUPT_RANGES:
-					// Start by clearing the interrupt
-					interrupt_host_clear();
-
-					// Need a packet that looks like:
-					//    <length>
-					//    HOST_IFACE_INTERRUPT_RANGES
-					//    <number of anchor,range pairs>
-					//    <array of pairs>
-					txBuffer[0] = 2 + (_interrupt_ranges_count*(EUI_LEN+sizeof(int32_t)));
-					txBuffer[1] = HOST_IFACE_INTERRUPT_RANGES;
-					txBuffer[2] = _interrupt_ranges_count;
-					memcpy(txBuffer+3, _interrupt_buffer, _interrupt_ranges_count*(EUI_LEN+sizeof(int32_t)));
-					host_interface_respond(txBuffer[0]+1);
-					break;
-
-				default:
-					break;
-			}
-
-			break;
-		}
 
 		/**********************************************************************/
 		// Tell the TriPoint that it should take a range/location measurement
@@ -270,6 +238,14 @@ void host_interface_rx_fired () {
 			// And we just have to start the application.
 			app_start();
 			break;
+
+		/**********************************************************************/
+		// These are handled from the interrupt context.
+		/**********************************************************************/
+		case HOST_CMD_INFO:
+		case HOST_CMD_READ_INTERRUPT:
+			break;
+
 
 		default:
 			break;
@@ -309,6 +285,88 @@ uint32_t CPAL_TIMEOUT_UserCallback(CPAL_InitTypeDef* pDevInitStruct) {
   * @retval None
   */
 void CPAL_I2C_RXTC_UserCallback(CPAL_InitTypeDef* pDevInitStruct) {
+	uint8_t opcode;
+
+	// We need to do some of the handling for the I2C here, because if
+	// we wait to handle it on the main thread sometimes there is too much
+	// delay and the I2C stops working.
+
+
+	// First byte of every correct WRITE packet is the opcode of the
+	// packet.
+	opcode = rxBuffer[0];
+	switch (opcode) {
+		/**********************************************************************/
+		// Return the INFO array
+		/**********************************************************************/
+		case HOST_CMD_INFO:
+			// Info packet is a good way to check that I2C is working.
+			memcpy(txBuffer, INFO_PKT, 3);
+			host_interface_respond(3);
+			break;
+
+		/**********************************************************************/
+		// Ask the TriPoint why it asserted the interrupt line.
+		/**********************************************************************/
+		case HOST_CMD_READ_INTERRUPT: {
+			// Prepare a packet to send back to the host
+
+			// What the packet looks like depends on which type it is
+			switch (_interrupt_reason) {
+				case HOST_IFACE_INTERRUPT_RANGES:
+					// Start by clearing the interrupt
+					interrupt_host_clear();
+
+					// Need a packet that looks like:
+					//    <length>
+					//    HOST_IFACE_INTERRUPT_RANGES
+					//    <number of anchor,range pairs>
+					//    <array of pairs>
+					txBuffer[0] = 2 + (_interrupt_ranges_count*(EUI_LEN+sizeof(int32_t)));
+					txBuffer[1] = HOST_IFACE_INTERRUPT_RANGES;
+					txBuffer[2] = _interrupt_ranges_count;
+					memcpy(txBuffer+3, _interrupt_buffer, _interrupt_ranges_count*(EUI_LEN+sizeof(int32_t)));
+					host_interface_respond(txBuffer[0]+1);
+					break;
+
+				default:
+					break;
+			}
+
+			break;
+		}
+
+		/**********************************************************************/
+		// All of the following do not require a response and can be handled
+		// on the main thread.
+		/**********************************************************************/
+		case HOST_CMD_CONFIG:
+		case HOST_CMD_DO_RANGE:
+		case HOST_CMD_SLEEP:
+		case HOST_CMD_RESUME:
+
+			// Just go back to waiting for a WRITE after a config message
+			host_interface_wait();
+
+			// Handle the rest on the main thread
+			break;
+
+		default:
+			break;
+	}
+
+
+
+
+
+
+GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
+// uDelay(1);
+GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
+
+
+
+
 	// Handle this interrupt on the main thread
 	mark_interrupt(INTERRUPT_I2C_RX);
 }
