@@ -454,7 +454,8 @@ static void calculate_ranges () {
 		// If we didn't get any matching pairs in the first and last rounds
 		// then we have to skip this anchor.
 		if (valid_offset_calculations == 0) {
-			// continue;
+			_ranges_millimeters[anchor_index] = DW1000_TAG_RANGE_ERROR_NO_OFFSET;
+			continue;
 		}
 
 		// Calculate the average clock offset multiplier
@@ -483,8 +484,6 @@ static void calculate_ranges () {
 		int distances_millimeters[NUM_RANGING_BROADCASTS] = {0};
 		uint8_t num_valid_distances = 0;
 
-int dm = 0;
-
 		// Next we calculate the TOFs for each of the poll messages the tag sent.
 		for (uint8_t broadcast_index=0; broadcast_index<NUM_RANGING_BROADCASTS; broadcast_index++) {
 			uint64_t broadcast_send_time = _ranging_broadcast_ss_send_times[broadcast_index];
@@ -503,20 +502,20 @@ int dm = 0;
 			double TOF = (double) broadcast_anchor_offset - (((double) broadcast_tag_offset) * offset_anchor_over_tag) + one_way_TOF;
 
 			int distance_millimeters = dwtime_to_millimeters(TOF);
-if (dm == 0) dm = distance_millimeters;
 
 			// Check that the distance we have at this point is at all reasonable
-			// if (distance_millimeters >= MIN_VALID_RANGE_MM && distance_millimeters <= MAX_VALID_RANGE_MM) {
+			if (distance_millimeters >= MIN_VALID_RANGE_MM && distance_millimeters <= MAX_VALID_RANGE_MM) {
 				// Add this to our sorted array of distances
 				insert_sorted(distances_millimeters, distance_millimeters, num_valid_distances);
 				num_valid_distances++;
-			// }
+			}
 		}
 
 		// Check to make sure that we got enough ranges from this anchor.
 		// If not, we just skip it.
 		if (num_valid_distances < MIN_VALID_RANGES_PER_ANCHOR) {
-			// continue;
+			_ranges_millimeters[anchor_index] = DW1000_TAG_RANGE_ERROR_TOO_FEW_RANGES;
+			continue;
 		}
 
 

@@ -148,10 +148,6 @@ uint32_t host_interface_respond (uint8_t length) {
 void host_interface_rx_fired () {
 	uint8_t opcode;
 
-// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
-// uDelay(10);
-// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
-
 	// First byte of every correct WRITE packet is the opcode of the
 	// packet.
 	opcode = rxBuffer[0];
@@ -275,7 +271,7 @@ uint32_t CPAL_TIMEOUT_UserCallback(CPAL_InitTypeDef* pDevInitStruct) {
 	// Handle this interrupt on the main thread
 	mark_interrupt(INTERRUPT_I2C_TIMEOUT);
 
-  return CPAL_PASS;
+	return CPAL_PASS;
 }
 
 
@@ -355,18 +351,6 @@ void CPAL_I2C_RXTC_UserCallback(CPAL_InitTypeDef* pDevInitStruct) {
 			break;
 	}
 
-
-
-
-
-
-GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
-// uDelay(1);
-GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
-
-
-
-
 	// Handle this interrupt on the main thread
 	mark_interrupt(INTERRUPT_I2C_RX);
 }
@@ -389,6 +373,5 @@ void CPAL_I2C_TXTC_UserCallback(CPAL_InitTypeDef* pDevInitStruct) {
   * @retval None
   */
 void CPAL_I2C_ERR_UserCallback(CPAL_DevTypeDef pDevInstance, uint32_t DeviceError) {
-
 
 }
