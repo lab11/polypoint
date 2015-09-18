@@ -136,7 +136,7 @@ dw1000_err_e dw1000_anchor_start () {
 
 	// Choose to wait in the first default position.
 	// This could change to wait in any of the first NUM_CHANNEL-1 positions.
-	dw1000_set_ranging_broadcast_subsequence_settings(ANCHOR, 0, TRUE);
+	dw1000_set_ranging_broadcast_subsequence_settings(ANCHOR, 0);
 
 	// Obviously we want to be able to receive packets
 	dwt_rxenable(0);
@@ -179,7 +179,7 @@ static void ranging_broadcast_subsequence_task () {
 
 	} else {
 		// Update the anchor listening settings
-		dw1000_set_ranging_broadcast_subsequence_settings(ANCHOR, _ranging_broadcast_ss_num, FALSE);
+		dw1000_set_ranging_broadcast_subsequence_settings(ANCHOR, _ranging_broadcast_ss_num);
 
 		// And re-enable RX. The set_broadcast_settings function disables tx and rx.
 		dwt_rxenable(0);
@@ -206,8 +206,7 @@ static void ranging_listening_window_task () {
 		// Setup the channel and antenna settings
 		dw1000_set_ranging_listening_window_settings(ANCHOR,
 		                                             _ranging_listening_window_num,
-		                                             pp_anc_final_pkt.final_antenna,
-		                                             FALSE);
+		                                             pp_anc_final_pkt.final_antenna);
 
 		// Prepare the outgoing packet to send back to the
 		// tag with our TOAs.
@@ -402,7 +401,7 @@ void dw1000_anchor_rxcallback (const dwt_callback_data_t *rxd) {
 			rxd->event == DWT_SIG_RX_SYNCLOSS ||
 			rxd->event == DWT_SIG_RX_SFDTIMEOUT ||
 			rxd->event == DWT_SIG_RX_PTOTIMEOUT) {
-			dw1000_set_ranging_broadcast_subsequence_settings(ANCHOR, _ranging_broadcast_ss_num, TRUE);
+			dw1000_set_ranging_broadcast_subsequence_settings(ANCHOR, _ranging_broadcast_ss_num);
 		} else {
 			// Some other unknown error, not sure what to do
 		}

@@ -27,6 +27,9 @@
 // Length of addresses in the system
 #define EUI_LEN 8
 
+// Default from original PolyPoint code
+#define DW1000_DEFAULT_XTALTRIM 8
+
 
 /******************************************************************************/
 // Timing defines for this particular MCU
@@ -139,11 +142,13 @@
 // Data Structs for packet messages between tags and anchors
 /******************************************************************************/
 
+// Message types that identify the UWB packets. Very reminiscent of
+// Active Messages from the TinyOS days.
 #define MSG_TYPE_PP_ONEWAY_TAG_POLL   0x60
 #define MSG_TYPE_PP_ONEWAY_TAG_FINAL  0x6F
 #define MSG_TYPE_PP_ONEWAY_ANC_FINAL  0x70
-#define MSG_TYPE_PP_NOSLOTS_TAG_POLL   0x80
-#define MSG_TYPE_PP_NOSLOTS_ANC_FINAL  0x81
+#define MSG_TYPE_PP_NOSLOTS_TAG_POLL  0x80
+#define MSG_TYPE_PP_NOSLOTS_ANC_FINAL 0x81
 
 // Size buffers for reading in packets
 #define DW1000_TAG_MAX_RX_PKT_LEN 296
@@ -225,12 +230,7 @@ typedef enum {
 	UPDATE_MODE_DEMAND = 1     // Range only when the host instructs
 } dw1000_update_mode_e;
 
-
-
-typedef enum {
-	DW1000_INIT_DONE,
-} dw1000_cb_e;
-
+// Return values for our DW1000 library errors
 typedef enum {
 	DW1000_NO_ERR = 0,
 	DW1000_COMM_ERR,
@@ -247,8 +247,6 @@ typedef struct {
 
 
 
-// gets called with event that just finished and an error code
-typedef void (*dw1000_callback)(dw1000_cb_e, dw1000_err_e);
 
 void dw1000_spi_fast ();
 void dw1000_spi_slow ();
@@ -267,8 +265,8 @@ dw1000_role_e dw1000_get_mode ();
 dw1000_err_e dw1000_wakeup ();
 
 uint8_t subsequence_number_to_antenna (dw1000_role_e role, uint8_t subseq_num);
-void dw1000_set_ranging_broadcast_subsequence_settings (dw1000_role_e role, uint8_t subseq_num, bool reset);
-void dw1000_set_ranging_listening_window_settings (dw1000_role_e role, uint8_t slot_num, uint8_t antenna_num,bool reset);
+void dw1000_set_ranging_broadcast_subsequence_settings (dw1000_role_e role, uint8_t subseq_num);
+void dw1000_set_ranging_listening_window_settings (dw1000_role_e role, uint8_t slot_num, uint8_t antenna_num);
 uint8_t dw1000_get_ss_index_from_settings (uint8_t anchor_antenna_index, uint8_t window_num);
 
 void dw1000_interrupt_fired ();

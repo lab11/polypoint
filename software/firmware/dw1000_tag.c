@@ -277,7 +277,7 @@ void dw1000_tag_rxcallback (const dwt_callback_data_t* rxd) {
 		    rxd->event == DWT_SIG_RX_SYNCLOSS ||
 		    rxd->event == DWT_SIG_RX_SFDTIMEOUT ||
 		    rxd->event == DWT_SIG_RX_PTOTIMEOUT) {
-			dw1000_set_ranging_listening_window_settings(TAG, _ranging_listening_window_num, 0, FALSE);
+			dw1000_set_ranging_listening_window_settings(TAG, _ranging_listening_window_num, 0);
 		}
 	}
 
@@ -345,7 +345,7 @@ static void ranging_broadcast_subsequence_task () {
 	}
 
 	// Go ahead and setup and send a ranging broadcast
-	dw1000_set_ranging_broadcast_subsequence_settings(TAG, _ranging_broadcast_ss_num, FALSE);
+	dw1000_set_ranging_broadcast_subsequence_settings(TAG, _ranging_broadcast_ss_num);
 
 	// Actually send the packet
 	send_poll();
@@ -369,7 +369,7 @@ static void ranging_listening_window_task () {
 	} else {
 
 		// Set the correct listening settings
-		dw1000_set_ranging_listening_window_settings(TAG, _ranging_listening_window_num, 0, FALSE);
+		dw1000_set_ranging_listening_window_settings(TAG, _ranging_listening_window_num, 0);
 
 		// Increment and wait
 		_ranging_listening_window_num++;
