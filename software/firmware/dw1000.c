@@ -766,7 +766,23 @@ int dwtime_to_millimeters (double dwtime) {
 	double dist = dwtime * DWT_TIME_UNITS * SPEED_OF_LIGHT;
 
 	// And return millimeters
-	return (int) (dist*1000.0);
+	int millimeters = (int) (dist*1000.0);
+
+	// TODO
+	// TODO
+	// TODO
+	// TODO
+	// TODO
+	// TODO: ADD IN THE ACTUAL CALIBRATION DATA SOMEWHERE!!!!!!!!!!!!
+	// TODO
+	// TODO
+	// TODO
+	// TODO
+	// TODO
+	// TODO
+	// TODO
+	// Subtract off 154 meters.
+	return millimeters - 154000;
 }
 
 
