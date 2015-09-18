@@ -109,7 +109,17 @@ void app_error_handler(uint32_t error_code, uint32_t line_num, const uint8_t * p
     // ble_debug_assert_handler(error_code, line_num, p_file_name);
 
     // On assert, the system can only recover with a reset.
-    NVIC_SystemReset();
+	//volatile uint8_t i = 5;
+
+	/*for(uint8_t i = 0; i < error_code; i++) {
+		led_off(LED_0);
+		led_toggle(LED_0);
+		nrf_delay_us(10000);
+		led_toggle(LED_0);
+		nrf_delay_us(1000000);
+	}*/
+
+    //NVIC_SystemReset();
 }
 
 
@@ -148,7 +158,7 @@ static void on_write (ble_evt_t* p_ble_evt) {
     if (p_evt_write->handle == app.char_ranging_enable_handles.value_handle) {
         app.app_ranging = p_evt_write->data[0];
 
-        led_toggle(LED_0);
+        //led_toggle(LED_0);
 
         // Stop or start the tripoint based on the value we just got
         if (app.app_ranging == 1) {
@@ -302,33 +312,51 @@ static void sys_evt_dispatch(uint32_t sys_evt)
  *   PolyPoint Callbacks
  ******************************************************************************/
 
+uint8_t updated = 0;
+uint32_t blobLen;
+uint8_t dataBlob[256];
+
+void updateData( uint8_t * data, uint32_t len) {
+	if(len < 256) {
+		memcpy(app.app_raw_response_buffer, data, len);
+		blobLen = len;
+	}
+	else {
+		memcpy(app.app_raw_response_buffer, data, 256);
+		blobLen = 256;
+	}
+	updated = 1;
+}
 
 
-void tripointData (uint8_t* data, uint32_t len) {
+void tripointDataUpdate () {
     //update the data value and notify on the data
-    if (len > 5) {
-        led_toggle(LED_0);
-    }
-    ble_gatts_hvx_params_t notify_params;
-    notify_params.handle =  app.char_location_handles.value_handle;
-    notify_params.type   =  BLE_GATT_HVX_NOTIFICATION;
-    notify_params.offset =  0;
-    notify_params.p_len  =  &len;
-    notify_params.p_data =  data;
+	if(blobLen >= 5) {
+		led_toggle(LED_0);
+	}
 
-    // TODO: bounds checking!
-    memcpy(app.app_raw_response_buffer, data, len);
+	if(app.conn_handle != BLE_CONN_HANDLE_INVALID) {
 
-    // uint32_t err_code;
-    // err_code = sd_ble_gatts_hvx(app.conn_handle, &notify_params);
-    // APP_ERROR_CHECK(err_code);
+		ble_gatts_hvx_params_t notify_params;
+		uint16_t len = blobLen;
+		notify_params.handle = app.char_location_handles.value_handle;
+		notify_params.type   =  BLE_GATT_HVX_NOTIFICATION;
+		notify_params.offset =  0;
+		notify_params.p_len  =  &len;
+		notify_params.p_data =  app.app_raw_response_buffer;
+		
+		volatile uint32_t err_code = 0;
+		err_code = sd_ble_gatts_hvx(app.conn_handle, &notify_params);
+	}
+
+	updated = 0;
 }
 
 static void timer_handler (void* p_context) {
     uint32_t err_code;
 
     if (!tripoint_inited) {
-        err_code = tripoint_init(tripointData);
+        err_code = tripoint_init(updateData);
         if (err_code == NRF_SUCCESS) {
             tripoint_inited = true;
             tripoint_start_ranging(true, 10);
@@ -704,6 +732,7 @@ int main(void) {
     app.app_ranging = 1;
 
     // Setup BLE and services
+	app.conn_handle = BLE_CONN_HANDLE_INVALID;
     ble_stack_init();
     gap_params_init();
     services_init();
@@ -716,7 +745,7 @@ int main(void) {
     APP_ERROR_CHECK(err_code);
 
     // Init the state machine on the tripoint
-    err_code = tripoint_init(tripointData);
+    err_code = tripoint_init(updateData);
     if (err_code == NRF_SUCCESS) {
         tripoint_inited = true;
     }
@@ -733,5 +762,8 @@ int main(void) {
 
     while (1) {
         power_manage();
+		if(updated) {
+			tripointDataUpdate();
+		}
     }
 }

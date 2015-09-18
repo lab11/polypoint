@@ -29,10 +29,10 @@
 
 
 //500ms
-#define MIN_CONN_INTERVAL               MSEC_TO_UNITS(500, UNIT_1_25_MS)
+#define MIN_CONN_INTERVAL               MSEC_TO_UNITS(8, UNIT_1_25_MS)
 
 //1s
-#define MAX_CONN_INTERVAL               MSEC_TO_UNITS(1000, UNIT_1_25_MS)
+#define MAX_CONN_INTERVAL               MSEC_TO_UNITS(30, UNIT_1_25_MS)
 
 #define SLAVE_LATENCY                   0
 
