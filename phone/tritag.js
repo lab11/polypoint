@@ -72,36 +72,43 @@ noble.on('discover', function (peripheral) {
 
 						if (characteristic.uuid == 'd68c3153a23fee900c455231395e5d2e') {
 
-							function get_range () {
-								characteristic.read(function (err, data) {
-									console.log(data);
+							// function get_range () {
+							characteristic.notify(true, function (err) {
+								console.log('error');
+							});
 
 
-									var reason = data.readUInt8(0);
-									if (reason == TRIPOINT_READ_INT_RANGES) {
-										// Got ranges from the TAG.
-										var num_ranges = data.readUInt8(1);
-										if (num_ranges == 0) {
-											console.log('No anchors in range.');
-										} else {
-											// Iterate the array to get the
-											// anchor IDs and ranges.
-											var offset_start = 2;
-											var instance_length = 12;
-											for (var i=0; i<num_ranges; i++) {
-												var start = offset_start + (i*instance_length);
-												var eui = buf_to_eui(data, start);
-												var range = encoded_mm_to_meters(data, start+8);
-												console.log(eui);
-												console.log(range);
-											}
+							characteristic.on('data', function (data) {
+								console.log(data);
+
+								var reason = data.readUInt8(0);
+								if (reason == TRIPOINT_READ_INT_RANGES) {
+									// Got ranges from the TAG.
+									var num_ranges = data.readUInt8(1);
+									if (num_ranges == 0) {
+										console.log('No anchors in range.');
+									} else {
+										// Iterate the array to get the
+										// anchor IDs and ranges.
+										var offset_start = 2;
+										var instance_length = 12;
+										for (var i=0; i<num_ranges; i++) {
+											var start = offset_start + (i*instance_length);
+											var eui = buf_to_eui(data, start);
+											var range = encoded_mm_to_meters(data, start+8);
+											console.log(eui);
+											console.log(range);
 										}
 									}
-								});
-							}
+								}
+							});
 
-							get_range();
-							setInterval(get_range, 1000);
+
+
+							// }
+
+							// get_range();
+							// setInterval(get_range, 1000);
 						}
 					});
 
