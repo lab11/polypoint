@@ -29,6 +29,8 @@ typedef enum {
 // enough observations (ranges) to actually calculate a range to this
 // anchor.
 #define DW1000_TAG_RANGE_ERROR_TOO_FEW_RANGES 0x80000002
+// Something else went wrong that we don't have pinned down.
+#define DW1000_TAG_RANGE_ERROR_MISC 0x8000000F
 
 typedef struct {
 	uint8_t  anchor_addr[EUI_LEN];

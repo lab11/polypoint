@@ -69,6 +69,7 @@ static void ranging_listening_window_task ();
 static void calculate_ranges ();
 static void report_range ();
 
+// Do the TAG-specific init calls.
 void dw1000_tag_init () {
 	// Make sure the SPI speed is slow for this function
 	dw1000_spi_slow();
@@ -163,7 +164,7 @@ void dw1000_tag_stop () {
 	dwt_entersleep();
 }
 
-
+// Called after the TAG has transmitted a packet.
 void dw1000_tag_txcallback (const dwt_callback_data_t *data) {
 
 	if (data->event == DWT_SIG_TX_DONE) {
@@ -191,6 +192,7 @@ void dw1000_tag_txcallback (const dwt_callback_data_t *data) {
 
 
 	} else {
+		// Some error occurred, don't just keep trying to send packets.
 		timer_stop(_tag_timer);
 	}
 
@@ -542,7 +544,7 @@ static void calculate_ranges () {
 		// _ranges_millimeters[anchor_index] = ss_index_matching;
 		// _ranges_millimeters[anchor_index] = num_valid_distances;
 		if (_ranges_millimeters[anchor_index] == INT32_MAX) {
-			_ranges_millimeters[anchor_index] = 0xBB;
+			_ranges_millimeters[anchor_index] = DW1000_TAG_RANGE_ERROR_MISC;
 		}
 	}
 }
