@@ -26,8 +26,8 @@ and the Contiki repo.
     git clone git@github.com:lab11/atum
     git clone git@github.com:contiki-os/contiki
     
-You also need the DecaWave library for controlling the DW1000. To get this you need to email
-DecaWave and ask because they are a backwards EE company that doesn't know how to sell
-their products. Put the code in the `/lib` folder.
+You also need the DecaWave library for controlling the DW1000. 
+To get this you will need to download the 'EVK1000 Software Package' from the [DecaWave website](http://www.decawave.com/support/software).
+Exract and copy the contents of `EVK SW Package/DecaRanging ARM based/Source UNDER LICENSE ONLY/November'14/DecaRangingEVB1000_MP_rev2p35/src/decadriver` into PolyPoint's `software/dw1000-driver` folder.
 
 NOTE: Software is currently incompatible with newest contiki SPI drivers.  Use contiki commit 038ee9f82b4dc57eeb86f43af48d6491e788c7ed for now.
