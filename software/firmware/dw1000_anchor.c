@@ -17,10 +17,9 @@ timer_t* _anchor_timer = NULL;
 // State for the PRNG
 ranctx _prng_state;
 
-//
+/******************************************************************************/
 // Keep track of state for the given ranging event this anchor is handling.
-//
-
+/******************************************************************************/
 // What the anchor is currently doing
 static dw1000_anchor_state_e _state = ASTATE_IDLE;
 // Which spot in the ranging broadcast sequence we are currently at
