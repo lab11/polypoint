@@ -37,8 +37,9 @@
 #include "ble_config.h"
 #include "tripoint_interface.h"
 
-
-bool bcp_irq_advertisements = false;
+/*******************************************************************************
+ *   Configuration and settings
+ ******************************************************************************/
 
 
 #define TRITAG_SHORT_UUID                     0x3152
@@ -53,6 +54,18 @@ const ble_uuid128_t tritag_uuid128 = {
 
 // UUID for the TriTag service
 ble_uuid_t tritag_uuid;
+
+
+// Intervals for advertising and connections
+static const simple_ble_config_t ble_config = {
+    // c0:98:e5:45:xx:xx
+    .platform_id       = 0x45,              // used as 4th octect in device BLE address
+    .adv_name          = DEVICE_NAME,       // used in advertisements if there is room
+    .adv_interval      = MSEC_TO_UNITS(1000, UNIT_0_625_MS),
+    .min_conn_interval = MSEC_TO_UNITS(500, UNIT_1_25_MS),
+    .max_conn_interval = MSEC_TO_UNITS(1000, UNIT_1_25_MS),
+};
+
 
 
 /*******************************************************************************
@@ -121,7 +134,7 @@ void updateData (uint8_t * data, uint32_t len) {
 
 void tripointDataUpdate () {
     //update the data value and notify on the data
-	if(blobLen >= 5) {
+	if (blobLen >= 5) {
 		led_toggle(LED_0);
 	}
 
@@ -137,6 +150,7 @@ void tripointDataUpdate () {
 
 		volatile uint32_t err_code = 0;
 		err_code = sd_ble_gatts_hvx(simple_ble_app->conn_handle, &notify_params);
+        // APP_ERROR_CHECK(err_code);
 	}
 
 	updated = 0;
@@ -361,17 +375,8 @@ void power_manage (void) {
     APP_ERROR_CHECK(err_code);
 }
 
-#define PHYSWEB_URL "goo.gl/XMRl3M"
 
-// Intervals for advertising and connections
-static const simple_ble_config_t ble_config = {
-    // c0:98:e5:45:xx:xx
-    .platform_id       = 0x45,              // used as 4th octect in device BLE address
-    .adv_name          = DEVICE_NAME,       // used in advertisements if there is room
-    .adv_interval      = MSEC_TO_UNITS(1000, UNIT_0_625_MS),
-    .min_conn_interval = MSEC_TO_UNITS(500, UNIT_1_25_MS),
-    .max_conn_interval = MSEC_TO_UNITS(1000, UNIT_1_25_MS),
-};
+
 
 
 int main (void) {
