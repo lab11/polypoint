@@ -2,8 +2,8 @@ PolyPoint
 =========
 
 PolyPoint is a system for using ultra-wideband RF time-of-flight ranging to perform indoor localization.
-It leverages the DecaWave DW1000 for UWB packet transmission and timestamping, performs
-ranging in a Contiki application, and calculates location from these ranges.
+It incorporates the DecaWave DW1000 for UWB packet transmission and timestamping
+into a solder-on module that provides node-to-node ranges over an I2C interface.
 
 Name
 ----
@@ -14,8 +14,24 @@ desire to pinpoint where users are with the system.
 Hardware
 --------
 
-The hardware is currently one PCB that contains the DW1000, three UWB antennas, and an RF
-switch. The DW1000 is a SPI peripheral and we've been using an Atum as the controller.
+The PolyPoint system is composed of several hardware pieces. At the core is the
+TriPoint module which is a 1.25" on a side triangle that encompasses all of the
+core ranging hardware and software. TriPoint has castellated edges and can be
+soldered on to a carrier board, effectively as a ranging IC. TriTag is one such
+carrier board designed to be the tag in the ranging system. It includes the
+UWB antennas and a Bluetooth Low Energy radio plus a battery charging circuit.
+TriTag is able to provide ranges to a mobile phone application.
+
+### TriPoint
+
+TriPoint includes the following components:
+
+- DecaWave DW1000 UWB radio
+- STM32F031G6U6 MCU
+- RF switch
+
+The MCU contains all the necessary code to run the DW1000 and the ranging
+protocol.
 
 Software
 --------
@@ -25,8 +41,8 @@ and the Contiki repo.
 
     git clone git@github.com:lab11/atum
     git clone git@github.com:contiki-os/contiki
-    
-You also need the DecaWave library for controlling the DW1000. 
+
+You also need the DecaWave library for controlling the DW1000.
 To get this you will need to download the 'EVK1000 Software Package' from the [DecaWave website](http://www.decawave.com/support/software).
 Exract and copy the contents of `EVK SW Package/DecaRanging ARM based/Source UNDER LICENSE ONLY/November'14/DecaRangingEVB1000_MP_rev2p35/src/decadriver` into PolyPoint's `software/dw1000-driver` folder.
 
