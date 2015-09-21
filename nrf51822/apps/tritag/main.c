@@ -135,7 +135,9 @@ void updateData (uint8_t * data, uint32_t len) {
 void tripointDataUpdate () {
     //update the data value and notify on the data
 	if (blobLen >= 5) {
-		led_toggle(LED_0);
+        led_on(LED_0);
+        nrf_delay_us(1000);
+		led_off(LED_0);
 	}
 
 	if(simple_ble_app->conn_handle != BLE_CONN_HANDLE_INVALID) {
