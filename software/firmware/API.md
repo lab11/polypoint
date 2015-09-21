@@ -113,6 +113,24 @@ TODO
 ```
 
 
+#### `SLEEP`
+
+Stop all ranging and put the module into sleep mode.
+```
+Byte 0: 0x05  Opcode
+```
+
+#### `RESUME`
+
+If the module is in SLEEP mode after a `SLEEP` command, this will resume the
+previous settings.
+```
+Byte 0: 0x06  Opcode
+````
+
+
+
+
 ### TAG Commands
 
 
@@ -124,19 +142,4 @@ Initiate a ranging event. Only valid if tag is in update on demand mode.
 Byte 0: 0x04  Opcode
 ```
 
-
-#### `SLEEP`
-
-Stop all ranging and put the module into sleep mode.
-```
-Byte 0: 0x05  Opcode
-
-
-#### `RESUME`
-
-If the module is in SLEEP mode after a `SLEEP` command, this will resume the
-previous settings.
-```
-Byte 0: 0x06  Opcode
-````
 
