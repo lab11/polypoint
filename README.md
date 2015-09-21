@@ -33,17 +33,23 @@ TriPoint includes the following components:
 The MCU contains all the necessary code to run the DW1000 and the ranging
 protocol.
 
+### TriTag
+
+TriTag includes:
+
+- The TriPoint module
+- 3 UWB antennas
+- nRF51822 BLE radio
+- 3.3 V LDO
+- Li-ion battery charger
+
+TriTag is designed to be the tag to be localized in the system and connected
+to a smartphone.
+
 Software
 --------
 
-The software that runs on the Atum is a Contiki application. For this you need the Atum repo
-and the Contiki repo.
+The TriPoint software is located in `/tripoint/firmware`. The TriTag code is
+in `/nrf51822/apps/tritag`. Instructions for building each are located in
+their respective folders.
 
-    git clone git@github.com:lab11/atum
-    git clone git@github.com:contiki-os/contiki
-
-You also need the DecaWave library for controlling the DW1000.
-To get this you will need to download the 'EVK1000 Software Package' from the [DecaWave website](http://www.decawave.com/support/software).
-Exract and copy the contents of `EVK SW Package/DecaRanging ARM based/Source UNDER LICENSE ONLY/November'14/DecaRangingEVB1000_MP_rev2p35/src/decadriver` into PolyPoint's `software/dw1000-driver` folder.
-
-NOTE: Software is currently incompatible with newest contiki SPI drivers.  Use contiki commit 038ee9f82b4dc57eeb86f43af48d6491e788c7ed for now.
