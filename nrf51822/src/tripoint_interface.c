@@ -129,6 +129,9 @@ ret_code_t tripoint_start_ranging (bool periodic, uint8_t rate) {
 		buf_cmd[2] |= 0x2;
 	}
 
+	// Use sleep mode on the TAG
+	buf_cmd[2] |= 0x08;
+
 	// And rate
 	buf_cmd[3] = rate;
 

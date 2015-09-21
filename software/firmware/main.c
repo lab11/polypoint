@@ -19,6 +19,7 @@
 
 // Put this somewhere??
 typedef enum {
+	APPSTATE_NOT_INITED,
 	APPSTATE_STOPPED,
 	APPSTATE_RUNNING
 } app_state_e;
@@ -40,7 +41,8 @@ bool interrupts_triggered[NUMBER_INTERRUPT_SOURCES]  = {FALSE};
 dw1000_tag_config_t _app_tag_config = {
 	.report_mode = REPORT_MODE_RANGES,
 	.update_mode = UPDATE_MODE_PERIODIC,
-	.update_rate = 10
+	.update_rate = 10,
+	.sleep_mode  = FALSE
 };
 
 
@@ -48,7 +50,7 @@ dw1000_tag_config_t _app_tag_config = {
 // Current application state
 /******************************************************************************/
 // Keep track of if the application is active or not
-static app_state_e _state = APPSTATE_STOPPED;
+static app_state_e _state = APPSTATE_NOT_INITED;
 
 // Timer for doing periodic operations (like TAG ranging events)
 static timer_t* _periodic_timer;
@@ -109,6 +111,7 @@ void tag_execute_range_callback () {
 // If this is called when the app is running, the app will be restarted.
 void app_configure_tag (dw1000_report_mode_e report_mode,
                         dw1000_update_mode_e update_mode,
+                        bool sleep_mode,
                         uint8_t update_rate) {
 	bool resume = FALSE;
 
@@ -131,6 +134,7 @@ void app_configure_tag (dw1000_report_mode_e report_mode,
 	_app_tag_config.report_mode = report_mode;
 	_app_tag_config.update_mode = update_mode;
 	_app_tag_config.update_rate = update_rate;
+	_app_tag_config.sleep_mode  = sleep_mode;
 
 	// We were running when this function was called, so we start things back
 	// up here.
@@ -194,6 +198,11 @@ void app_start () {
 			// get microseconds, then divide by 10 because update_rate is in
 			// tenths of hertz.
 			uint32_t period = (((uint32_t) _app_tag_config.update_rate) * 1000000) / 10;
+			// Check if we are configured to sleep between ranges. If so,
+			// we need to take wakeup time into account.
+			if (_app_tag_config.sleep_mode && period > DW1000_WAKEUP_DELAY_US) {
+				period -= DW1000_WAKEUP_DELAY_US;
+			}
 			timer_start(_periodic_timer, period, tag_execute_range_callback);
 
 		} else if (_app_tag_config.update_mode == UPDATE_MODE_DEMAND) {
@@ -238,6 +247,14 @@ void app_stop () {
 // back to what it was doing, just after a reset and re-init of the dw1000.
 void app_reset () {
 	dw1000_role_e my_role = dw1000_get_mode();
+	bool resume = FALSE;
+
+	if (_state == APPSTATE_RUNNING) {
+		resume = TRUE;
+	}
+
+	// Put the app back in the not inited state
+	_state = APPSTATE_NOT_INITED;
 
 	// Stop the timer in case it was in use.
 	timer_stop(_periodic_timer);
@@ -251,12 +268,17 @@ void app_reset () {
 		dw1000_set_mode(my_role);
 
 		// If we were running before, run now
-		if (_state == APPSTATE_RUNNING) {
-			_state = APPSTATE_STOPPED;
+		if (resume) {
 			// This call will set it back to running
 			app_start();
 		}
 	}
+}
+
+// Return true if we are good for tag_configure and or anchor_configure
+// to be called, false otherwise.
+bool app_ready () {
+	return _state != APPSTATE_NOT_INITED;
 }
 
 // Assuming we are a TAG, and we are in on-demand ranging mode, tell
@@ -310,6 +332,13 @@ void app_set_ranges (int32_t* ranges_millimeters, anchor_responses_t* anchor_res
 
 	// Now let the host know so it can do something with the ranges.
 	host_interface_notify_ranges(_anchor_ids_ranges, _num_anchor_ranges);
+
+	// Check if we should try to sleep after the ranging event.
+	if (_app_tag_config.sleep_mode) {
+		// Call stop() to sleep, it will be woken up automatically on
+		// the next call to start_ranging_event().
+		dw1000_tag_stop();
+	}
 }
 
 /******************************************************************************/
@@ -317,6 +346,8 @@ void app_set_ranges (int32_t* ranges_millimeters, anchor_responses_t* anchor_res
 /******************************************************************************/
 
 // Loop until the DW1000 is inited and ready to go.
+// TODO: this really shouldn't be blocking as it messes with the I2C interrupt
+//       code.
 void start_dw1000 () {
 	uint32_t err;
 
@@ -344,6 +375,8 @@ void start_dw1000 () {
 		}
 	}
 
+	// Successfully started the DW1000
+	_state = APPSTATE_STOPPED;
 }
 
 
@@ -377,15 +410,15 @@ int main () {
 	err = host_interface_init();
 	if (err) error();
 
+	// Need to wait for the host board to tell us what to do.
+	err = host_interface_wait();
+	if (err) error();
+
 	// Next up do some preliminary setup of the DW1000. This mostly configures
 	// pins and hardware peripherals, as well as straightening out some
 	// of the settings on the DW1000.
 	start_dw1000();
 
-	// Now we just wait for the host board to tell us what to do. Before
-	// it sets us up we just sit here.
-	err = host_interface_wait();
-	if (err) error();
 
 
 	// MAIN LOOP

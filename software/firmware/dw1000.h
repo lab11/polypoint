@@ -68,6 +68,10 @@
 
 #define ANC_FINAL_INITIAL_DELAY_HACK_VALUE 300	// See note in anchor.c
 
+// How long it takes to go from SLEEP mode on the DW1000 to ready to range.
+// 5 ms for clock stabilization and some other error.
+#define DW1000_WAKEUP_DELAY_US 5100
+
 /******************************************************************************/
 // Parameters for the localization and ranging protocol
 /******************************************************************************/
@@ -243,6 +247,7 @@ typedef struct {
 	dw1000_report_mode_e report_mode;
 	dw1000_update_mode_e update_mode;
 	uint8_t update_rate;
+	bool sleep_mode;
 } dw1000_tag_config_t;
 
 

@@ -56,7 +56,12 @@ Byte 1:       Config 1
 
 IF TAG:
 Byte 2:
-   Bits 3-7: Reserved.
+   Bits 4-7: Reserved.
+   Bit 3:    Sleep settings.
+             Configure if TriPoint should sleep the DW1000 between ranging
+             events.
+               0 = Do not sleep.
+               1 = Enter sleep between ranging events.
    Bits 1-2: Update mode.
              Configure if the module should periodically get new locations
              or if it should get locations on demand.

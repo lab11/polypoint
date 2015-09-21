@@ -221,7 +221,7 @@ static void setup () {
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
 	GPIO_Init(DW_RESET_PORT, &GPIO_InitStructure);
-	GPIO_WriteBit(DW_RESET_PORT, DW_RESET_PIN, Bit_RESET);
+	GPIO_WriteBit(DW_RESET_PORT, DW_RESET_PIN, Bit_SET);
 
 	// Setup antenna pins - select no antennas
 	RCC_AHBPeriphClockCmd(ANT_SEL0_CLK, ENABLE);
@@ -377,6 +377,7 @@ void dw1000_interrupt_fired () {
 		// Well this is not good. It looks like the interrupt got stuck high,
 		// so we'd spend the rest of the time just reading this interrupt.
 		// Not much we can do here but reset everything.
+		uint32_t cfg = dwt_read32bitreg(SYS_CFG_ID);
 		app_reset();
 	}
 }
@@ -512,10 +513,10 @@ void usleep (uint32_t u) {
 // Hard reset the DW1000 using its reset pin
 void dw1000_reset () {
 	// To reset, assert the reset pin for 100ms
-	GPIO_WriteBit(DW_RESET_PORT, DW_RESET_PIN, Bit_SET);
+	GPIO_WriteBit(DW_RESET_PORT, DW_RESET_PIN, Bit_RESET);
 	// Wait for ~100ms
 	mDelay(100);
-	GPIO_WriteBit(DW_RESET_PORT, DW_RESET_PIN, Bit_RESET);
+	GPIO_WriteBit(DW_RESET_PORT, DW_RESET_PIN, Bit_SET);
 }
 
 // Choose which antenna to connect to the radio
@@ -568,16 +569,7 @@ dw1000_err_e dw1000_init () {
 	// Choose antenna 0 as a default
 	dw1000_choose_antenna(0);
 
-	// Initialize the dw1000 hardware
-	uint32_t err;
-	err = dwt_initialise(DWT_LOADUCODE |
-	                     DWT_LOADLDO |
-	                     DWT_LOADTXCONFIG |
-	                     DWT_LOADXTALTRIM);
 
-	if (err != DWT_SUCCESS) {
-		return DW1000_COMM_ERR;
-	}
 
 	// Setup our settings for the DW1000
 	dw1000_configure_settings();
@@ -594,6 +586,17 @@ void dw1000_configure_settings () {
 
 	// Also need the SPI slow here.
 	dw1000_spi_slow();
+
+	// Initialize the dw1000 hardware
+	uint32_t err;
+	err = dwt_initialise(DWT_LOADUCODE |
+	                     DWT_LOADLDO |
+	                     DWT_LOADTXCONFIG |
+	                     DWT_LOADXTALTRIM);
+
+	if (err != DWT_SUCCESS) {
+		return DW1000_COMM_ERR;
+	}
 
 	// Configure sleep parameters.
 	// Note: This is taken from the decawave fast2wr_t.c file. I don't have

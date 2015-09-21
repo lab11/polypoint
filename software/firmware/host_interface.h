@@ -20,6 +20,8 @@
 #define HOST_PKT_CONFIG_TAG_RMODE_SHIFT  0
 #define HOST_PKT_CONFIG_TAG_UMODE_MASK   0x06
 #define HOST_PKT_CONFIG_TAG_UMODE_SHIFT  1
+#define HOST_PKT_CONFIG_TAG_SLEEP_MASK   0x08
+#define HOST_PKT_CONFIG_TAG_SLEEP_SHIFT  3
 
 // Defines for identifying data sent to host
 typedef enum {

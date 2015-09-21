@@ -21,6 +21,8 @@ CPAL_TransferTypeDef txStructure;
 // Just pre-set the INFO response packet.
 // Last byte is the version. Set to 1 for now
 uint8_t INFO_PKT[3] = {0xb0, 0x1a, 1};
+// If we are not ready.
+uint8_t NULL_PKT[3] = {0xaa, 0xaa, 0};
 
 // Keep track of why we interrupted the host
 interrupt_reason_e _interrupt_reason;
@@ -180,13 +182,15 @@ void host_interface_rx_fired () {
 				uint8_t config_tur = rxBuffer[3];
 				dw1000_report_mode_e report_mode;
 				dw1000_update_mode_e update_mode;
+				bool sleep_mode;
 
 				report_mode = (config_tag & HOST_PKT_CONFIG_TAG_RMODE_MASK) >> HOST_PKT_CONFIG_TAG_RMODE_SHIFT;
 				update_mode = (config_tag & HOST_PKT_CONFIG_TAG_UMODE_MASK) >> HOST_PKT_CONFIG_TAG_UMODE_SHIFT;
+				sleep_mode  = (config_tag & HOST_PKT_CONFIG_TAG_SLEEP_MASK) >> HOST_PKT_CONFIG_TAG_SLEEP_SHIFT;
 
 				// Now that we know how we should operate,
 				// call the main tag function to get things rollin'.
-				app_configure_tag(report_mode, update_mode, config_tur);
+				app_configure_tag(report_mode, update_mode, sleep_mode, config_tur);
 				app_start();
 
 			} else if (my_role == ANCHOR) {
@@ -296,8 +300,17 @@ void CPAL_I2C_RXTC_UserCallback(CPAL_InitTypeDef* pDevInitStruct) {
 		// Return the INFO array
 		/**********************************************************************/
 		case HOST_CMD_INFO:
-			// Info packet is a good way to check that I2C is working.
-			memcpy(txBuffer, INFO_PKT, 3);
+			// Check what status the main application is in. If it has contacted
+			// the DW1000, then it will be ready and we return the correct
+			// info string. If it is not ready, we return the null string
+			// that says that I2C is working but that we are not ready for
+			// prime time yet.
+			if (app_ready()) {
+				// Info packet is a good way to check that I2C is working.
+				memcpy(txBuffer, INFO_PKT, 3);
+			} else {
+				memcpy(txBuffer, NULL_PKT, 3);
+			}
 			host_interface_respond(3);
 			break;
 
@@ -362,6 +375,7 @@ void CPAL_I2C_RXTC_UserCallback(CPAL_InitTypeDef* pDevInitStruct) {
   */
 void CPAL_I2C_TXTC_UserCallback(CPAL_InitTypeDef* pDevInitStruct) {
 	mark_interrupt(INTERRUPT_I2C_TX);
+	host_interface_wait();
 }
 
 /**
