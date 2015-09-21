@@ -377,7 +377,6 @@ void dw1000_interrupt_fired () {
 		// Well this is not good. It looks like the interrupt got stuck high,
 		// so we'd spend the rest of the time just reading this interrupt.
 		// Not much we can do here but reset everything.
-		uint32_t cfg = dwt_read32bitreg(SYS_CFG_ID);
 		app_reset();
 	}
 }
@@ -569,8 +568,6 @@ dw1000_err_e dw1000_init () {
 	// Choose antenna 0 as a default
 	dw1000_choose_antenna(0);
 
-
-
 	// Setup our settings for the DW1000
 	dw1000_configure_settings();
 
@@ -681,8 +678,21 @@ dw1000_role_e dw1000_get_mode () {
 
 // Wake the DW1000 from sleep by asserting the WAKEUP pin
 dw1000_err_e dw1000_wakeup () {
-	// Assert the WAKEUP pin for a while to get the chip to come out of sleep
-	// mode.
+	// Assert the WAKEUP pin. There seems to be some weirdness where a single
+	// WAKEUP assert can get missed, so we do it multiple times to make
+	// sure the DW1000 is awake.
+	GPIO_WriteBit(DW_WAKEUP_PORT, DW_WAKEUP_PIN, Bit_SET);
+	uDelay(1000);
+	GPIO_WriteBit(DW_WAKEUP_PORT, DW_WAKEUP_PIN, Bit_RESET);
+	uDelay(100);
+	GPIO_WriteBit(DW_WAKEUP_PORT, DW_WAKEUP_PIN, Bit_SET);
+	uDelay(1000);
+	GPIO_WriteBit(DW_WAKEUP_PORT, DW_WAKEUP_PIN, Bit_RESET);
+	uDelay(100);
+	GPIO_WriteBit(DW_WAKEUP_PORT, DW_WAKEUP_PIN, Bit_SET);
+	uDelay(1000);
+	GPIO_WriteBit(DW_WAKEUP_PORT, DW_WAKEUP_PIN, Bit_RESET);
+	uDelay(100);
 	GPIO_WriteBit(DW_WAKEUP_PORT, DW_WAKEUP_PIN, Bit_SET);
 	uDelay(1000);
 	GPIO_WriteBit(DW_WAKEUP_PORT, DW_WAKEUP_PIN, Bit_RESET);
