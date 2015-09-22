@@ -425,6 +425,9 @@ int main () {
 
 		PWR_EnterSleepMode(PWR_SLEEPEntry_WFI);
 
+		GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
+		GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
+
 		// When an interrupt fires we end up here.
 		// Check all of the interrupt "queues" and call the appropriate
 		// callbacks for all of the interrupts that have fired.

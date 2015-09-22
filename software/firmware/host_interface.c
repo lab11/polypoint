@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "stm32f0xx_i2c_cpal.h"
+#include "stm32f0xx_i2c_cpal_hal.h"
 
 #include "board.h"
 #include "firmware.h"
@@ -29,8 +30,10 @@ uint8_t* _interrupt_buffer;
 // Also need to keep track of other state for certain interrupt reasons
 uint8_t _interrupt_ranges_count;
 
+extern I2C_TypeDef* CPAL_I2C_DEVICE[];
 
 uint32_t host_interface_init () {
+	uint32_t ret;
 
 	// Enabled the Interrupt pin
 	GPIO_InitTypeDef  GPIO_InitStructure;
@@ -44,31 +47,30 @@ uint32_t host_interface_init () {
 	GPIO_Init(INTERRUPT_PORT, &GPIO_InitStructure);
 	INTERRUPT_PORT->BRR = INTERRUPT_PIN; // clear
 
-
-	/* Start CPAL communication configuration ***********************************/
-	/* Initialize local Reception structures */
+	// Start CPAL communication configuration
+	// Initialize local Reception structures
 	rxStructure.wNumData = BUFFER_SIZE;   /* Maximum Number of data to be received */
 	rxStructure.pbBuffer = rxBuffer;      /* Common Rx buffer for all received data */
 	rxStructure.wAddr1 = 0;               /* Not needed */
 	rxStructure.wAddr2 = 0;               /* Not needed */
 
-	/* Initialize local Transmission structures */
+	// Initialize local Transmission structures
 	txStructure.wNumData = BUFFER_SIZE;   /* Maximum Number of data to be received */
 	txStructure.pbBuffer = txBuffer;      /* Common Rx buffer for all received data */
 	txStructure.wAddr1 = (I2C_OWN_ADDRESS << 1); /* The own board address */
 	txStructure.wAddr2 = 0;               /* Not needed */
 
-	/* Set SYSCLK as I2C clock source */
+	// Set SYSCLK as I2C clock source
 	RCC_I2CCLKConfig(RCC_I2C1CLK_SYSCLK);
 
-	/* Configure the device structure */
+	// Configure the device structure
 	CPAL_I2C_StructInit(&I2C1_DevStructure);      /* Set all fields to default values */
 	I2C1_DevStructure.CPAL_Dev = 0;
 	I2C1_DevStructure.CPAL_Direction = CPAL_DIRECTION_TXRX;
 	I2C1_DevStructure.CPAL_Mode = CPAL_MODE_SLAVE;
 	I2C1_DevStructure.CPAL_State = CPAL_STATE_READY;
 	I2C1_DevStructure.wCPAL_Timeout = 6;
-	I2C1_DevStructure.wCPAL_Options =  CPAL_OPT_NO_MEM_ADDR | CPAL_OPT_DMATX_TCIT | CPAL_OPT_DMARX_TCIT;
+	I2C1_DevStructure.wCPAL_Options =  CPAL_OPT_NO_MEM_ADDR;
 	// I2C1_DevStructure.wCPAL_Options =  0;
 	I2C1_DevStructure.CPAL_ProgModel = CPAL_PROGMODEL_INTERRUPT;
 	I2C1_DevStructure.pCPAL_I2C_Struct->I2C_Timing = I2C_TIMING;
@@ -76,9 +78,14 @@ uint32_t host_interface_init () {
 	I2C1_DevStructure.pCPAL_TransferRx = &rxStructure;
 	I2C1_DevStructure.pCPAL_TransferTx = &txStructure;
 
-	/* Initialize CPAL device with the selected parameters */
-	return CPAL_I2C_Init(&I2C1_DevStructure);
+	// Initialize CPAL device with the selected parameters
+	ret = CPAL_I2C_Init(&I2C1_DevStructure);
 
+	// See if this takes care of issues when STM is busy and can't respond
+	// right away. It's also possible this was already configured.
+	__CPAL_I2C_HAL_DISABLE_NOSTRETCH(0);
+
+	return ret;
 }
 
 static void interrupt_host_set () {
