@@ -11,6 +11,19 @@ Name
 The name PolyPoint comes from the use of many polygons and shapes in the prototype design and the
 desire to pinpoint where users are with the system.
 
+
+Git Clone
+---------
+
+When cloning this repository, be absolutely sure to do
+
+    git clone --recursive https://github.com/lab11/polypoint.git
+    
+so that you get the submodules as well. All of the supporting
+libraries and build tools are in submodules for the various
+hardware platforms used in this project.
+
+
 Hardware
 --------
 
