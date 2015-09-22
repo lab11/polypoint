@@ -7,7 +7,7 @@
 #include "dw1000_anchor.h"
 #include "dw1000.h"
 #include "timer.h"
-#include "timing.h"
+#include "delay.h"
 #include "prng.h"
 #include "firmware.h"
 

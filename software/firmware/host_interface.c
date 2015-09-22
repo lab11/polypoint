@@ -7,7 +7,6 @@
 #include "firmware.h"
 #include "host_interface.h"
 #include "dw1000.h"
-#include "operation_api.h"
 
 #define BUFFER_SIZE 128
 uint8_t rxBuffer[BUFFER_SIZE];

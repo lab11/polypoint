@@ -1,7 +1,7 @@
 #ifndef __DW1000_H
 #define __DW1000_H
 
-#include "firmware.h"
+#include "system.h"
 
 /******************************************************************************/
 // General defines for the DW1000
@@ -222,17 +222,7 @@ typedef enum {
 	UNDECIDED
 } dw1000_role_e;
 
-// Enum for what the module should provide the host.
-typedef enum {
-	REPORT_MODE_RANGES = 0,   // Return just range measurements to anchors
-	REPORT_MODE_LOCATION = 1  // Determine location and provide location coordinates
-} dw1000_report_mode_e;
 
-// Enum for when the TAG should do a ranging event
-typedef enum {
-	UPDATE_MODE_PERIODIC = 0,  // Range at regular intervals
-	UPDATE_MODE_DEMAND = 1     // Range only when the host instructs
-} dw1000_update_mode_e;
 
 // Return values for our DW1000 library errors
 typedef enum {
@@ -241,14 +231,6 @@ typedef enum {
 	DW1000_BUSY,
 	DW1000_WAKEUP_ERR,
 } dw1000_err_e;
-
-// Keep config settings for the TAG
-typedef struct {
-	dw1000_report_mode_e report_mode;
-	dw1000_update_mode_e update_mode;
-	uint8_t update_rate;
-	bool sleep_mode;
-} dw1000_tag_config_t;
 
 
 

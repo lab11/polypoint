@@ -4,11 +4,10 @@
 #include "deca_regs.h"
 
 #include "timer.h"
-#include "timing.h"
+#include "delay.h"
 #include "dw1000.h"
 #include "dw1000_tag.h"
 #include "firmware.h"
-#include "operation_api.h"
 
 // Our timer object that we use for timing packet transmissions
 timer_t* _tag_timer = NULL;

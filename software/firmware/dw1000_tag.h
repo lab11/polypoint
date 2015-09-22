@@ -32,14 +32,6 @@ typedef enum {
 // Something else went wrong that we don't have pinned down.
 #define DW1000_TAG_RANGE_ERROR_MISC 0x8000000F
 
-typedef struct {
-	uint8_t  anchor_addr[EUI_LEN];
-	uint8_t  anchor_final_antenna_index; // The antenna the anchor used when it responded.
-	uint8_t  window_packet_recv;         // The window the tag was in when it received the packet from the anchor.
-	uint64_t anc_final_tx_timestamp; // When the anchor node sent the ANC_FINAL
-	uint64_t anc_final_rx_timestamp; // When the tag received the ANC_FINAL
-	uint64_t tag_poll_TOAs[NUM_RANGING_BROADCASTS];
-} anchor_responses_t;
 
 void dw1000_tag_init ();
 dw1000_err_e dw1000_tag_start_ranging_event ();
