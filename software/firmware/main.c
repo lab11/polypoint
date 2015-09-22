@@ -383,6 +383,9 @@ int main () {
 	uint32_t err;
 	bool interrupt_triggered = FALSE;
 
+	// Enable PWR APB clock
+	// Not entirely sure why.
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR, ENABLE);
 
 
 	GPIO_InitTypeDef GPIO_InitStructure;
@@ -424,6 +427,7 @@ int main () {
 	while (1) {
 
 		PWR_EnterSleepMode(PWR_SLEEPEntry_WFI);
+		// PWR_EnterSTOPMode(PWR_Regulator_LowPower, PWR_STOPEntry_WFI);
 
 		GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
 		GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);

@@ -61,7 +61,8 @@ uint32_t host_interface_init () {
 	txStructure.wAddr2 = 0;               /* Not needed */
 
 	// Set SYSCLK as I2C clock source
-	RCC_I2CCLKConfig(RCC_I2C1CLK_SYSCLK);
+	// RCC_I2CCLKConfig(RCC_I2C1CLK_SYSCLK);
+	RCC_I2CCLKConfig(RCC_I2C1CLK_HSI);
 
 	// Configure the device structure
 	CPAL_I2C_StructInit(&I2C1_DevStructure);      /* Set all fields to default values */
@@ -70,7 +71,7 @@ uint32_t host_interface_init () {
 	I2C1_DevStructure.CPAL_Mode = CPAL_MODE_SLAVE;
 	I2C1_DevStructure.CPAL_State = CPAL_STATE_READY;
 	I2C1_DevStructure.wCPAL_Timeout = 6;
-	I2C1_DevStructure.wCPAL_Options =  CPAL_OPT_NO_MEM_ADDR;
+	I2C1_DevStructure.wCPAL_Options =  CPAL_OPT_NO_MEM_ADDR | CPAL_OPT_I2C_WAKEUP_STOP;
 	// I2C1_DevStructure.wCPAL_Options =  0;
 	I2C1_DevStructure.CPAL_ProgModel = CPAL_PROGMODEL_INTERRUPT;
 	I2C1_DevStructure.pCPAL_I2C_Struct->I2C_Timing = I2C_TIMING;
