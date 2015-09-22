@@ -421,7 +421,7 @@ int main (void) {
         tripoint_start_ranging(true, 10);
     }
 
-    led_on(LED_0);
+    // led_on(LED_0);
 
     while (1) {
         power_manage();
