@@ -33,7 +33,12 @@ typedef enum {
 // to get all of the functions it should call.
 bool interrupts_triggered[NUMBER_INTERRUPT_SOURCES]  = {FALSE};
 
+typedef enum {
+	SLEEP_LITE,
+	SLEEP_FULL
+} sleep_state_e;
 
+sleep_state_e _last_sleep_mode = SLEEP_LITE;
 /******************************************************************************/
 // Current application settings as set by the host
 /******************************************************************************/
@@ -423,7 +428,75 @@ int main () {
 	// MAIN LOOP
 	while (1) {
 
-		PWR_EnterSleepMode(PWR_SLEEPEntry_WFI);
+		// PWR_EnterSleepMode(PWR_SLEEPEntry_WFI);
+
+		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
+		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
+		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
+		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
+
+
+
+		// Check the subsystems to determine if we can go into low power
+		// sleep mode.
+		if (_last_sleep_mode == SLEEP_FULL) {
+			// Do not enter full on stop mode twice in a row.
+			_last_sleep_mode = SLEEP_LITE;
+
+			GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
+			GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
+			GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
+			GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
+			GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
+			GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
+			GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
+			GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
+
+			PWR_EnterSleepMode(PWR_SLEEPEntry_WFI);
+
+		} else {
+			// Check if we should go back to deep sleep
+			if (host_interface_can_sleep()) {
+				_last_sleep_mode = SLEEP_FULL;
+
+				GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
+				GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
+				GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
+				GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
+
+				PWR_EnterSTOPMode(PWR_Regulator_ON, PWR_SLEEPEntry_WFI);
+			} else {
+				_last_sleep_mode = SLEEP_LITE;
+
+				GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
+				GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
+				GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
+				GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
+				GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
+				GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
+
+				PWR_EnterSleepMode(PWR_SLEEPEntry_WFI);
+			}
+		}
+
+
+		// if (host_interface_can_sleep()) {
+		// 	_last_sleep_mode = SLEEP_FULL;
+		// 	PWR_EnterSTOPMode(PWR_Regulator_ON, PWR_SLEEPEntry_WFI);
+		// 	// PWR_EnterSTOPMode(PWR_Regulator_LowPower, PWR_SLEEPEntry_WFI);
+		// } else {
+		// 	_last_sleep_mode = SLEEP_LITE;
+		// 	PWR_EnterSleepMode(PWR_SLEEPEntry_WFI);
+		// }
+
+
+
+		GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
+		GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
+		GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
+		GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
+		GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
+
 
 		// When an interrupt fires we end up here.
 		// Check all of the interrupt "queues" and call the appropriate

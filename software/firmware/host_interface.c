@@ -29,6 +29,10 @@ uint8_t* _interrupt_buffer;
 // Also need to keep track of other state for certain interrupt reasons
 uint8_t _interrupt_ranges_count;
 
+// Internal state on whether the I2C interface is OK for the MCU to go
+// to sleep
+static bool _can_sleep = TRUE;
+
 
 uint32_t host_interface_init () {
 
@@ -59,7 +63,11 @@ uint32_t host_interface_init () {
 	txStructure.wAddr2 = 0;               /* Not needed */
 
 	/* Set SYSCLK as I2C clock source */
-	RCC_I2CCLKConfig(RCC_I2C1CLK_SYSCLK);
+	// RCC_I2CCLKConfig(RCC_I2C1CLK_SYSCLK);
+	RCC_I2CCLKConfig(RCC_I2C1CLK_HSI);
+
+	/* Enable PWR APB clock */
+  RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR, ENABLE);
 
 	/* Configure the device structure */
 	CPAL_I2C_StructInit(&I2C1_DevStructure);      /* Set all fields to default values */
@@ -68,7 +76,8 @@ uint32_t host_interface_init () {
 	I2C1_DevStructure.CPAL_Mode = CPAL_MODE_SLAVE;
 	I2C1_DevStructure.CPAL_State = CPAL_STATE_READY;
 	I2C1_DevStructure.wCPAL_Timeout = 6;
-	I2C1_DevStructure.wCPAL_Options =  CPAL_OPT_NO_MEM_ADDR | CPAL_OPT_DMATX_TCIT | CPAL_OPT_DMARX_TCIT;
+	// I2C1_DevStructure.wCPAL_Options =  CPAL_OPT_NO_MEM_ADDR | CPAL_OPT_DMATX_TCIT | CPAL_OPT_DMARX_TCIT;
+	I2C1_DevStructure.wCPAL_Options =  CPAL_OPT_NO_MEM_ADDR | CPAL_OPT_I2C_WAKEUP_STOP;
 	// I2C1_DevStructure.wCPAL_Options =  0;
 	I2C1_DevStructure.CPAL_ProgModel = CPAL_PROGMODEL_INTERRUPT;
 	I2C1_DevStructure.pCPAL_I2C_Struct->I2C_Timing = I2C_TIMING;
@@ -103,6 +112,12 @@ void host_interface_notify_ranges (uint8_t* anchor_ids_ranges, uint8_t num_ancho
 	interrupt_host_set();
 }
 
+// Allow this module to determine if the overall system can enter sleep
+// mode or not.
+bool host_interface_can_sleep () {
+	return _can_sleep;
+}
+
 // Doesn't block, but waits for an I2C master to initiate a WRITE.
 uint32_t host_interface_wait () {
 	uint32_t ret;
@@ -113,6 +128,10 @@ uint32_t host_interface_wait () {
 
 	// Device is ready, not clear if this is needed
 	I2C1_DevStructure.CPAL_State = CPAL_STATE_READY;
+
+	// We are just waiting for a new message, it is OK for the MCU
+	// to sleep.
+	_can_sleep = TRUE;
 
 	// Now wait for something to happen in slave mode.
 	// Start waiting for data to be received in slave mode.
@@ -135,6 +154,9 @@ uint32_t host_interface_respond (uint8_t length) {
 
 	// Device is ready, not clear if this is needed
 	I2C1_DevStructure.CPAL_State = CPAL_STATE_READY;
+
+	// We are expecting a quick read from the host, do not sleep.
+	_can_sleep = FALSE;
 
 	// Now wait for something to happen in slave mode.
 	// Start waiting for data to be received in slave mode.
