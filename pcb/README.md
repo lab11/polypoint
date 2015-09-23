@@ -10,4 +10,4 @@ soldered onto a carrier board to add indoor localization functionality
 to any device.
 
 2. **TriTag**: Portable carrier board designed to be used as an indoor
-localization tag.
+localization tag. Has TriPoint on one side and a BLE radio on the other.
