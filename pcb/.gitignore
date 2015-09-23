@@ -27,7 +27,6 @@
 *.mil
 *.crop
 *.hs
-gerbers
 .~lock.*.xlsx#
 _autosave-*.kicad_pcb
 kicad.pretty
