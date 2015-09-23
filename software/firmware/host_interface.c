@@ -8,6 +8,8 @@
 #include "firmware.h"
 #include "host_interface.h"
 #include "dw1000.h"
+#include "oneway_common.h"
+#include "calibration.h"
 
 #define BUFFER_SIZE 128
 uint8_t rxBuffer[BUFFER_SIZE];
@@ -27,8 +29,7 @@ uint8_t NULL_PKT[3] = {0xaa, 0xaa, 0};
 // Keep track of why we interrupted the host
 interrupt_reason_e _interrupt_reason;
 uint8_t* _interrupt_buffer;
-// Also need to keep track of other state for certain interrupt reasons
-uint8_t _interrupt_ranges_count;
+uint8_t  _interrupt_buffer_len;
 
 extern I2C_TypeDef* CPAL_I2C_DEVICE[];
 
@@ -98,14 +99,14 @@ static void interrupt_host_clear () {
 }
 
 // Send to the tag the ranges.
-void host_interface_notify_ranges (uint8_t* anchor_ids_ranges, uint8_t num_anchor_ranges) {
+void host_interface_notify_ranges (uint8_t* anchor_ids_ranges, uint8_t len) {
 
 	// TODO: this should be in an atomic block
 
 	// Save the relevant state for when the host asks for it
 	_interrupt_reason = HOST_IFACE_INTERRUPT_RANGES;
 	_interrupt_buffer = anchor_ids_ranges;
-	_interrupt_ranges_count = num_anchor_ranges;
+	_interrupt_buffer_len = len;
 
 	// Let the host know it should ask
 	interrupt_host_set();
@@ -173,38 +174,47 @@ void host_interface_rx_fired () {
 			// This packet configures the TriPoint module and
 			// is what kicks off using it.
 			uint8_t config_main = rxBuffer[1];
+			polypoint_application_e my_app;
 			dw1000_role_e my_role;
 
 			// Check if this module should be an anchor or tag
-			if ((config_main & HOST_PKT_CONFIG_MAIN_ANCTAG_MASK) == HOST_PKT_CONFIG_MAIN_ANCTAG_ANCHOR) {
-				my_role = ANCHOR;
-			} else {
-				my_role = TAG;
-			}
+			my_role = (config_main & HOST_PKT_CONFIG_MAIN_ANCTAG_MASK) >> HOST_PKT_CONFIG_MAIN_ANCTAG_SHIFT;
+
+			// Check which application we should run
+			my_app = (config_main & HOST_PKT_CONFIG_MAIN_APP_MASK) >> HOST_PKT_CONFIG_MAIN_APP_SHIFT;
 
 			// Now that we know what this module is going to be, we can
 			// interpret the remainder of the packet.
-			if (my_role == TAG) {
-				uint8_t config_tag = rxBuffer[2];
-				uint8_t config_tur = rxBuffer[3];
-				dw1000_report_mode_e report_mode;
-				dw1000_update_mode_e update_mode;
-				bool sleep_mode;
+			if (my_app == APP_ONEWAY) {
+				// Run the base normal ranging application
 
-				report_mode = (config_tag & HOST_PKT_CONFIG_TAG_RMODE_MASK) >> HOST_PKT_CONFIG_TAG_RMODE_SHIFT;
-				update_mode = (config_tag & HOST_PKT_CONFIG_TAG_UMODE_MASK) >> HOST_PKT_CONFIG_TAG_UMODE_SHIFT;
-				sleep_mode  = (config_tag & HOST_PKT_CONFIG_TAG_SLEEP_MASK) >> HOST_PKT_CONFIG_TAG_SLEEP_SHIFT;
+				oneway_config_t oneway_config;
+				oneway_config.my_role = my_role;
+
+				if (my_role == TAG) {
+					// Save some TAG specific settings
+					uint8_t config_tag = rxBuffer[2];
+					oneway_config.my_role = TAG;
+					oneway_config.report_mode = (config_tag & HOST_PKT_CONFIG_ONEWAY_TAG_RMODE_MASK) >> HOST_PKT_CONFIG_ONEWAY_TAG_RMODE_SHIFT;
+					oneway_config.update_mode = (config_tag & HOST_PKT_CONFIG_ONEWAY_TAG_UMODE_MASK) >> HOST_PKT_CONFIG_ONEWAY_TAG_UMODE_SHIFT;
+					oneway_config.sleep_mode  = (config_tag & HOST_PKT_CONFIG_ONEWAY_TAG_SLEEP_MASK) >> HOST_PKT_CONFIG_ONEWAY_TAG_SLEEP_SHIFT;
+					oneway_config.update_rate = rxBuffer[3];
+				}
 
 				// Now that we know how we should operate,
 				// call the main tag function to get things rollin'.
-				app_configure_tag(report_mode, update_mode, sleep_mode, config_tur);
-				app_start();
+				polypoint_configure_app(my_app, &oneway_config);
+				polypoint_start();
 
-			} else if (my_role == ANCHOR) {
-				// TODO: setup this node as an anchor
-				app_configure_anchor();
-				app_start();
+			} else if (my_app == APP_CALIBRATION) {
+				// Run the calibration application to find the TX and RX
+				// delays in the node.
+				calibration_config_t cal_config;
+				cal_config.index = rxBuffer[2];
+				polypoint_configure_app(my_app, &cal_config);
+				polypoint_start();
 			}
+
 			break;
 		}
 
@@ -219,7 +229,7 @@ void host_interface_rx_fired () {
 			host_interface_wait();
 
 			// Tell the application to perform a range
-			app_tag_do_range();
+			polypoint_tag_do_range();
 			break;
 
 		/**********************************************************************/
@@ -232,7 +242,7 @@ void host_interface_rx_fired () {
 			host_interface_wait();
 
 			// Tell the application to stop the dw1000 chip
-			app_stop();
+			polypoint_stop();
 			break;
 
 		/**********************************************************************/
@@ -243,7 +253,7 @@ void host_interface_rx_fired () {
 			host_interface_wait();
 
 			// And we just have to start the application.
-			app_start();
+			polypoint_start();
 			break;
 
 		/**********************************************************************/
@@ -312,7 +322,7 @@ void CPAL_I2C_RXTC_UserCallback(CPAL_InitTypeDef* pDevInitStruct) {
 			// info string. If it is not ready, we return the null string
 			// that says that I2C is working but that we are not ready for
 			// prime time yet.
-			if (app_ready()) {
+			if (polypoint_ready()) {
 				// Info packet is a good way to check that I2C is working.
 				memcpy(txBuffer, INFO_PKT, 3);
 			} else {
@@ -338,10 +348,9 @@ void CPAL_I2C_RXTC_UserCallback(CPAL_InitTypeDef* pDevInitStruct) {
 					//    HOST_IFACE_INTERRUPT_RANGES
 					//    <number of anchor,range pairs>
 					//    <array of pairs>
-					txBuffer[0] = 2 + (_interrupt_ranges_count*(EUI_LEN+sizeof(int32_t)));
+					txBuffer[0] = 1 + _interrupt_buffer_len;
 					txBuffer[1] = HOST_IFACE_INTERRUPT_RANGES;
-					txBuffer[2] = _interrupt_ranges_count;
-					memcpy(txBuffer+3, _interrupt_buffer, _interrupt_ranges_count*(EUI_LEN+sizeof(int32_t)));
+					memcpy(txBuffer+2, _interrupt_buffer, _interrupt_buffer_len);
 					host_interface_respond(txBuffer[0]+1);
 					break;
 

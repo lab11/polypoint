@@ -11,8 +11,8 @@
 #include "port.h"
 #include "board.h"
 #include "dw1000.h"
-#include "dw1000_tag.h"
-#include "dw1000_anchor.h"
+// #include "dw1000_tag.h"
+// #include "dw1000_anchor.h"
 #include "delay.h"
 #include "firmware.h"
 
@@ -44,12 +44,6 @@ const uint32_t txPower[DW1000_NUM_CHANNELS] = {
 	0x5171B1D1UL
 };
 
-// Configure the RF channels to use. This is just a mapping from 0..2 to
-// the actual RF channel numbers the DW1000 uses.
-const uint8_t channel_index_to_channel_rf_number[NUM_RANGING_CHANNELS] = {
-	1, 4, 3
-};
-
 /******************************************************************************/
 // Data structures used in multiple functions
 /******************************************************************************/
@@ -59,7 +53,7 @@ static DMA_InitTypeDef DMA_InitStructure;
 static SPI_InitTypeDef SPI_InitStructure;
 
 // Setup TX/RX settings on the DW1000
-static dwt_config_t global_ranging_config;
+static dwt_config_t _dw1000_config;
 static dwt_txconfig_t global_tx_config;
 
 
@@ -69,9 +63,6 @@ static dwt_txconfig_t global_tx_config;
 
 // Keep track of whether we have inited the STM hardware
 static bool _stm_dw1000_interface_setup = FALSE;
-
-// Keep track of whether we are a tag or anchor
-static dw1000_role_e _my_role = UNDECIDED;
 
 // Whether or not interrupts are enabled.
 decaIrqStatus_t dw1000_irq_onoff = 0;
@@ -376,28 +367,7 @@ void dw1000_interrupt_fired () {
 		// Well this is not good. It looks like the interrupt got stuck high,
 		// so we'd spend the rest of the time just reading this interrupt.
 		// Not much we can do here but reset everything.
-		app_reset();
-	}
-}
-
-
-// Callbacks from the decawave library. Just pass these to the correct
-// anchor or tag code.
-static void txcallback (const dwt_callback_data_t *data) {
-	if (_my_role == TAG) {
-		dw1000_tag_txcallback(data);
-	} else if (_my_role == ANCHOR) {
-		dw1000_anchor_txcallback(data);
-	}
-}
-
-// Callback from the DW1000 library, after it has processed an interrupt.
-// Pass these on to the correct libraries.
-static void rxcallback (const dwt_callback_data_t *data) {
-	if (_my_role == TAG) {
-		dw1000_tag_rxcallback(data);
-	} else if (_my_role == ANCHOR) {
-		dw1000_anchor_rxcallback(data);
+		polypoint_reset();
 	}
 }
 
@@ -541,6 +511,7 @@ void dw1000_read_eui (uint8_t *eui_buf) {
 
 // First (generic) init of the DW1000
 dw1000_err_e dw1000_init () {
+	dw1000_err_e err;
 
 	// Do the STM setup that initializes pin and peripherals and whatnot.
 	if (!_stm_dw1000_interface_setup) {
@@ -568,7 +539,8 @@ dw1000_err_e dw1000_init () {
 	dw1000_choose_antenna(0);
 
 	// Setup our settings for the DW1000
-	dw1000_configure_settings();
+	err = dw1000_configure_settings();
+	if (err) return err;
 
 	// Put the SPI back.
 	dw1000_spi_fast();
@@ -578,7 +550,7 @@ dw1000_err_e dw1000_init () {
 
 // Apply a suite of baseline settings that we care about.
 // This is split out so we can call it after sleeping.
-void dw1000_configure_settings () {
+dw1000_err_e dw1000_configure_settings () {
 
 	// Also need the SPI slow here.
 	dw1000_spi_slow();
@@ -604,7 +576,7 @@ void dw1000_configure_settings () {
 	                   DWT_CONFIG,
 	                   DWT_WAKE_WK | DWT_SLP_EN);
 
-	// Configure interrupts and callbacks
+	// Configure interrupts
 	dwt_setinterrupt(0xFFFFFFFF, 0);
 	dwt_setinterrupt(DWT_INT_TFRS |
 	                 DWT_INT_RFCG |
@@ -617,30 +589,28 @@ void dw1000_configure_settings () {
 	                 DWT_INT_RXOVRR |
 	                 DWT_INT_ARFE, 1);
 
-	dwt_setcallbacks(txcallback, rxcallback);
-
 	// Set the parameters of ranging and channel and whatnot
-	global_ranging_config.chan           = 2;
-	global_ranging_config.prf            = DWT_PRF_64M;
-	global_ranging_config.txPreambLength = DWT_PLEN_64;
-	global_ranging_config.rxPAC          = DWT_PAC8;
-	global_ranging_config.txCode         = 9;  // preamble code
-	global_ranging_config.rxCode         = 9;  // preamble code
-	global_ranging_config.nsSFD          = 0;
-	global_ranging_config.dataRate       = DWT_BR_6M8;
-	global_ranging_config.phrMode        = DWT_PHRMODE_EXT; //Enable extended PHR mode (up to 1024-byte packets)
-	global_ranging_config.smartPowerEn   = 1;
-	global_ranging_config.sfdTO          = 64+8+1;//(1025 + 64 - 32);
+	_dw1000_config.chan           = 2;
+	_dw1000_config.prf            = DWT_PRF_64M;
+	_dw1000_config.txPreambLength = DWT_PLEN_64;
+	_dw1000_config.rxPAC          = DWT_PAC8;
+	_dw1000_config.txCode         = 9;  // preamble code
+	_dw1000_config.rxCode         = 9;  // preamble code
+	_dw1000_config.nsSFD          = 0;
+	_dw1000_config.dataRate       = DWT_BR_6M8;
+	_dw1000_config.phrMode        = DWT_PHRMODE_EXT; //Enable extended PHR mode (up to 1024-byte packets)
+	_dw1000_config.smartPowerEn   = 1;
+	_dw1000_config.sfdTO          = 64+8+1;//(1025 + 64 - 32);
 #if DW1000_USE_OTP
-	dwt_configure(&global_ranging_config, (DWT_LOADANTDLY | DWT_LOADXTALTRIM));
+	dwt_configure(&_dw1000_config, (DWT_LOADANTDLY | DWT_LOADXTALTRIM));
 #else
-	dwt_configure(&global_ranging_config, 0);
+	dwt_configure(&_dw1000_config, 0);
 #endif
-	dwt_setsmarttxpower(global_ranging_config.smartPowerEn);
+	dwt_setsmarttxpower(_dw1000_config.smartPowerEn);
 
 	// Configure TX power based on the channel used
-	global_tx_config.PGdly = pgDelay[global_ranging_config.chan];
-	global_tx_config.power = txPower[global_ranging_config.chan];
+	global_tx_config.PGdly = pgDelay[_dw1000_config.chan];
+	global_tx_config.power = txPower[_dw1000_config.chan];
 	dwt_configuretxrf(&global_tx_config);
 
 	// Need to set some radio properties. Ideally these would come from the
@@ -655,25 +625,19 @@ void dw1000_configure_settings () {
 	dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
 #endif
 
+	// Set this node's ID and the PAN ID for our DW1000 ranging system
+	uint8_t eui_array[8];
+	dw1000_read_eui(eui_array);
+	dwt_seteui(eui_array);
+	dwt_setpanid(POLYPOINT_PANID);
+
 	// Always good to make sure we don't trap the SPI speed too slow
 	dw1000_spi_fast();
+
+	return DW1000_NO_ERR;
 }
 
-// This allows the code to select if this device is a TAG or ANCHOR.
-// This will also init the correct mode.
-void dw1000_set_mode (dw1000_role_e role) {
-	_my_role = role;
-	if (role == TAG) {
-		dw1000_tag_init();
-	} else if (role == ANCHOR) {
-		dw1000_anchor_init();
-	}
-}
 
-// Returns the mode this device is set to.
-dw1000_role_e dw1000_get_mode () {
-	return _my_role;
-}
 
 // Wake the DW1000 from sleep by asserting the WAKEUP pin
 dw1000_err_e dw1000_wakeup () {
@@ -726,6 +690,30 @@ dw1000_err_e dw1000_wakeup () {
 	dw1000_spi_fast();
 
 	return DW1000_NO_ERR;
+}
+
+// Call to change the DW1000 channel and force set all of the configs
+// that are needed when changing channels.
+void dw1000_update_channel (uint8_t chan) {
+	_dw1000_config.chan = chan;
+	dw1000_reset_configuration();
+}
+
+// Called when dw1000 tx/rx config settings and constants should be re applied
+void dw1000_reset_configuration () {
+#if DW1000_USE_OTP
+	dwt_configure(&_dw1000_config, (DWT_LOADANTDLY | DWT_LOADXTALTRIM));
+#else
+	dwt_configure(&_dw1000_config, 0);
+#endif
+	dwt_setsmarttxpower(_dw1000_config.smartPowerEn);
+	global_tx_config.PGdly = pgDelay[_dw1000_config.chan];
+	global_tx_config.power = txPower[_dw1000_config.chan];
+	dwt_configuretxrf(&global_tx_config);
+#if DW1000_USE_OTP == 0
+	dwt_setrxantennadelay(DW1000_ANTENNA_DELAY_RX);
+	dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
+#endif
 }
 
 
@@ -781,134 +769,4 @@ void insert_sorted (int arr[], int new, unsigned end) {
 			insert_at++;
 		}
 	}
-}
-
-/******************************************************************************/
-// Ranging Protocol Algorithm Functions
-/******************************************************************************/
-
-// Return the RF channel to use for a given subsequence number
-static uint8_t subsequence_number_to_channel (uint8_t subseq_num) {
-	// ALGORITHM
-	// We iterate through the channels as fast as possible. We do this to
-	// find anchors that may not be listening on the first channel as quickly
-	// as possible so that they can join the sequence as early as possible. This
-	// increases the number of successful packet transmissions and increases
-	// ranging accuracy.
-	uint8_t channel_index = subseq_num % NUM_RANGING_CHANNELS;
-	return channel_index_to_channel_rf_number[channel_index];
-}
-
-// Return the Antenna index to use for a given subsequence number
-uint8_t subsequence_number_to_antenna (dw1000_role_e role, uint8_t subseq_num) {
-	// ALGORITHM
-	// We must rotate the anchor and tag antennas differently so the same
-	// ones don't always overlap. This should also be different from the
-	// channel sequence. This math is a little weird but somehow works out,
-	// even if NUM_RANGING_CHANNELS != NUM_ANTENNAS.
-	if (role == TAG) {
-		return (subseq_num / NUM_RANGING_CHANNELS) % NUM_ANTENNAS;
-	} else if (role == ANCHOR) {
-		return ((subseq_num / NUM_RANGING_CHANNELS) / NUM_RANGING_CHANNELS) % NUM_ANTENNAS;
-	} else {
-		return 0;
-	}
-}
-
-// Go the opposite way and return the ss number based on the antenna used.
-// Returns the LAST valid slot that matches the sequence.
-static uint8_t antenna_and_channel_to_subsequence_number (uint8_t tag_antenna_index,
-                                                          uint8_t anchor_antenna_index,
-                                                          uint8_t channel_index) {
-	uint8_t anc_offset = anchor_antenna_index * NUM_RANGING_CHANNELS * NUM_RANGING_CHANNELS;
-	uint8_t tag_offset = tag_antenna_index * NUM_RANGING_CHANNELS;
-	uint8_t base_offset = anc_offset + tag_offset + channel_index;
-
-	// Now find the last one that matches this index.
-	// We do this by finding the last possible breaking point between
-	// repeated rounds and determining if we should go just pass that point
-	// or before it.
-	uint8_t a = (uint8_t) ((NUM_RANGING_BROADCASTS / NUM_UNIQUE_PACKET_CONFIGURATIONS) * NUM_UNIQUE_PACKET_CONFIGURATIONS);
-	if ((base_offset + a) < NUM_RANGING_BROADCASTS) {
-		return base_offset + a;
-	} else {
-		return a - (NUM_UNIQUE_PACKET_CONFIGURATIONS - base_offset);
-	}
-}
-
-// Return the RF channel to use when the anchors respond to the tag
-static uint8_t listening_window_number_to_channel (uint8_t window_num) {
-	return window_num % NUM_RANGING_CHANNELS;
-}
-
-// Called when dw1000 tx/rx config settings and constants should be re applied
-static void reset_configuration () {
-#if DW1000_USE_OTP
-	dwt_configure(&global_ranging_config, (DWT_LOADANTDLY | DWT_LOADXTALTRIM));
-#else
-	dwt_configure(&global_ranging_config, 0);
-#endif
-	dwt_setsmarttxpower(global_ranging_config.smartPowerEn);
-	global_tx_config.PGdly = pgDelay[global_ranging_config.chan];
-	global_tx_config.power = txPower[global_ranging_config.chan];
-	dwt_configuretxrf(&global_tx_config);
-#if DW1000_USE_OTP == 0
-	dwt_setrxantennadelay(DW1000_ANTENNA_DELAY_RX);
-	dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
-#endif
-}
-
-// Update the Antenna and Channel settings to correspond with the settings
-// for the given subsequence number.
-//
-// role:       anchor or tag
-// subseq_num: where in the sequence we are
-void dw1000_set_ranging_broadcast_subsequence_settings (dw1000_role_e role,
-                                                        uint8_t subseq_num) {
-	// Stop the transceiver on the anchor. Don't know why.
-	if (role == ANCHOR) {
-		dwt_forcetrxoff();
-	}
-
-	// Change the channel depending on what subsequence number we're at
-	global_ranging_config.chan = subsequence_number_to_channel(subseq_num);
-
-	// Force the settings upon the DW1000
-	reset_configuration();
-
-	// Change what antenna we're listening/sending on
-	dw1000_choose_antenna(subsequence_number_to_antenna(role, subseq_num));
-}
-
-// Update the Antenna and Channel settings to correspond with the settings
-// for the given listening window.
-//
-// role:       anchor or tag
-// window_num: where in the listening window we are
-void dw1000_set_ranging_listening_window_settings (dw1000_role_e role,
-                                                   uint8_t window_num,
-                                                   uint8_t antenna_num) {
-	// Change the channel depending on what window number we're at
-	global_ranging_config.chan = listening_window_number_to_channel(window_num);
-
-	// Force the settings to apply
-	reset_configuration();
-
-	// Change what antenna we're listening/sending on
-	dw1000_choose_antenna(antenna_num);
-}
-
-// Get the subsequence slot number that a particular set of settings
-// (anchor antenna index, tag antenna index, channel) were used to send
-// a broadcast poll message. The tag antenna index and channel are derived
-// from the settings used in the listening window.
-uint8_t dw1000_get_ss_index_from_settings (uint8_t anchor_antenna_index,
-                                           uint8_t window_num) {
-	// NOTE: need something more rigorous than setting 0 here
-	uint8_t tag_antenna_index = 0;
-	uint8_t channel_index = listening_window_number_to_channel(window_num);
-
-	return antenna_and_channel_to_subsequence_number(tag_antenna_index,
-	                                                 anchor_antenna_index,
-	                                                 channel_index);
 }

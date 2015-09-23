@@ -14,38 +14,17 @@ typedef enum {
 	NUMBER_INTERRUPT_SOURCES
 } interrupt_source_e;
 
-
-// Enum for what the module should provide the host.
+// Enum for what ranging application to run on this node
 typedef enum {
-	REPORT_MODE_RANGES = 0,   // Return just range measurements to anchors
-	REPORT_MODE_LOCATION = 1  // Determine location and provide location coordinates
-} dw1000_report_mode_e;
-
-// Enum for when the TAG should do a ranging event
-typedef enum {
-	UPDATE_MODE_PERIODIC = 0,  // Range at regular intervals
-	UPDATE_MODE_DEMAND = 1     // Range only when the host instructs
-} dw1000_update_mode_e;
+	APP_ONEWAY = 0,
+	APP_CALIBRATION = 1,
+} polypoint_application_e;
 
 
-// Keep config settings for the TAG
-typedef struct {
-	dw1000_report_mode_e report_mode;
-	dw1000_update_mode_e update_mode;
-	uint8_t update_rate;
-	bool sleep_mode;
-} dw1000_tag_config_t;
-
-typedef struct {
-	uint8_t  anchor_addr[EUI_LEN];
-	uint8_t  anchor_final_antenna_index; // The antenna the anchor used when it responded.
-	uint8_t  window_packet_recv;         // The window the tag was in when it received the packet from the anchor.
-	uint64_t anc_final_tx_timestamp; // When the anchor node sent the ANC_FINAL
-	uint64_t anc_final_rx_timestamp; // When the tag received the ANC_FINAL
-	uint64_t tag_poll_TOAs[NUM_RANGING_BROADCASTS];
-} anchor_responses_t;
-
-
+/******************************************************************************/
+// Define our PANID
+/******************************************************************************/
+#define POLYPOINT_PANID 0x6611
 
 /******************************************************************************/
 // I2C for the application
@@ -61,20 +40,12 @@ typedef struct {
 /******************************************************************************/
 // Main firmware application functions.
 /******************************************************************************/
-void app_configure_tag (dw1000_report_mode_e report_mode,
-                        dw1000_update_mode_e update_mode,
-                        bool sleep_mode,
-                        uint8_t update_rate);
-void app_configure_anchor ();
-void app_start ();
-void app_stop ();
-void app_reset ();
-bool app_ready ();
-
-void app_tag_do_range ();
-
-dw1000_report_mode_e app_get_report_mode ();
-void app_set_ranges (int32_t* ranges_millimeters, anchor_responses_t* anchor_responses);
+void polypoint_configure_app (polypoint_application_e app, void* app_config);
+void polypoint_start ();
+void polypoint_stop ();
+void polypoint_reset ();
+bool polypoint_ready ();
+void polypoint_tag_do_range ();
 
 /******************************************************************************/
 // OS functions.

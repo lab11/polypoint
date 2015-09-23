@@ -12,27 +12,29 @@
 
 
 // Structs for parsing the messages for each command
-#define HOST_PKT_CONFIG_MAIN_ANCTAG_MASK    0x01
-#define HOST_PKT_CONFIG_MAIN_ANCTAG_TAG     0x00
-#define HOST_PKT_CONFIG_MAIN_ANCTAG_ANCHOR  0x01
+#define HOST_PKT_CONFIG_MAIN_ANCTAG_MASK    0x03
+#define HOST_PKT_CONFIG_MAIN_ANCTAG_SHIFT   0
+#define HOST_PKT_CONFIG_MAIN_APP_MASK       0x1C
+#define HOST_PKT_CONFIG_MAIN_APP_SHIFT      2
 
-#define HOST_PKT_CONFIG_TAG_RMODE_MASK   0x01
-#define HOST_PKT_CONFIG_TAG_RMODE_SHIFT  0
-#define HOST_PKT_CONFIG_TAG_UMODE_MASK   0x06
-#define HOST_PKT_CONFIG_TAG_UMODE_SHIFT  1
-#define HOST_PKT_CONFIG_TAG_SLEEP_MASK   0x08
-#define HOST_PKT_CONFIG_TAG_SLEEP_SHIFT  3
+#define HOST_PKT_CONFIG_ONEWAY_TAG_RMODE_MASK   0x01
+#define HOST_PKT_CONFIG_ONEWAY_TAG_RMODE_SHIFT  0
+#define HOST_PKT_CONFIG_ONEWAY_TAG_UMODE_MASK   0x06
+#define HOST_PKT_CONFIG_ONEWAY_TAG_UMODE_SHIFT  1
+#define HOST_PKT_CONFIG_ONEWAY_TAG_SLEEP_MASK   0x08
+#define HOST_PKT_CONFIG_ONEWAY_TAG_SLEEP_SHIFT  3
 
 // Defines for identifying data sent to host
 typedef enum {
 	HOST_IFACE_INTERRUPT_RANGES = 0x01,
+	HOST_IFACE_INTERRUPT_CALIBRATION = 0x02,
 } interrupt_reason_e;
 
 
 uint32_t host_interface_init();
 uint32_t host_interface_wait ();
 uint32_t host_interface_respond (uint8_t length);
-void host_interface_notify_ranges (uint8_t* anchor_ids_ranges, uint8_t num_anchor_ranges);
+void host_interface_notify_ranges (uint8_t* anchor_ids_ranges, uint8_t len);
 
 
 // Interrupt callbacks

@@ -176,7 +176,7 @@ ret_code_t tripoint_start_calibration (uint8_t index) {
 	buf_cmd[0] = TRIPOINT_CMD_CONFIG;
 
 	// Make TAG in CALIBRATION
-	buf_cmd[1] = 0x02;
+	buf_cmd[1] = 0x04;
 
 	// Set the index of the node in calibration
 	buf_cmd[2] = index;

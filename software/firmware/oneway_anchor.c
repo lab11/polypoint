@@ -4,7 +4,8 @@
 #include "deca_device_api.h"
 #include "deca_regs.h"
 
-#include "dw1000_anchor.h"
+#include "oneway_common.h"
+#include "oneway_anchor.h"
 #include "dw1000.h"
 #include "timer.h"
 #include "delay.h"
@@ -12,7 +13,7 @@
 #include "firmware.h"
 
 // Our timer object that we use for timing packet transmissions
-timer_t* _anchor_timer = NULL;
+stm_timer_t* _anchor_timer = NULL;
 
 // State for the PRNG
 ranctx _prng_state;
@@ -21,11 +22,11 @@ ranctx _prng_state;
 // Keep track of state for the given ranging event this anchor is handling.
 /******************************************************************************/
 // What the anchor is currently doing
-static dw1000_anchor_state_e _state = ASTATE_IDLE;
+static oneway_anchor_state_e _state = ASTATE_IDLE;
 // Which spot in the ranging broadcast sequence we are currently at
 static uint8_t _ranging_broadcast_ss_num = 0;
 // What config parameters the tag sent us
-static dw1000_anchor_tag_config_t _ranging_operation_config;
+static oneway_anchor_tag_config_t _ranging_operation_config;
 // Which spot in the listening window sequence we are in.
 // The listening window refers to the time after the ranging broadcasts
 // when the tag listens for anchor responses on each channel
@@ -58,11 +59,16 @@ static struct pp_anc_final pp_anc_final_pkt = {
 };
 
 static void ranging_listening_window_setup();
+static void anchor_txcallback (const dwt_callback_data_t *txd);
+static void anchor_rxcallback (const dwt_callback_data_t *rxd);
 
 
-void dw1000_anchor_init () {
+void oneway_anchor_init () {
 	// Make sure the SPI speed is slow for this function
 	dw1000_spi_slow();
+
+	// Setup callbacks to this ANCHOR
+	dwt_setcallbacks(anchor_txcallback, anchor_rxcallback);
 
 	// Make sure the radio starts off
 	dwt_forcetrxoff();
@@ -70,11 +76,11 @@ void dw1000_anchor_init () {
 	// Set the anchor so it only receives data and ack packets
 	dwt_enableframefilter(DWT_FF_DATA_EN | DWT_FF_ACK_EN);
 
-	// Set the ID and PAN ID for this anchor
+	// // Set the ID and PAN ID for this anchor
 	uint8_t eui_array[8];
 	dw1000_read_eui(eui_array);
-	dwt_seteui(eui_array);
-	dwt_setpanid(POLYPOINT_PANID);
+	// dwt_seteui(eui_array);
+	// dwt_setpanid(POLYPOINT_PANID);
 
 	// Automatically go back to receive
 	dwt_setautorxreenable(TRUE);
@@ -82,9 +88,6 @@ void dw1000_anchor_init () {
 	// Don't use these
 	dwt_setdblrxbuffmode(FALSE);
 	dwt_setrxtimeout(FALSE);
-
-	// Don't receive at first
-	dwt_rxenable(FALSE);
 
 	// Load our EUI into the outgoing packet
 	dw1000_read_eui(pp_anc_final_pkt.ieee154_header_unicast.sourceAddr);
@@ -105,7 +108,7 @@ void dw1000_anchor_init () {
 }
 
 // Tell the anchor to start its job of being an anchor
-dw1000_err_e dw1000_anchor_start () {
+dw1000_err_e oneway_anchor_start () {
 	dw1000_err_e err;
 
 	// Check if we are in sleep mode. If we are, then we need to wake the chip
@@ -127,7 +130,7 @@ dw1000_err_e dw1000_anchor_start () {
 		dw1000_configure_settings();
 
 		// Also put back the ANCHOR settings.
-		dw1000_anchor_init();
+		oneway_anchor_init();
 	}
 
 	// Also we start over in case the anchor was doing anything before
@@ -135,7 +138,7 @@ dw1000_err_e dw1000_anchor_start () {
 
 	// Choose to wait in the first default position.
 	// This could change to wait in any of the first NUM_CHANNEL-1 positions.
-	dw1000_set_ranging_broadcast_subsequence_settings(ANCHOR, 0);
+	oneway_set_ranging_broadcast_subsequence_settings(ANCHOR, 0);
 
 	// Obviously we want to be able to receive packets
 	dwt_rxenable(0);
@@ -145,7 +148,7 @@ dw1000_err_e dw1000_anchor_start () {
 
 // Tell the anchor to stop ranging with TAGs.
 // This cancels whatever the anchor was doing.
-void dw1000_anchor_stop () {
+void oneway_anchor_stop () {
 	// Put the anchor in SLEEP state. This is useful in case we need to
 	// re-init some stuff after the anchor comes back alive.
 	_state = ASTATE_SLEEP;
@@ -178,7 +181,7 @@ static void ranging_broadcast_subsequence_task () {
 
 	} else {
 		// Update the anchor listening settings
-		dw1000_set_ranging_broadcast_subsequence_settings(ANCHOR, _ranging_broadcast_ss_num);
+		oneway_set_ranging_broadcast_subsequence_settings(ANCHOR, _ranging_broadcast_ss_num);
 
 		// And re-enable RX. The set_broadcast_settings function disables tx and rx.
 		dwt_rxenable(0);
@@ -198,12 +201,12 @@ static void ranging_listening_window_task () {
 		timer_stop(_anchor_timer);
 
 		// Restart being an anchor
-		dw1000_anchor_start();
+		oneway_anchor_start();
 
 	} else {
 
 		// Setup the channel and antenna settings
-		dw1000_set_ranging_listening_window_settings(ANCHOR,
+		oneway_set_ranging_listening_window_settings(ANCHOR,
 		                                             _ranging_listening_window_num,
 		                                             pp_anc_final_pkt.final_antenna);
 
@@ -278,18 +281,18 @@ static void ranging_listening_window_setup () {
 
 // Called after a packet is transmitted. We don't need this so it is
 // just empty.
-void dw1000_anchor_txcallback (const dwt_callback_data_t *txd) {
+static void anchor_txcallback (const dwt_callback_data_t *txd) {
 
 }
 
 // Called when the radio has received a packet.
-void dw1000_anchor_rxcallback (const dwt_callback_data_t *rxd) {
+static void anchor_rxcallback (const dwt_callback_data_t *rxd) {
 
 	if (rxd->event == DWT_SIG_RX_OKAY) {
 
 		// Read in parameters of this packet reception
 		uint64_t           dw_rx_timestamp;
-		uint8_t            buf[DW1000_ANCHOR_MAX_RX_PKT_LEN];
+		uint8_t            buf[ONEWAY_ANCHOR_MAX_RX_PKT_LEN];
 		uint8_t            message_type;
 
 		// Get the received time of this packet first
@@ -297,7 +300,7 @@ void dw1000_anchor_rxcallback (const dwt_callback_data_t *rxd) {
 		dw_rx_timestamp = DW_TIMESTAMP_TO_UINT64(buf);
 
 		// Get the actual packet bytes
-		dwt_readrxdata(buf, MIN(DW1000_ANCHOR_MAX_RX_PKT_LEN, rxd->datalength), 0);
+		dwt_readrxdata(buf, MIN(ONEWAY_ANCHOR_MAX_RX_PKT_LEN, rxd->datalength), 0);
 
 		// We process based on the first byte in the packet. How very active
 		// message like...
@@ -335,7 +338,7 @@ void dw1000_anchor_rxcallback (const dwt_callback_data_t *rxd) {
 
 					// Update the statistics we keep about which antenna
 					// receives the most packets from the tag
-					uint8_t recv_antenna_index = subsequence_number_to_antenna(ANCHOR, rx_poll_pkt->subsequence);
+					uint8_t recv_antenna_index = oneway_subsequence_number_to_antenna(ANCHOR, rx_poll_pkt->subsequence);
 					_anchor_antenna_recv_num[recv_antenna_index]++;
 
 					// Now we need to start our own state machine to iterate
@@ -366,7 +369,7 @@ void dw1000_anchor_rxcallback (const dwt_callback_data_t *rxd) {
 
 						// Update the statistics we keep about which antenna
 						// receives the most packets from the tag
-						uint8_t recv_antenna_index = subsequence_number_to_antenna(ANCHOR, _ranging_broadcast_ss_num);
+						uint8_t recv_antenna_index = oneway_subsequence_number_to_antenna(ANCHOR, _ranging_broadcast_ss_num);
 						_anchor_antenna_recv_num[recv_antenna_index]++;
 
 					} else {
@@ -400,7 +403,7 @@ void dw1000_anchor_rxcallback (const dwt_callback_data_t *rxd) {
 			rxd->event == DWT_SIG_RX_SYNCLOSS ||
 			rxd->event == DWT_SIG_RX_SFDTIMEOUT ||
 			rxd->event == DWT_SIG_RX_PTOTIMEOUT) {
-			dw1000_set_ranging_broadcast_subsequence_settings(ANCHOR, _ranging_broadcast_ss_num);
+			oneway_set_ranging_broadcast_subsequence_settings(ANCHOR, _ranging_broadcast_ss_num);
 		} else {
 			// Some other unknown error, not sure what to do
 		}

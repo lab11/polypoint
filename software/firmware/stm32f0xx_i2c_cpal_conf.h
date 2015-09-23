@@ -447,16 +447,7 @@
 
 
 #define _CPAL_TIMEOUT_INIT()
-// #define _CPAL_TIMEOUT_INIT()           SysTick_Config((SystemCoreClock / 1000));\
-                                       // NVIC_SetPriority (SysTick_IRQn, 0)
-                                       /*<! Configure and enable the systick timer
-                                       to generate an interrupt when counter value
-                                       reaches 0. In the Systick interrupt handler
-                                       the Timeout Error function is called. Time base is 1 ms */
-
 #define _CPAL_TIMEOUT_DEINIT()
-// #define _CPAL_TIMEOUT_DEINIT()         SysTick->CTRL = 0        /*<! Disable the systick timer */
-
 
 #define CPAL_I2C_TIMEOUT_Manager       SysTick_Handler          /*<! This callback is used to handle Timeout error.
                                                                      When a timeout occurs CPAL_TIMEOUT_UserCallback

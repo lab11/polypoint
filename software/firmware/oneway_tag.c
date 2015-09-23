@@ -6,11 +6,12 @@
 #include "timer.h"
 #include "delay.h"
 #include "dw1000.h"
-#include "dw1000_tag.h"
+#include "oneway_common.h"
+#include "oneway_tag.h"
 #include "firmware.h"
 
 // Our timer object that we use for timing packet transmissions
-timer_t* _tag_timer = NULL;
+stm_timer_t* _tag_timer = NULL;
 
 tag_state_e _state = TSTATE_IDLE;
 
@@ -67,20 +68,19 @@ static void ranging_broadcast_subsequence_task ();
 static void ranging_listening_window_task ();
 static void calculate_ranges ();
 static void report_range ();
+static void tag_txcallback (const dwt_callback_data_t *txd);
+static void tag_rxcallback (const dwt_callback_data_t *rxd);
 
 // Do the TAG-specific init calls.
-void dw1000_tag_init () {
+void oneway_tag_init () {
 	// Make sure the SPI speed is slow for this function
 	dw1000_spi_slow();
 
+	// Setup callbacks to this TAG
+	dwt_setcallbacks(tag_txcallback, tag_rxcallback);
+
 	// Allow data and ack frames
 	dwt_enableframefilter(DWT_FF_DATA_EN | DWT_FF_ACK_EN);
-
-	// Set this node's ID and the PAN ID for our DW1000 ranging system
-	uint8_t eui_array[8];
-	dw1000_read_eui(eui_array);
-	dwt_seteui(eui_array);
-	dwt_setpanid(POLYPOINT_PANID);
 
 	// Setup parameters of how the radio should work
 	dwt_setautorxreenable(TRUE);
@@ -104,7 +104,7 @@ void dw1000_tag_init () {
 
 // This starts a ranging event by causing the tag to send a series of
 // ranging broadcasts.
-dw1000_err_e dw1000_tag_start_ranging_event () {
+dw1000_err_e oneway_tag_start_ranging_event () {
 	dw1000_err_e err;
 
 	// Check if we are coming out of sleep to do this ranging event.
@@ -125,7 +125,7 @@ dw1000_err_e dw1000_tag_start_ranging_event () {
 		dw1000_configure_settings();
 
 		// Also put back the TAG settings.
-		dw1000_tag_init();
+		oneway_tag_init();
 
 	} else if (_state != TSTATE_IDLE) {
 		// Cannot start a ranging event if we are currently busy with one.
@@ -146,7 +146,7 @@ dw1000_err_e dw1000_tag_start_ranging_event () {
 }
 
 // Put the TAG into sleep mode
-void dw1000_tag_stop () {
+void oneway_tag_stop () {
 	// Put the tag in SLEEP state. This is useful in case we need to
 	// re-init some stuff after the tag comes back alive.
 	_state = TSTATE_SLEEP;
@@ -164,7 +164,7 @@ void dw1000_tag_stop () {
 }
 
 // Called after the TAG has transmitted a packet.
-void dw1000_tag_txcallback (const dwt_callback_data_t *data) {
+static void tag_txcallback (const dwt_callback_data_t *data) {
 
 	if (data->event == DWT_SIG_TX_DONE) {
 		// Packet was sent successfully
@@ -198,14 +198,14 @@ void dw1000_tag_txcallback (const dwt_callback_data_t *data) {
 }
 
 // Called when the tag receives a packet.
-void dw1000_tag_rxcallback (const dwt_callback_data_t* rxd) {
+static void tag_rxcallback (const dwt_callback_data_t* rxd) {
 	if (rxd->event == DWT_SIG_RX_OKAY) {
 		// Everything went right when receiving this packet.
 		// We have to process it to ensure that it is a packet we are expecting
 		// to get.
 
 		uint64_t dw_rx_timestamp;
-		uint8_t  buf[DW1000_TAG_MAX_RX_PKT_LEN];
+		uint8_t  buf[ONEWAY_TAG_MAX_RX_PKT_LEN];
 		uint8_t  message_type;
 
 		// Get the received time of this packet first
@@ -213,7 +213,7 @@ void dw1000_tag_rxcallback (const dwt_callback_data_t* rxd) {
 		dw_rx_timestamp = DW_TIMESTAMP_TO_UINT64(buf);
 
 		// Get the actual packet bytes
-		dwt_readrxdata(buf, MIN(DW1000_TAG_MAX_RX_PKT_LEN, rxd->datalength), 0);
+		dwt_readrxdata(buf, MIN(ONEWAY_TAG_MAX_RX_PKT_LEN, rxd->datalength), 0);
 		message_type = buf[offsetof(struct pp_anc_final, message_type)];
 
 		if (message_type == MSG_TYPE_PP_NOSLOTS_ANC_FINAL) {
@@ -278,7 +278,7 @@ void dw1000_tag_rxcallback (const dwt_callback_data_t* rxd) {
 		    rxd->event == DWT_SIG_RX_SYNCLOSS ||
 		    rxd->event == DWT_SIG_RX_SFDTIMEOUT ||
 		    rxd->event == DWT_SIG_RX_PTOTIMEOUT) {
-			dw1000_set_ranging_listening_window_settings(TAG, _ranging_listening_window_num, 0);
+			oneway_set_ranging_listening_window_settings(TAG, _ranging_listening_window_num, 0);
 		}
 	}
 
@@ -346,7 +346,7 @@ static void ranging_broadcast_subsequence_task () {
 	}
 
 	// Go ahead and setup and send a ranging broadcast
-	dw1000_set_ranging_broadcast_subsequence_settings(TAG, _ranging_broadcast_ss_num);
+	oneway_set_ranging_broadcast_subsequence_settings(TAG, _ranging_broadcast_ss_num);
 
 	// Actually send the packet
 	send_poll();
@@ -370,7 +370,7 @@ static void ranging_listening_window_task () {
 	} else {
 
 		// Set the correct listening settings
-		dw1000_set_ranging_listening_window_settings(TAG, _ranging_listening_window_num, 0);
+		oneway_set_ranging_listening_window_settings(TAG, _ranging_listening_window_num, 0);
 
 		// Increment and wait
 		_ranging_listening_window_num++;
@@ -389,8 +389,8 @@ static void report_range () {
 	// Decide what we should do with these ranges. We can either report
 	// these right back to the host, or we can try to get the anchors
 	// to calculate location.
-	dw1000_report_mode_e report_mode = app_get_report_mode();
-	if (report_mode == REPORT_MODE_RANGES) {
+	oneway_report_mode_e report_mode = oneway_get_config()->report_mode;
+	if (report_mode == ONEWAY_REPORT_MODE_RANGES) {
 		// We're done, so go to idle.
 		_state = TSTATE_IDLE;
 
@@ -398,9 +398,16 @@ static void report_range () {
 		// of ranges to the main application and let it deal with it.
 		// This also returns control to the main application and signals
 		// the end of the ranging event.
-		app_set_ranges(_ranges_millimeters, _anchor_responses);
+		oneway_set_ranges(_ranges_millimeters, _anchor_responses);
 
-	} else if (report_mode == REPORT_MODE_LOCATION) {
+		// Check if we should try to sleep after the ranging event.
+		if (oneway_get_config()->sleep_mode) {
+			// Call stop() to sleep, it will be woken up automatically on
+			// the next call to start_ranging_event().
+			oneway_tag_stop();
+		}
+
+	} else if (report_mode == ONEWAY_REPORT_MODE_LOCATION) {
 		// TODO: implement this
 	}
 }
@@ -456,7 +463,7 @@ static void calculate_ranges () {
 		// If we didn't get any matching pairs in the first and last rounds
 		// then we have to skip this anchor.
 		if (valid_offset_calculations == 0) {
-			_ranges_millimeters[anchor_index] = DW1000_TAG_RANGE_ERROR_NO_OFFSET;
+			_ranges_millimeters[anchor_index] = ONEWAY_TAG_RANGE_ERROR_NO_OFFSET;
 			continue;
 		}
 
@@ -470,7 +477,7 @@ static void calculate_ranges () {
 		// to calculate ranges from all of the other polls the tag sent.
 		// To do this, we need to match the anchor_antenna, tag_antenna, and
 		// channel between the anchor response and the correct tag poll.
-		uint8_t ss_index_matching = dw1000_get_ss_index_from_settings(aresp->anchor_final_antenna_index,
+		uint8_t ss_index_matching = oneway_get_ss_index_from_settings(aresp->anchor_final_antenna_index,
 		                                                              aresp->window_packet_recv);
 		uint64_t matching_broadcast_send_time = _ranging_broadcast_ss_send_times[ss_index_matching];
 		uint64_t matching_broadcast_recv_time = aresp->tag_poll_TOAs[ss_index_matching];
@@ -516,7 +523,7 @@ static void calculate_ranges () {
 		// Check to make sure that we got enough ranges from this anchor.
 		// If not, we just skip it.
 		if (num_valid_distances < MIN_VALID_RANGES_PER_ANCHOR) {
-			_ranges_millimeters[anchor_index] = DW1000_TAG_RANGE_ERROR_TOO_FEW_RANGES;
+			_ranges_millimeters[anchor_index] = ONEWAY_TAG_RANGE_ERROR_TOO_FEW_RANGES;
 			continue;
 		}
 
@@ -544,7 +551,7 @@ static void calculate_ranges () {
 		// _ranges_millimeters[anchor_index] = ss_index_matching;
 		// _ranges_millimeters[anchor_index] = num_valid_distances;
 		if (_ranges_millimeters[anchor_index] == INT32_MAX) {
-			_ranges_millimeters[anchor_index] = DW1000_TAG_RANGE_ERROR_MISC;
+			_ranges_millimeters[anchor_index] = ONEWAY_TAG_RANGE_ERROR_MISC;
 		}
 	}
 }

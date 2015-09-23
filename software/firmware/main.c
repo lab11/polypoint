@@ -8,8 +8,8 @@
 
 #include "host_interface.h"
 #include "dw1000.h"
-#include "dw1000_tag.h"
-#include "dw1000_anchor.h"
+#include "oneway_common.h"
+#include "calibration.h"
 #include "timer.h"
 #include "delay.h"
 #include "firmware.h"
@@ -35,29 +35,18 @@ bool interrupts_triggered[NUMBER_INTERRUPT_SOURCES]  = {FALSE};
 
 
 /******************************************************************************/
-// Current application settings as set by the host
-/******************************************************************************/
-dw1000_tag_config_t _app_tag_config = {
-	.report_mode = REPORT_MODE_RANGES,
-	.update_mode = UPDATE_MODE_PERIODIC,
-	.update_rate = 10,
-	.sleep_mode  = FALSE
-};
-
-
-/******************************************************************************/
 // Current application state
 /******************************************************************************/
 // Keep track of if the application is active or not
 static app_state_e _state = APPSTATE_NOT_INITED;
 
-// Timer for doing periodic operations (like TAG ranging events)
-static timer_t* _periodic_timer;
+// Keep track of what application we are running
+static polypoint_application_e _current_app;
 
-// Buffer of anchor IDs and ranges to the anchor.
-// Long enough to hold an anchor id followed by the range.
-uint8_t _anchor_ids_ranges[MAX_NUM_ANCHOR_RESPONSES*(EUI_LEN+sizeof(int32_t))];
-uint8_t _num_anchor_ranges = 0;
+// Timer for doing periodic operations (like TAG ranging events)
+static stm_timer_t* _app_timer;
+
+
 
 
 void start_dw1000 ();
@@ -88,30 +77,13 @@ static void error () {
 // Main operation functions called by the host interface
 /******************************************************************************/
 
-// Called by periodic timer
-void tag_execute_range_callback () {
-	dw1000_err_e err;
 
-	err = dw1000_tag_start_ranging_event();
-	if (err == DW1000_BUSY) {
-		// TODO: get return value from this function and slow the timer if
-		// we starting ranging events too quickly.
-	} else if (err == DW1000_WAKEUP_ERR) {
-		// DW1000 apparently was in sleep and didn't come back.
-		// Not sure why, but we need to reset at this point.
-		app_reset();
-	}
-}
 
-// Call this to configure this TriPoint as a TAG. These settings will be
-// preserved, so after this is called, start() and stop() can be used.
+// Call this to configure this TriPoint as the correct application.
 // If this is called while the application is stopped, it will not be
 // automatically started.
 // If this is called when the app is running, the app will be restarted.
-void app_configure_tag (dw1000_report_mode_e report_mode,
-                        dw1000_update_mode_e update_mode,
-                        bool sleep_mode,
-                        uint8_t update_rate) {
+void polypoint_configure_app (polypoint_application_e app, void* app_config) {
 	bool resume = FALSE;
 
 	// Check if this application is running.
@@ -119,133 +91,78 @@ void app_configure_tag (dw1000_report_mode_e report_mode,
 		// Resume with new settings.
 		resume = TRUE;
 		// Stop this first
-		app_stop();
+		polypoint_stop();
 	}
 
-	// Check if we are already configured as a tag. If we have, we don't
-	// need to reset this.
-	if (dw1000_get_mode() != TAG) {
-		// If we need to, complete the init() process now that we know we are a tag.
-		dw1000_set_mode(TAG);
-	}
+	// Tell the correct application that it should init()
+	_current_app = app;
+	switch (_current_app) {
+		case APP_ONEWAY:
+			oneway_configure((oneway_config_t*) app_config, _app_timer);
+			break;
 
-	// Save settings so that we can start and stop as needed.
-	_app_tag_config.report_mode = report_mode;
-	_app_tag_config.update_mode = update_mode;
-	_app_tag_config.update_rate = update_rate;
-	_app_tag_config.sleep_mode  = sleep_mode;
+		case APP_CALIBRATION:
+			calibration_configure((calibration_config_t*) app_config, _app_timer);
+			break;
+
+		default:
+			break;
+	}
 
 	// We were running when this function was called, so we start things back
 	// up here.
 	if (resume) {
-		app_start();
+		polypoint_start();
 	}
 }
 
-// Configure this as an ANCHOR.
-void app_configure_anchor () {
-	bool resume = FALSE;
-
-	// Check if this application is running.
-	if (_state == APPSTATE_RUNNING) {
-		// Resume with new settings.
-		resume = TRUE;
-		// Stop this first
-		app_stop();
-	}
-
-	// Check if we have been configured as a ANCHOR before. If we have, we don't
-	// need to reset this.
-	if (dw1000_get_mode() != ANCHOR) {
-		// If we need to, complete the init() process now that we know we are a anchor.
-		dw1000_set_mode(ANCHOR);
-	}
-
-	// Resume if we were running before.
-	if (resume) {
-		app_start();
-	}
-}
 
 // Start this node! This will run the anchor and tag algorithms.
-void app_start () {
-	dw1000_err_e err;
-
+void polypoint_start () {
 	// Don't start if we are already started
 	if (_state == APPSTATE_RUNNING) {
 		return;
 	}
 
-	dw1000_role_e my_role = dw1000_get_mode();
+	switch (_current_app) {
+		case APP_ONEWAY:
+			oneway_start();
+			break;
 
-	if (my_role == ANCHOR) {
-		_state = APPSTATE_RUNNING;
+		case APP_CALIBRATION:
+			calibration_start();
+			break;
 
-		// Start the anchor state machine. The app doesn't have to do anything
-		// for this, it just runs.
-		err = dw1000_anchor_start();
-		if (err == DW1000_WAKEUP_ERR) {
-			app_reset();
-		}
-
-	} else if (my_role == TAG) {
-		_state = APPSTATE_RUNNING;
-
-		if (_app_tag_config.update_mode == UPDATE_MODE_PERIODIC) {
-			// Host requested periodic updates.
-			// Set the timer to fire at the correct rate. Multiply by 1000000 to
-			// get microseconds, then divide by 10 because update_rate is in
-			// tenths of hertz.
-			uint32_t period = (((uint32_t) _app_tag_config.update_rate) * 1000000) / 10;
-			// Check if we are configured to sleep between ranges. If so,
-			// we need to take wakeup time into account.
-			if (_app_tag_config.sleep_mode && period > DW1000_WAKEUP_DELAY_US) {
-				period -= DW1000_WAKEUP_DELAY_US;
-			}
-			timer_start(_periodic_timer, period, tag_execute_range_callback);
-
-		} else if (_app_tag_config.update_mode == UPDATE_MODE_DEMAND) {
-			// Just wait for the host to request a ranging event
-			// over the host interface.
-		}
-
-		//
-		// TODO: implement selecting between reporting ranges and locations
-		//
-
-
-	} else {
-		// We don't know what we are, so we just don't do anything.
+		default:
+			break;
 	}
 }
 
 // This is called when the host tells us to sleep
-void app_stop () {
+void polypoint_stop () {
 	// Don't stop if we are already stopped
 	if (_state == APPSTATE_STOPPED) {
 		return;
 	}
 
-	dw1000_role_e my_role = dw1000_get_mode();
+	switch (_current_app) {
+		case APP_ONEWAY:
+			oneway_stop();
+			break;
 
-	_state = APPSTATE_STOPPED;
+		case APP_CALIBRATION:
+			calibration_stop();
+			break;
 
-	if (my_role == ANCHOR) {
-		dw1000_anchor_stop();
-	} else if (my_role == TAG) {
-		// Check if we need to stop our periodic timer so we don't keep ranging.
-		if (_app_tag_config.update_mode == UPDATE_MODE_PERIODIC) {
-			timer_stop(_periodic_timer);
-		}
-		dw1000_tag_stop();
+		default:
+			break;
 	}
 }
 
 // Drop the big hammer on the DW1000 and reset the chip (along with the app).
 // All state should be preserved, so after the reset the tripoint should go
 // back to what it was doing, just after a reset and re-init of the dw1000.
-void app_reset () {
-	dw1000_role_e my_role = dw1000_get_mode();
+void polypoint_reset () {
 	bool resume = FALSE;
 
 	if (_state == APPSTATE_RUNNING) {
@@ -256,47 +173,54 @@ void app_reset () {
 	_state = APPSTATE_NOT_INITED;
 
 	// Stop the timer in case it was in use.
-	timer_stop(_periodic_timer);
+	timer_stop(_app_timer);
 
 	// Init the dw1000, and loop until it works.
 	// start does a reset.
 	start_dw1000();
 
-	// Re init the role of this device
-	if (my_role != UNDECIDED) {
-		dw1000_set_mode(my_role);
+	// Re init the app
+	switch (_current_app) {
+		case APP_ONEWAY:
+			oneway_reset(resume);
+			break;
 
-		// If we were running before, run now
-		if (resume) {
-			// This call will set it back to running
-			app_start();
-		}
+		case APP_CALIBRATION:
+			calibration_reset(resume);
+			break;
+
+		default:
+			break;
 	}
 }
 
-// Return true if we are good for tag_configure and or anchor_configure
+// Return true if we are good for app_configure
 // to be called, false otherwise.
-bool app_ready () {
+bool polypoint_ready () {
 	return _state != APPSTATE_NOT_INITED;
 }
 
 // Assuming we are a TAG, and we are in on-demand ranging mode, tell
 // the dw1000 algorithm to perform a range.
-void app_tag_do_range () {
-	dw1000_err_e err;
-
+void polypoint_tag_do_range () {
 	// If the application isn't running, we are not a tag, or we are not
 	// in on-demand ranging mode, don't do anything.
-	if (_state != APPSTATE_RUNNING ||
-	    dw1000_get_mode() != TAG ||
-	    _app_tag_config.update_mode != UPDATE_MODE_DEMAND) {
+	if (_state != APPSTATE_RUNNING) {
 		return;
 	}
 
-	// TODO: this does return an error if we are already ranging.
-	err = dw1000_tag_start_ranging_event();
-	if (err == DW1000_WAKEUP_ERR) {
-		app_reset();
+	// Call the relevant function based on the current application
+	switch (_current_app) {
+		case APP_ONEWAY:
+			oneway_do_range();
+			break;
+
+		case APP_CALIBRATION:
+			// Not a thing for this app
+			break;
+
+		default:
+			break;
 	}
 }
 
@@ -305,40 +229,9 @@ void app_tag_do_range () {
 // Connection for the anchor/tag code to talk to the main applications
 /******************************************************************************/
 
-dw1000_report_mode_e app_get_report_mode () {
-	return _app_tag_config.report_mode;
-}
 
-// Record ranges that the tag found.
-void app_set_ranges (int32_t* ranges_millimeters, anchor_responses_t* anchor_responses) {
-	uint8_t buffer_index = 0;
 
-	// Reset
-	_num_anchor_ranges = 0;
 
-	// Iterate through all ranges, looking for valid ones, and copying the correct
-	// data into the ranges buffer.
-	for (uint8_t i=0; i<MAX_NUM_ANCHOR_RESPONSES; i++) {
-		if (ranges_millimeters[i] != INT32_MAX) {
-			// This is a valid range
-			memcpy(_anchor_ids_ranges+buffer_index, anchor_responses[i].anchor_addr, EUI_LEN);
-			buffer_index += EUI_LEN;
-			memcpy(_anchor_ids_ranges+buffer_index, &ranges_millimeters[i], sizeof(int32_t));
-			buffer_index += sizeof(int32_t);
-			_num_anchor_ranges++;
-		}
-	}
-
-	// Now let the host know so it can do something with the ranges.
-	host_interface_notify_ranges(_anchor_ids_ranges, _num_anchor_ranges);
-
-	// Check if we should try to sleep after the ranging event.
-	if (_app_tag_config.sleep_mode) {
-		// Call stop() to sleep, it will be woken up automatically on
-		// the next call to start_ranging_event().
-		dw1000_tag_stop();
-	}
-}
 
 /******************************************************************************/
 // Main
@@ -404,7 +297,7 @@ int main () {
 
 	// In case we need a timer, get one. This is used for things like periodic
 	// ranging events.
-	_periodic_timer = timer_init();
+	_app_timer = timer_init();
 
 	// Initialize the I2C listener. This is the main interface
 	// the host controller (that is using TriPoint for ranging/localization)

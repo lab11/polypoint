@@ -50,14 +50,16 @@ Byte 0: 0x02  Opcode
 
 Byte 1:      Config 1
    Bits 4-7: Reserved
-   Bits 1-3: Application select.
+   Bits 2-4: Application select.
              Choose which ranging application to execute on the TriPoint.
                0 = Default
                1 = Calibration
                2-7 = reserved
-   Bit 0:    Anchor/Tag select.
+   Bits 0-1: Anchor/Tag select.
                0 = tag
                1 = anchor
+               2 = reserved
+               3 = reserved
 
 IF TAG:
 Byte 2:
