@@ -11,27 +11,15 @@
 #include "port.h"
 #include "board.h"
 #include "dw1000.h"
-#include "dw1000_tag.h"
-#include "dw1000_anchor.h"
-#include "timing.h"
+// #include "dw1000_tag.h"
+// #include "dw1000_anchor.h"
+#include "delay.h"
 #include "firmware.h"
-#include "operation_api.h"
 
 
-
-static void setXtalTrim(uint8_t trim) {
-	//somehow set xtaltrim on dw1000 mem for calibration
-}
-
-static uint8_t getXtalTrim() {
-	//somehow retrieve xtaltrim from dw1000
-
-	//return default value
-	return 8;
-}
-
-// Keep track of whether we have inited the STM hardware
-bool _stm_dw1000_interface_setup = FALSE;
+/******************************************************************************/
+// Constants for the DW1000
+/******************************************************************************/
 
 const uint8_t pgDelay[DW1000_NUM_CHANNELS] = {
 	0x0,
@@ -56,36 +44,28 @@ const uint32_t txPower[DW1000_NUM_CHANNELS] = {
 	0x5171B1D1UL
 };
 
-// Configure the RF channels to use. This is just a mapping from 0..2 to
-// the actual RF channel numbers the DW1000 uses.
-const uint8_t channel_index_to_channel_rf_number[NUM_RANGING_CHANNELS] = {
-	1, 4, 3
-};
+/******************************************************************************/
+// Data structures used in multiple functions
+/******************************************************************************/
 
-static void setTxDelayCal(double txdelay) {
-	//somehow set delay cal on dw10000 mem
-}
-
-static double getTxDelayCal() {
-
-	//somehow retrieve delay cal from dw1000 mem
-	return 0;
-}
-
+// These are for configuring the hardware peripherals on the STM32F0
 static DMA_InitTypeDef DMA_InitStructure;
 static SPI_InitTypeDef SPI_InitStructure;
 
-// Keep track of whether we are a tag or anchor
-dw1000_role_e _my_role = UNDECIDED;
-
-// Keep track of state to signal the caller when we are done
-//dw1000_callback callback;
-//dw1000_cb_e     callback_event;
-
-decaIrqStatus_t dw1000_irq_onoff = 0;
-
-static dwt_config_t global_ranging_config;
+// Setup TX/RX settings on the DW1000
+static dwt_config_t _dw1000_config;
 static dwt_txconfig_t global_tx_config;
+
+
+/******************************************************************************/
+// Internal state for this file
+/******************************************************************************/
+
+// Keep track of whether we have inited the STM hardware
+static bool _stm_dw1000_interface_setup = FALSE;
+
+// Whether or not interrupts are enabled.
+decaIrqStatus_t dw1000_irq_onoff = 0;
 
 
 /******************************************************************************/
@@ -222,8 +202,16 @@ static void setup () {
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
 	GPIO_Init(DW_WAKEUP_PORT, &GPIO_InitStructure);
-
 	GPIO_WriteBit(DW_WAKEUP_PORT, DW_WAKEUP_PIN, Bit_RESET);
+
+	// Make the reset pin output
+	GPIO_InitStructure.GPIO_Pin = DW_RESET_PIN;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+	GPIO_Init(DW_RESET_PORT, &GPIO_InitStructure);
+	GPIO_WriteBit(DW_RESET_PORT, DW_RESET_PIN, Bit_SET);
 
 	// Setup antenna pins - select no antennas
 	RCC_AHBPeriphClockCmd(ANT_SEL0_CLK, ENABLE);
@@ -269,7 +257,6 @@ static void setup () {
 }
 
 // Functions to configure the SPI speed
-
 void dw1000_spi_fast () {
 	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_8;
 	SPI_Init(SPI1, &SPI_InitStructure);
@@ -280,8 +267,8 @@ void dw1000_spi_slow () {
 	SPI_Init(SPI1, &SPI_InitStructure);
 }
 
-//setup to disable rx - because who cares about rx on a write
-static void setup_dma_write(uint32_t length, const uint8_t* tx) {
+// Only write data to the DW1000, and use DMA to do it.
+static void setup_dma_write (uint32_t length, const uint8_t* tx) {
 	static uint8_t throwAway;
 
 	DMA_InitStructure.DMA_BufferSize = length;
@@ -300,8 +287,8 @@ static void setup_dma_write(uint32_t length, const uint8_t* tx) {
 	DMA_Init(SPI1_TX_DMA_CHANNEL, &DMA_InitStructure);
 }
 
-//sets tx to no increment and repeatedly sends 0's
-static void setup_dma_read(uint32_t length, uint8_t* rx) {
+// Setup just a read over SPI using DMA.
+static void setup_dma_read (uint32_t length, uint8_t* rx) {
 
 	//volatile uint8_t throw = SPI1->DR;
 	//throw = SPI1->SR;
@@ -323,6 +310,7 @@ static void setup_dma_read(uint32_t length, uint8_t* rx) {
 	DMA_Init(SPI1_TX_DMA_CHANNEL, &DMA_InitStructure);
 }
 
+// Setup full duplex SPI over DMA.
 static void setup_dma (uint32_t length, uint8_t* rx, uint8_t* tx) {
 
 	// DMA channel Rx of SPI Configuration
@@ -343,38 +331,28 @@ static void setup_dma (uint32_t length, uint8_t* rx, uint8_t* tx) {
 }
 
 
-
 /******************************************************************************/
 // Interrupt callbacks
 /******************************************************************************/
 
-/**
-  * @brief  This function handles DMA1 Channel 1 interrupt request.
-  * @param  None
-  * @retval None
-  */
+// Not needed, but handle the interrupt from the SPI DMA
 void DMA1_Channel2_3_IRQHandler(void) {
 }
 
 
-/**
-  * @brief  This function handles External line 2 to 3 interrupt request.
-  * @param  None
-  * @retval None
-  */
-void EXTI2_3_IRQHandler(void) {
+// HW interrupt for the interrupt pin from the DW1000
+void EXTI2_3_IRQHandler (void) {
+	if (EXTI_GetITStatus(EXTI_Line2) != RESET) {
+		// Mark this interrupt as had occurred in the main thread.
+		mark_interrupt(INTERRUPT_DW1000);
 
-
-  if(EXTI_GetITStatus(EXTI_Line2) != RESET) {
-    // led_toggle(LED2);
-
-    mark_interrupt(INTERRUPT_DW1000);
-
-    // Clear the EXTI line 2 pending bit
-    EXTI_ClearITPendingBit(EXTI_Line2);
-  }
+		// Clear the EXTI line 2 pending bit
+		EXTI_ClearITPendingBit(EXTI_Line2);
+	}
 }
 
+// Main thread interrupt handler for the interrupt from the DW1000. Basically
+// just passes knowledge of the interrupt on to the DW1000 library.
 void dw1000_interrupt_fired () {
 	// Keep calling the decawave interrupt handler as long as the interrupt pin
 	// is asserted, but add an escape hatch so we don't get stuck forever.
@@ -389,26 +367,7 @@ void dw1000_interrupt_fired () {
 		// Well this is not good. It looks like the interrupt got stuck high,
 		// so we'd spend the rest of the time just reading this interrupt.
 		// Not much we can do here but reset everything.
-		app_reset();
-	}
-}
-
-
-// Callbacks from the decawave library. Just pass these to the correct
-// anchor or tag code.
-static void txcallback (const dwt_callback_data_t *data) {
-	if (_my_role == TAG) {
-		dw1000_tag_txcallback(data);
-	} else if (_my_role == ANCHOR) {
-		dw1000_anchor_txcallback(data);
-	}
-}
-
-static void rxcallback (const dwt_callback_data_t *data) {
-	if (_my_role == TAG) {
-		dw1000_tag_rxcallback(data);
-	} else if (_my_role == ANCHOR) {
-		dw1000_anchor_rxcallback(data);
+		polypoint_reset();
 	}
 }
 
@@ -417,7 +376,7 @@ static void rxcallback (const dwt_callback_data_t *data) {
 /******************************************************************************/
 
 // Blocking SPI transfer
-static void spi_transfer() {
+static void spi_transfer () {
 
 	// Enable NSS output for master mode
 	SPI_SSOutputCmd(SPI1, ENABLE);
@@ -457,12 +416,11 @@ static void spi_transfer() {
 	SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Tx, DISABLE);
 }
 
-int readfromspi(uint16_t headerLength,
-				const uint8_t *headerBuffer,
-				uint32_t readlength,
-				uint8_t *readBuffer) {
-
-	// volatile uint8_t hold = *headerBuffer;
+// Called by the DW1000 library to issue a read command to the DW1000.
+int readfromspi (uint16_t headerLength,
+                 const uint8_t *headerBuffer,
+                 uint32_t readlength,
+                 uint8_t *readBuffer) {
 
 	SPI_Cmd(SPI1, ENABLE);
 	setup_dma_write(headerLength, headerBuffer);
@@ -475,12 +433,11 @@ int readfromspi(uint16_t headerLength,
 	return 0;
 }
 
-int writetospi(uint16_t headerLength,
-				const uint8_t *headerBuffer,
-				uint32_t bodylength,
-				const uint8_t *bodyBuffer) {
-
-	// volatile uint8_t hold = *headerBuffer;
+// Called by the DW1000 library to issue a write to the DW1000.
+int writetospi (uint16_t headerLength,
+                const uint8_t *headerBuffer,
+                uint32_t bodylength,
+                const uint8_t *bodyBuffer) {
 
 	SPI_Cmd(SPI1, ENABLE);
 	setup_dma_write(headerLength, headerBuffer);
@@ -493,7 +450,8 @@ int writetospi(uint16_t headerLength,
 	return 0;
 }
 
-decaIrqStatus_t decamutexon() {
+// Atomic blocks for the DW1000 library
+decaIrqStatus_t decamutexon () {
 	if (dw1000_irq_onoff == 1) {
 		dw1000_interrupt_disable();
 		dw1000_irq_onoff = 0;
@@ -502,6 +460,7 @@ decaIrqStatus_t decamutexon() {
 	return 0;
 }
 
+// Atomic blocks for the DW1000 library
 void decamutexoff (decaIrqStatus_t s) {
 	if (s) {
 		dw1000_interrupt_enable();
@@ -509,52 +468,23 @@ void decamutexoff (decaIrqStatus_t s) {
 	}
 }
 
+// Rename this function for the DW1000 library.
 void usleep (uint32_t u) {
 	uDelay(u);
 }
-
-
-
 
 
 /******************************************************************************/
 // Generic DW1000 functions - shared with anchor and tag
 /******************************************************************************/
 
+// Hard reset the DW1000 using its reset pin
 void dw1000_reset () {
-	GPIO_InitTypeDef GPIO_InitStructure;
-
-	// Make the reset pin output
-	GPIO_InitStructure.GPIO_Pin = DW_RESET_PIN;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	// GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-	GPIO_Init(DW_RESET_PORT, &GPIO_InitStructure);
-
-
-	// GPIO_InitStructure.GPIO_Pin = DW_WAKEUP_PIN;
-	// GPIO_Init(DW_WAKEUP_PORT, &GPIO_InitStructure);
-
-	//reset logic
-	// Set it high
-	DW_RESET_PORT->BSRR = DW_RESET_PIN;
-	DW_RESET_PORT->BRR = DW_RESET_PIN;
+	// To reset, assert the reset pin for 100ms
+	GPIO_WriteBit(DW_RESET_PORT, DW_RESET_PIN, Bit_RESET);
 	// Wait for ~100ms
-	uDelay(100000);
-	DW_RESET_PORT->BSRR = DW_RESET_PIN;
-
-	//wakeup logic?
-	// DW_WAKEUP_PORT->BSRR = DW_WAKEUP_PIN;
-
-	// Set it back to an input
-	/*GPIO_InitStructure.GPIO_Pin = DW_RESET_PIN;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
-	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-	GPIO_Init(DW_RESET_PORT, &GPIO_InitStructure);*/
+	mDelay(100);
+	GPIO_WriteBit(DW_RESET_PORT, DW_RESET_PIN, Bit_SET);
 }
 
 // Choose which antenna to connect to the radio
@@ -576,11 +506,12 @@ void dw1000_choose_antenna(uint8_t antenna_number) {
 
 // Read this node's EUI from the correct address in flash
 void dw1000_read_eui (uint8_t *eui_buf) {
-	memcpy(eui_buf, (uint8_t*) EUI_FLASH_LOCATION, 8);
+	memcpy(eui_buf, (uint8_t*) EUI_FLASH_LOCATION, EUI_LEN);
 }
 
 // First (generic) init of the DW1000
 dw1000_err_e dw1000_init () {
+	dw1000_err_e err;
 
 	// Do the STM setup that initializes pin and peripherals and whatnot.
 	if (!_stm_dw1000_interface_setup) {
@@ -607,6 +538,23 @@ dw1000_err_e dw1000_init () {
 	// Choose antenna 0 as a default
 	dw1000_choose_antenna(0);
 
+	// Setup our settings for the DW1000
+	err = dw1000_configure_settings();
+	if (err) return err;
+
+	// Put the SPI back.
+	dw1000_spi_fast();
+
+	return DW1000_NO_ERR;
+}
+
+// Apply a suite of baseline settings that we care about.
+// This is split out so we can call it after sleeping.
+dw1000_err_e dw1000_configure_settings () {
+
+	// Also need the SPI slow here.
+	dw1000_spi_slow();
+
 	// Initialize the dw1000 hardware
 	uint32_t err;
 	err = dwt_initialise(DWT_LOADUCODE |
@@ -618,22 +566,6 @@ dw1000_err_e dw1000_init () {
 		return DW1000_COMM_ERR;
 	}
 
-	// Setup our settings for the DW1000
-	dw1000_configure_settings();
-
-	// Put the SPI back.
-	dw1000_spi_fast();
-
-	return DW1000_NO_ERR;
-}
-
-// Apply a suite of baseline settings that we care about.
-// This is split out so we can call it after sleeping.
-void dw1000_configure_settings () {
-
-	// Also need the SPI slow here.
-	dw1000_spi_slow();
-
 	// Configure sleep parameters.
 	// Note: This is taken from the decawave fast2wr_t.c file. I don't have
 	//       a great idea as to whether this is right or not.
@@ -644,7 +576,7 @@ void dw1000_configure_settings () {
 	                   DWT_CONFIG,
 	                   DWT_WAKE_WK | DWT_SLP_EN);
 
-	// Configure interrupts and callbacks
+	// Configure interrupts
 	dwt_setinterrupt(0xFFFFFFFF, 0);
 	dwt_setinterrupt(DWT_INT_TFRS |
 	                 DWT_INT_RFCG |
@@ -657,30 +589,28 @@ void dw1000_configure_settings () {
 	                 DWT_INT_RXOVRR |
 	                 DWT_INT_ARFE, 1);
 
-	dwt_setcallbacks(txcallback, rxcallback);
-
 	// Set the parameters of ranging and channel and whatnot
-	global_ranging_config.chan           = 2;
-	global_ranging_config.prf            = DWT_PRF_64M;
-	global_ranging_config.txPreambLength = DWT_PLEN_64;
-	global_ranging_config.rxPAC          = DWT_PAC8;
-	global_ranging_config.txCode         = 9;  // preamble code
-	global_ranging_config.rxCode         = 9;  // preamble code
-	global_ranging_config.nsSFD          = 0;
-	global_ranging_config.dataRate       = DWT_BR_6M8;
-	global_ranging_config.phrMode        = DWT_PHRMODE_EXT; //Enable extended PHR mode (up to 1024-byte packets)
-	global_ranging_config.smartPowerEn   = 1;
-	global_ranging_config.sfdTO          = 64+8+1;//(1025 + 64 - 32);
+	_dw1000_config.chan           = 2;
+	_dw1000_config.prf            = DWT_PRF_64M;
+	_dw1000_config.txPreambLength = DWT_PLEN_64;
+	_dw1000_config.rxPAC          = DWT_PAC8;
+	_dw1000_config.txCode         = 9;  // preamble code
+	_dw1000_config.rxCode         = 9;  // preamble code
+	_dw1000_config.nsSFD          = 0;
+	_dw1000_config.dataRate       = DWT_BR_6M8;
+	_dw1000_config.phrMode        = DWT_PHRMODE_EXT; //Enable extended PHR mode (up to 1024-byte packets)
+	_dw1000_config.smartPowerEn   = 1;
+	_dw1000_config.sfdTO          = 64+8+1;//(1025 + 64 - 32);
 #if DW1000_USE_OTP
-	dwt_configure(&global_ranging_config, (DWT_LOADANTDLY | DWT_LOADXTALTRIM));
+	dwt_configure(&_dw1000_config, (DWT_LOADANTDLY | DWT_LOADXTALTRIM));
 #else
-	dwt_configure(&global_ranging_config, 0);
+	dwt_configure(&_dw1000_config, 0);
 #endif
-	dwt_setsmarttxpower(global_ranging_config.smartPowerEn);
+	dwt_setsmarttxpower(_dw1000_config.smartPowerEn);
 
 	// Configure TX power based on the channel used
-	global_tx_config.PGdly = pgDelay[global_ranging_config.chan];
-	global_tx_config.power = txPower[global_ranging_config.chan];
+	global_tx_config.PGdly = pgDelay[_dw1000_config.chan];
+	global_tx_config.power = txPower[_dw1000_config.chan];
 	dwt_configuretxrf(&global_tx_config);
 
 	// Need to set some radio properties. Ideally these would come from the
@@ -688,37 +618,44 @@ void dw1000_configure_settings () {
 #if DW1000_USE_OTP == 0
 
 	// This defaults to 8. Don't know why.
-	dwt_xtaltrim(8);
+	dwt_xtaltrim(DW1000_DEFAULT_XTALTRIM);
 
 	// Antenna delay we don't really care about so we just use 0
 	dwt_setrxantennadelay(DW1000_ANTENNA_DELAY_RX);
 	dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
 #endif
 
+	// Set this node's ID and the PAN ID for our DW1000 ranging system
+	uint8_t eui_array[8];
+	dw1000_read_eui(eui_array);
+	dwt_seteui(eui_array);
+	dwt_setpanid(POLYPOINT_PANID);
+
 	// Always good to make sure we don't trap the SPI speed too slow
 	dw1000_spi_fast();
+
+	return DW1000_NO_ERR;
 }
 
-// This allows the code to select if this device is a TAG or ANCHOR.
-// This will also init the correct mode.
-void dw1000_set_mode (dw1000_role_e role) {
-	_my_role = role;
-	if (role == TAG) {
-		dw1000_tag_init();
-	} else if (role == ANCHOR) {
-		dw1000_anchor_init();
-	}
-}
 
-// Returns the mode this device is set to.
-dw1000_role_e dw1000_get_mode () {
-	return _my_role;
-}
 
 // Wake the DW1000 from sleep by asserting the WAKEUP pin
 dw1000_err_e dw1000_wakeup () {
-	// Assert the WAKEUP pin for a while to get the chip to come out of sleep
-	// mode.
+	// Assert the WAKEUP pin. There seems to be some weirdness where a single
+	// WAKEUP assert can get missed, so we do it multiple times to make
+	// sure the DW1000 is awake.
+	GPIO_WriteBit(DW_WAKEUP_PORT, DW_WAKEUP_PIN, Bit_SET);
+	uDelay(1000);
+	GPIO_WriteBit(DW_WAKEUP_PORT, DW_WAKEUP_PIN, Bit_RESET);
+	uDelay(100);
+	GPIO_WriteBit(DW_WAKEUP_PORT, DW_WAKEUP_PIN, Bit_SET);
+	uDelay(1000);
+	GPIO_WriteBit(DW_WAKEUP_PORT, DW_WAKEUP_PIN, Bit_RESET);
+	uDelay(100);
+	GPIO_WriteBit(DW_WAKEUP_PORT, DW_WAKEUP_PIN, Bit_SET);
+	uDelay(1000);
+	GPIO_WriteBit(DW_WAKEUP_PORT, DW_WAKEUP_PIN, Bit_RESET);
+	uDelay(100);
 	GPIO_WriteBit(DW_WAKEUP_PORT, DW_WAKEUP_PIN, Bit_SET);
 	uDelay(1000);
 	GPIO_WriteBit(DW_WAKEUP_PORT, DW_WAKEUP_PIN, Bit_RESET);
@@ -753,6 +690,30 @@ dw1000_err_e dw1000_wakeup () {
 	dw1000_spi_fast();
 
 	return DW1000_NO_ERR;
+}
+
+// Call to change the DW1000 channel and force set all of the configs
+// that are needed when changing channels.
+void dw1000_update_channel (uint8_t chan) {
+	_dw1000_config.chan = chan;
+	dw1000_reset_configuration();
+}
+
+// Called when dw1000 tx/rx config settings and constants should be re applied
+void dw1000_reset_configuration () {
+#if DW1000_USE_OTP
+	dwt_configure(&_dw1000_config, (DWT_LOADANTDLY | DWT_LOADXTALTRIM));
+#else
+	dwt_configure(&_dw1000_config, 0);
+#endif
+	dwt_setsmarttxpower(_dw1000_config.smartPowerEn);
+	global_tx_config.PGdly = pgDelay[_dw1000_config.chan];
+	global_tx_config.power = txPower[_dw1000_config.chan];
+	dwt_configuretxrf(&global_tx_config);
+#if DW1000_USE_OTP == 0
+	dwt_setrxantennadelay(DW1000_ANTENNA_DELAY_RX);
+	dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
+#endif
 }
 
 
@@ -809,152 +770,3 @@ void insert_sorted (int arr[], int new, unsigned end) {
 		}
 	}
 }
-
-/******************************************************************************/
-// Ranging Protocol Algorithm Functions
-/******************************************************************************/
-
-// Return the RF channel to use for a given subsequence number
-static uint8_t subsequence_number_to_channel (uint8_t subseq_num) {
-	// ALGORITHM
-	// We iterate through the channels as fast as possible. We do this to
-	// find anchors that may not be listening on the first channel as quickly
-	// as possible so that they can join the sequence as early as possible. This
-	// increases the number of successful packet transmissions and increases
-	// ranging accuracy.
-// return 1;
-	uint8_t channel_index = subseq_num % NUM_RANGING_CHANNELS;
-	return channel_index_to_channel_rf_number[channel_index];
-}
-
-// Return the Antenna index to use for a given subsequence number
-uint8_t subsequence_number_to_antenna (dw1000_role_e role, uint8_t subseq_num) {
-	// ALGORITHM
-	// We must rotate the anchor and tag antennas differently so the same
-	// ones don't always overlap. This should also be different from the
-	// channel sequence. This math is a little weird but somehow works out,
-	// even if NUM_RANGING_CHANNELS != NUM_ANTENNAS.
-// return 0;
-	if (role == TAG) {
-		return (subseq_num / NUM_RANGING_CHANNELS) % NUM_ANTENNAS;
-	} else if (role == ANCHOR) {
-		return ((subseq_num / NUM_RANGING_CHANNELS) / NUM_RANGING_CHANNELS) % NUM_ANTENNAS;
-	} else {
-		return 0;
-	}
-}
-
-// Go the opposite way and return the ss number based on the antenna used.
-// Returns the LAST valid slot that matches the sequence.
-static uint8_t antenna_and_channel_to_subsequence_number (uint8_t tag_antenna_index,
-                                                          uint8_t anchor_antenna_index,
-                                                          uint8_t channel_index) {
-	uint8_t anc_offset = anchor_antenna_index * NUM_RANGING_CHANNELS * NUM_RANGING_CHANNELS;
-	uint8_t tag_offset = tag_antenna_index * NUM_RANGING_CHANNELS;
-	uint8_t base_offset = anc_offset + tag_offset + channel_index;
-
-	// Now find the last one that matches this index.
-	// We do this by finding the last possible breaking point between
-	// repeated rounds and determining if we should go just pass that point
-	// or before it.
-	uint8_t a = (uint8_t) ((NUM_RANGING_BROADCASTS / NUM_UNIQUE_PACKET_CONFIGURATIONS) * NUM_UNIQUE_PACKET_CONFIGURATIONS);
-	if ((base_offset + a) < NUM_RANGING_BROADCASTS) {
-		return base_offset + a;
-	} else {
-		return a - (NUM_UNIQUE_PACKET_CONFIGURATIONS - base_offset);
-	}
-}
-
-// Return the RF channel to use when the anchors respond to the tag
-static uint8_t listening_window_number_to_channel (uint8_t window_num) {
-// return 1;
-	return window_num % NUM_RANGING_CHANNELS;
-}
-
-// Called when dw1000 tx/rx config settings and constants should be re applied
-static void reset_configuration () {
-#if DW1000_USE_OTP
-	dwt_configure(&global_ranging_config, (DWT_LOADANTDLY | DWT_LOADXTALTRIM));
-#else
-	dwt_configure(&global_ranging_config, 0);
-#endif
-	dwt_setsmarttxpower(global_ranging_config.smartPowerEn);
-	global_tx_config.PGdly = pgDelay[global_ranging_config.chan];
-	global_tx_config.power = txPower[global_ranging_config.chan];
-	dwt_configuretxrf(&global_tx_config);
-#if DW1000_USE_OTP == 0
-	dwt_setrxantennadelay(DW1000_ANTENNA_DELAY_RX);
-	dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
-#endif
-}
-
-// Update the Antenna and Channel settings to correspond with the settings
-// for the given subsequence number.
-//
-// role:       anchor or tag
-// subseq_num: where in the sequence we are
-// reset:      force settings update on the dw1000 when the channel is changed
-void dw1000_set_ranging_broadcast_subsequence_settings (dw1000_role_e role,
-                                                        uint8_t subseq_num,
-                                                        bool reset) {
-	// Stop the transceiver on the anchor. Don't know why.
-	if (role == ANCHOR) {
-		dwt_forcetrxoff();
-	}
-
-	// Change the channel depending on what subsequence number we're at
-	global_ranging_config.chan = subsequence_number_to_channel(subseq_num);
-
-	// If we were requested to force a reset of settings do that now.
-	// if (reset) {
-		reset_configuration();
-	// } else {
-		// dwt_setchannel(&global_ranging_config, 0);
-	// }
-
-	// Change what antenna we're listening/sending on
-	dw1000_choose_antenna(subsequence_number_to_antenna(role, subseq_num));
-}
-
-// Update the Antenna and Channel settings to correspond with the settings
-// for the given listening window.
-//
-// role:       anchor or tag
-// window_num: where in the listening window we are
-// reset:      force settings update on the dw1000 when the channel is changed
-void dw1000_set_ranging_listening_window_settings (dw1000_role_e role,
-                                                   uint8_t window_num,
-                                                   uint8_t antenna_num,
-                                                   bool reset) {
-	// Change the channel depending on what window number we're at
-	global_ranging_config.chan = listening_window_number_to_channel(window_num);
-
-	// If we were requested to force a reset of settings do that now.
-	// if (reset) {
-		reset_configuration();
-	// } else {
-	// 	dwt_setchannel(&global_ranging_config, 0);
-	// }
-
-	// Change what antenna we're listening/sending on
-	dw1000_choose_antenna(antenna_num);
-}
-
-// Get the subsequence slot number that a particular set of settings
-// (anchor antenna index, tag antenna index, channel) were used to send
-// a broadcast poll message. The tag antenna index and channel are derived
-// from the settings used in the listening window.
-uint8_t dw1000_get_ss_index_from_settings (uint8_t anchor_antenna_index,
-                                           uint8_t window_num) {
-	// NOTE: need something more rigorous than setting 0 here
-	uint8_t tag_antenna_index = 0;
-	uint8_t channel_index = listening_window_number_to_channel(window_num);
-
-	return antenna_and_channel_to_subsequence_number(tag_antenna_index,
-	                                                 anchor_antenna_index,
-	                                                 channel_index);
-}
-
-
-
-

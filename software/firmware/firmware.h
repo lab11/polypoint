@@ -1,14 +1,7 @@
 #ifndef __FIRMWARE_H
 #define __FIRMWARE_H
 
-#define TRUE  1
-#define FALSE 0
-
-typedef uint8_t bool;
-
-// Convenience functions
-#define MIN(_a, _b) ((_a < _b) ? (_a) : (_b))
-#define MAX(_a, _b) ((_a > _b) ? (_a) : (_b))
+#include "dw1000.h"
 
 // All of the possible interrupt sources.
 typedef enum {
@@ -21,7 +14,17 @@ typedef enum {
 	NUMBER_INTERRUPT_SOURCES
 } interrupt_source_e;
 
-void mark_interrupt (interrupt_source_e src);
+// Enum for what ranging application to run on this node
+typedef enum {
+	APP_ONEWAY = 0,
+	APP_CALIBRATION = 1,
+} polypoint_application_e;
+
+
+/******************************************************************************/
+// Define our PANID
+/******************************************************************************/
+#define POLYPOINT_PANID 0x6611
 
 /******************************************************************************/
 // I2C for the application
@@ -33,5 +36,20 @@ void mark_interrupt (interrupt_source_e src);
 // working
 #define INFO_BYTE_0 0xB0
 #define INFO_BYTE_1 0x1A
+
+/******************************************************************************/
+// Main firmware application functions.
+/******************************************************************************/
+void polypoint_configure_app (polypoint_application_e app, void* app_config);
+void polypoint_start ();
+void polypoint_stop ();
+void polypoint_reset ();
+bool polypoint_ready ();
+void polypoint_tag_do_range ();
+
+/******************************************************************************/
+// OS functions.
+/******************************************************************************/
+void mark_interrupt (interrupt_source_e src);
 
 #endif

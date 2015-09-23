@@ -11,7 +11,7 @@ static uint8_t used_timers = 0;
 static timer_callback timer_callbacks[TIMER_NUMBER];
 
 // Predefine all of the timer structures
-timer_t timers[TIMER_NUMBER] = {
+stm_timer_t timers[TIMER_NUMBER] = {
 	{
 		0, // index
 		TIM17,
@@ -53,7 +53,7 @@ timer_t timers[TIMER_NUMBER] = {
 /******************************************************************************/
 
 // Give the caller a pointer to a valid timer configuration struct.
-timer_t* timer_init () {
+stm_timer_t* timer_init () {
 	if (used_timers >= TIMER_NUMBER) {
 		return NULL;
 	}
@@ -62,7 +62,7 @@ timer_t* timer_init () {
 }
 
 // Start a particular timer running
-void timer_start (timer_t* t, uint32_t us_period, timer_callback cb) {
+void timer_start (stm_timer_t* t, uint32_t us_period, timer_callback cb) {
 	uint32_t prescalar = (SystemCoreClock/500000)-1;
 	// Save the callback
 	timer_callbacks[t->index] = cb;
@@ -94,7 +94,7 @@ void timer_start (timer_t* t, uint32_t us_period, timer_callback cb) {
 }
 
 // Disable everything that timer_start enabled
-void timer_stop (timer_t* t) {
+void timer_stop (stm_timer_t* t) {
 	// Disable the timer
 	TIM_Cmd(t->tim_ptr, DISABLE);
 

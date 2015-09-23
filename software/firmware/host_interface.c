@@ -2,12 +2,14 @@
 #include <string.h>
 
 #include "stm32f0xx_i2c_cpal.h"
+#include "stm32f0xx_i2c_cpal_hal.h"
 
 #include "board.h"
 #include "firmware.h"
 #include "host_interface.h"
 #include "dw1000.h"
-#include "operation_api.h"
+#include "oneway_common.h"
+#include "calibration.h"
 
 #define BUFFER_SIZE 128
 uint8_t rxBuffer[BUFFER_SIZE];
@@ -21,15 +23,18 @@ CPAL_TransferTypeDef txStructure;
 // Just pre-set the INFO response packet.
 // Last byte is the version. Set to 1 for now
 uint8_t INFO_PKT[3] = {0xb0, 0x1a, 1};
+// If we are not ready.
+uint8_t NULL_PKT[3] = {0xaa, 0xaa, 0};
 
 // Keep track of why we interrupted the host
 interrupt_reason_e _interrupt_reason;
 uint8_t* _interrupt_buffer;
-// Also need to keep track of other state for certain interrupt reasons
-uint8_t _interrupt_ranges_count;
+uint8_t  _interrupt_buffer_len;
 
+extern I2C_TypeDef* CPAL_I2C_DEVICE[];
 
 uint32_t host_interface_init () {
+	uint32_t ret;
 
 	// Enabled the Interrupt pin
 	GPIO_InitTypeDef  GPIO_InitStructure;
@@ -43,31 +48,31 @@ uint32_t host_interface_init () {
 	GPIO_Init(INTERRUPT_PORT, &GPIO_InitStructure);
 	INTERRUPT_PORT->BRR = INTERRUPT_PIN; // clear
 
-
-	/* Start CPAL communication configuration ***********************************/
-	/* Initialize local Reception structures */
+	// Start CPAL communication configuration
+	// Initialize local Reception structures
 	rxStructure.wNumData = BUFFER_SIZE;   /* Maximum Number of data to be received */
 	rxStructure.pbBuffer = rxBuffer;      /* Common Rx buffer for all received data */
 	rxStructure.wAddr1 = 0;               /* Not needed */
 	rxStructure.wAddr2 = 0;               /* Not needed */
 
-	/* Initialize local Transmission structures */
+	// Initialize local Transmission structures
 	txStructure.wNumData = BUFFER_SIZE;   /* Maximum Number of data to be received */
 	txStructure.pbBuffer = txBuffer;      /* Common Rx buffer for all received data */
 	txStructure.wAddr1 = (I2C_OWN_ADDRESS << 1); /* The own board address */
 	txStructure.wAddr2 = 0;               /* Not needed */
 
-	/* Set SYSCLK as I2C clock source */
-	RCC_I2CCLKConfig(RCC_I2C1CLK_SYSCLK);
+	// Set SYSCLK as I2C clock source
+	// RCC_I2CCLKConfig(RCC_I2C1CLK_SYSCLK);
+	RCC_I2CCLKConfig(RCC_I2C1CLK_HSI);
 
-	/* Configure the device structure */
+	// Configure the device structure
 	CPAL_I2C_StructInit(&I2C1_DevStructure);      /* Set all fields to default values */
 	I2C1_DevStructure.CPAL_Dev = 0;
 	I2C1_DevStructure.CPAL_Direction = CPAL_DIRECTION_TXRX;
 	I2C1_DevStructure.CPAL_Mode = CPAL_MODE_SLAVE;
 	I2C1_DevStructure.CPAL_State = CPAL_STATE_READY;
 	I2C1_DevStructure.wCPAL_Timeout = 6;
-	I2C1_DevStructure.wCPAL_Options =  CPAL_OPT_NO_MEM_ADDR | CPAL_OPT_DMATX_TCIT | CPAL_OPT_DMARX_TCIT;
+	I2C1_DevStructure.wCPAL_Options =  CPAL_OPT_NO_MEM_ADDR | CPAL_OPT_I2C_WAKEUP_STOP;
 	// I2C1_DevStructure.wCPAL_Options =  0;
 	I2C1_DevStructure.CPAL_ProgModel = CPAL_PROGMODEL_INTERRUPT;
 	I2C1_DevStructure.pCPAL_I2C_Struct->I2C_Timing = I2C_TIMING;
@@ -75,9 +80,14 @@ uint32_t host_interface_init () {
 	I2C1_DevStructure.pCPAL_TransferRx = &rxStructure;
 	I2C1_DevStructure.pCPAL_TransferTx = &txStructure;
 
-	/* Initialize CPAL device with the selected parameters */
-	return CPAL_I2C_Init(&I2C1_DevStructure);
+	// Initialize CPAL device with the selected parameters
+	ret = CPAL_I2C_Init(&I2C1_DevStructure);
 
+	// See if this takes care of issues when STM is busy and can't respond
+	// right away. It's also possible this was already configured.
+	__CPAL_I2C_HAL_DISABLE_NOSTRETCH(0);
+
+	return ret;
 }
 
 static void interrupt_host_set () {
@@ -89,14 +99,14 @@ static void interrupt_host_clear () {
 }
 
 // Send to the tag the ranges.
-void host_interface_notify_ranges (uint8_t* anchor_ids_ranges, uint8_t num_anchor_ranges) {
+void host_interface_notify_ranges (uint8_t* anchor_ids_ranges, uint8_t len) {
 
 	// TODO: this should be in an atomic block
 
 	// Save the relevant state for when the host asks for it
 	_interrupt_reason = HOST_IFACE_INTERRUPT_RANGES;
 	_interrupt_buffer = anchor_ids_ranges;
-	_interrupt_ranges_count = num_anchor_ranges;
+	_interrupt_buffer_len = len;
 
 	// Let the host know it should ask
 	interrupt_host_set();
@@ -164,36 +174,47 @@ void host_interface_rx_fired () {
 			// This packet configures the TriPoint module and
 			// is what kicks off using it.
 			uint8_t config_main = rxBuffer[1];
+			polypoint_application_e my_app;
 			dw1000_role_e my_role;
 
 			// Check if this module should be an anchor or tag
-			if ((config_main & HOST_PKT_CONFIG_MAIN_ANCTAG_MASK) == HOST_PKT_CONFIG_MAIN_ANCTAG_ANCHOR) {
-				my_role = ANCHOR;
-			} else {
-				my_role = TAG;
-			}
+			my_role = (config_main & HOST_PKT_CONFIG_MAIN_ANCTAG_MASK) >> HOST_PKT_CONFIG_MAIN_ANCTAG_SHIFT;
+
+			// Check which application we should run
+			my_app = (config_main & HOST_PKT_CONFIG_MAIN_APP_MASK) >> HOST_PKT_CONFIG_MAIN_APP_SHIFT;
 
 			// Now that we know what this module is going to be, we can
 			// interpret the remainder of the packet.
-			if (my_role == TAG) {
-				uint8_t config_tag = rxBuffer[2];
-				uint8_t config_tur = rxBuffer[3];
-				dw1000_report_mode_e report_mode;
-				dw1000_update_mode_e update_mode;
+			if (my_app == APP_ONEWAY) {
+				// Run the base normal ranging application
 
-				report_mode = (config_tag & HOST_PKT_CONFIG_TAG_RMODE_MASK) >> HOST_PKT_CONFIG_TAG_RMODE_SHIFT;
-				update_mode = (config_tag & HOST_PKT_CONFIG_TAG_UMODE_MASK) >> HOST_PKT_CONFIG_TAG_UMODE_SHIFT;
+				oneway_config_t oneway_config;
+				oneway_config.my_role = my_role;
+
+				if (my_role == TAG) {
+					// Save some TAG specific settings
+					uint8_t config_tag = rxBuffer[2];
+					oneway_config.my_role = TAG;
+					oneway_config.report_mode = (config_tag & HOST_PKT_CONFIG_ONEWAY_TAG_RMODE_MASK) >> HOST_PKT_CONFIG_ONEWAY_TAG_RMODE_SHIFT;
+					oneway_config.update_mode = (config_tag & HOST_PKT_CONFIG_ONEWAY_TAG_UMODE_MASK) >> HOST_PKT_CONFIG_ONEWAY_TAG_UMODE_SHIFT;
+					oneway_config.sleep_mode  = (config_tag & HOST_PKT_CONFIG_ONEWAY_TAG_SLEEP_MASK) >> HOST_PKT_CONFIG_ONEWAY_TAG_SLEEP_SHIFT;
+					oneway_config.update_rate = rxBuffer[3];
+				}
 
 				// Now that we know how we should operate,
 				// call the main tag function to get things rollin'.
-				app_configure_tag(report_mode, update_mode, config_tur);
-				app_start();
+				polypoint_configure_app(my_app, &oneway_config);
+				polypoint_start();
 
-			} else if (my_role == ANCHOR) {
-				// TODO: setup this node as an anchor
-				app_configure_anchor();
-				app_start();
+			} else if (my_app == APP_CALIBRATION) {
+				// Run the calibration application to find the TX and RX
+				// delays in the node.
+				calibration_config_t cal_config;
+				cal_config.index = rxBuffer[2];
+				polypoint_configure_app(my_app, &cal_config);
+				polypoint_start();
 			}
+
 			break;
 		}
 
@@ -208,7 +229,7 @@ void host_interface_rx_fired () {
 			host_interface_wait();
 
 			// Tell the application to perform a range
-			app_tag_do_range();
+			polypoint_tag_do_range();
 			break;
 
 		/**********************************************************************/
@@ -221,7 +242,7 @@ void host_interface_rx_fired () {
 			host_interface_wait();
 
 			// Tell the application to stop the dw1000 chip
-			app_stop();
+			polypoint_stop();
 			break;
 
 		/**********************************************************************/
@@ -232,7 +253,7 @@ void host_interface_rx_fired () {
 			host_interface_wait();
 
 			// And we just have to start the application.
-			app_start();
+			polypoint_start();
 			break;
 
 		/**********************************************************************/
@@ -296,8 +317,17 @@ void CPAL_I2C_RXTC_UserCallback(CPAL_InitTypeDef* pDevInitStruct) {
 		// Return the INFO array
 		/**********************************************************************/
 		case HOST_CMD_INFO:
-			// Info packet is a good way to check that I2C is working.
-			memcpy(txBuffer, INFO_PKT, 3);
+			// Check what status the main application is in. If it has contacted
+			// the DW1000, then it will be ready and we return the correct
+			// info string. If it is not ready, we return the null string
+			// that says that I2C is working but that we are not ready for
+			// prime time yet.
+			if (polypoint_ready()) {
+				// Info packet is a good way to check that I2C is working.
+				memcpy(txBuffer, INFO_PKT, 3);
+			} else {
+				memcpy(txBuffer, NULL_PKT, 3);
+			}
 			host_interface_respond(3);
 			break;
 
@@ -318,10 +348,9 @@ void CPAL_I2C_RXTC_UserCallback(CPAL_InitTypeDef* pDevInitStruct) {
 					//    HOST_IFACE_INTERRUPT_RANGES
 					//    <number of anchor,range pairs>
 					//    <array of pairs>
-					txBuffer[0] = 2 + (_interrupt_ranges_count*(EUI_LEN+sizeof(int32_t)));
+					txBuffer[0] = 1 + _interrupt_buffer_len;
 					txBuffer[1] = HOST_IFACE_INTERRUPT_RANGES;
-					txBuffer[2] = _interrupt_ranges_count;
-					memcpy(txBuffer+3, _interrupt_buffer, _interrupt_ranges_count*(EUI_LEN+sizeof(int32_t)));
+					memcpy(txBuffer+2, _interrupt_buffer, _interrupt_buffer_len);
 					host_interface_respond(txBuffer[0]+1);
 					break;
 
@@ -362,6 +391,7 @@ void CPAL_I2C_RXTC_UserCallback(CPAL_InitTypeDef* pDevInitStruct) {
   */
 void CPAL_I2C_TXTC_UserCallback(CPAL_InitTypeDef* pDevInitStruct) {
 	mark_interrupt(INTERRUPT_I2C_TX);
+	host_interface_wait();
 }
 
 /**

@@ -14,6 +14,9 @@ APPLICATION_SRCS += nrf_drv_gpiote.c
 APPLICATION_SRCS += nrf_delay.c
 APPLICATION_SRCS += led.c
 
+APPLICATION_SRCS += simple_ble.c
+APPLICATION_SRCS += eddystone.c
+
 APPLICATION_SRCS += tripoint_interface.c
 
 DEVICE = NRF51
@@ -31,15 +34,16 @@ APPLICATION_SRCS += $(TARGET_LOWER).c
 USE_SOFTDEVICE = s110
 
 SDK_VERSION = 9
+NRF_BASE_PATH ?= ../../nrf5x-base/
 TEMPLATE_PATH ?= ../../nrf5x-base/nrf51-pure-gcc-setup/template/
 SOFTDEVICE ?= ../../nrf5x-base/softdevice/s110_nrf51_8.0.0_softdevice.hex
 SDK_PATH ?= ../../nrf5x-base/sdk/nrf51_sdk_9.0.0/
 
-LIBRARY_PATHS += . ../../nrf5x-base/peripherals ../../nrf5x-base/devices ../../nrf5x-base/services ../../src
-SOURCE_PATHS += ../../nrf5x-base/peripherals ../../nrf5x-base/devices ../../nrf5x-base/services ../../src
+LIBRARY_PATHS += .  ../../src
+SOURCE_PATHS += ../../src
 
 CFLAGS = -Os
 GDB_PORT_NUMBER = 2331
 
-#include ../../Makefile.include
+include $(NRF_BASE_PATH)/Makefile.include
 include $(TEMPLATE_PATH)Makefile

@@ -48,15 +48,27 @@ Byte 2: version
 ```
 Byte 0: 0x02  Opcode
 
-Byte 1:       Config 1
-   Bits 1-7: Reserved
-   Bit 0:    Anchor/Tag select.
-             0 = tag
-             1 = anchor
+Byte 1:      Config 1
+   Bits 4-7: Reserved
+   Bits 2-4: Application select.
+             Choose which ranging application to execute on the TriPoint.
+               0 = Default
+               1 = Calibration
+               2-7 = reserved
+   Bits 0-1: Anchor/Tag select.
+               0 = tag
+               1 = anchor
+               2 = reserved
+               3 = reserved
 
 IF TAG:
 Byte 2:
-   Bits 3-7: Reserved.
+   Bits 4-7: Reserved.
+   Bit 3:    Sleep settings.
+             Configure if TriPoint should sleep the DW1000 between ranging
+             events.
+               0 = Do not sleep.
+               1 = Enter sleep between ranging events.
    Bits 1-2: Update mode.
              Configure if the module should periodically get new locations
              or if it should get locations on demand.
@@ -71,12 +83,19 @@ Byte 2:
                0 = return ranges
                1 = return location
 
-Byte 3:       Location update rate.
-              Specify the rate at which the module should get location updates.
-              Specified in multiples of 0.1 Hz. 0 indicates as fast as possible.
+Byte 3:      Location update rate.
+             Specify the rate at which the module should get location updates.
+             Specified in multiples of 0.1 Hz. 0 indicates as fast as possible.
 
 IF ANCHOR:
    TODO
+
+IF CALIBRATION:
+Byte 2:      Calibration node index.
+             The index of the node in the calibration session. Valid values
+             are 0,1,2. When a node is assigned index 0, it automatically
+             starts the calibration round.
+
 ```
 
 
@@ -108,6 +127,24 @@ TODO
 ```
 
 
+#### `SLEEP`
+
+Stop all ranging and put the module into sleep mode.
+```
+Byte 0: 0x05  Opcode
+```
+
+#### `RESUME`
+
+If the module is in SLEEP mode after a `SLEEP` command, this will resume the
+previous settings.
+```
+Byte 0: 0x06  Opcode
+````
+
+
+
+
 ### TAG Commands
 
 
@@ -119,19 +156,4 @@ Initiate a ranging event. Only valid if tag is in update on demand mode.
 Byte 0: 0x04  Opcode
 ```
 
-
-#### `SLEEP`
-
-Stop all ranging and put the module into sleep mode.
-```
-Byte 0: 0x05  Opcode
-
-
-#### `RESUME`
-
-If the module is in SLEEP mode after a `SLEEP` command, this will resume the
-previous settings.
-```
-Byte 0: 0x06  Opcode
-````
 

@@ -52,8 +52,12 @@ noble.on('stateChange', function (state) {
 });
 
 
+var then = 0;
+
 noble.on('discover', function (peripheral) {
 	noble.stopScanning();
+
+	then = Date.now();
 
 	console.log('Found TriTag: ' + peripheral.uuid);
 
@@ -78,29 +82,43 @@ noble.on('discover', function (peripheral) {
 							});
 
 
-							characteristic.on('data', function (data) {
-								console.log(data);
+							characteristic.on('data', function (dat) {
+								console.log('got notify response');
 
-								var reason = data.readUInt8(0);
-								if (reason == TRIPOINT_READ_INT_RANGES) {
-									// Got ranges from the TAG.
-									var num_ranges = data.readUInt8(1);
-									if (num_ranges == 0) {
-										console.log('No anchors in range.');
-									} else {
-										// Iterate the array to get the
-										// anchor IDs and ranges.
-										var offset_start = 2;
-										var instance_length = 12;
-										for (var i=0; i<num_ranges; i++) {
-											var start = offset_start + (i*instance_length);
-											var eui = buf_to_eui(data, start);
-											var range = encoded_mm_to_meters(data, start+8);
-											console.log(eui);
-											console.log(range);
+								function process (data) {
+									var reason = data.readUInt8(0);
+									if (reason == TRIPOINT_READ_INT_RANGES) {
+										// Got ranges from the TAG.
+										var num_ranges = data.readUInt8(1);
+										if (num_ranges == 0) {
+											console.log('No anchors in range.');
+										} else {
+											// Iterate the array to get the
+											// anchor IDs and ranges.
+											var offset_start = 2;
+											var instance_length = 12;
+											for (var i=0; i<num_ranges; i++) {
+												var start = offset_start + (i*instance_length);
+												var eui = buf_to_eui(data, start);
+												var range = encoded_mm_to_meters(data, start+8);
+												console.log(eui);
+												console.log(range);
+											}
 										}
 									}
+									console.log('');
 								}
+
+
+								characteristic.read(function (err, data) {
+									console.log('got read: ' + data.length);
+									console.log(data);
+									console.log(Date.now()-then);
+									if (data.length != 20) {
+										process(data);
+									}
+								});
+
 							});
 
 
