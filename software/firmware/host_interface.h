@@ -35,6 +35,7 @@ uint32_t host_interface_init();
 uint32_t host_interface_wait ();
 uint32_t host_interface_respond (uint8_t length);
 void host_interface_notify_ranges (uint8_t* anchor_ids_ranges, uint8_t len);
+void host_interface_notify_calibration (uint8_t* calibration_data, uint8_t len);
 
 
 // Interrupt callbacks

@@ -291,9 +291,9 @@ static void anchor_rxcallback (const dwt_callback_data_t *rxd) {
 	if (rxd->event == DWT_SIG_RX_OKAY) {
 
 		// Read in parameters of this packet reception
-		uint64_t           dw_rx_timestamp;
-		uint8_t            buf[ONEWAY_ANCHOR_MAX_RX_PKT_LEN];
-		uint8_t            message_type;
+		uint64_t dw_rx_timestamp;
+		uint8_t  buf[ONEWAY_ANCHOR_MAX_RX_PKT_LEN];
+		uint8_t  message_type;
 
 		// Get the received time of this packet first
 		dwt_readrxtimestamp(buf);

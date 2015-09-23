@@ -488,7 +488,7 @@ void dw1000_reset () {
 }
 
 // Choose which antenna to connect to the radio
-void dw1000_choose_antenna(uint8_t antenna_number) {
+void dw1000_choose_antenna (uint8_t antenna_number) {
 	// Antenna selection comes from the STM32 chip instead of the DW1000 now
 
 	// Set all of them low

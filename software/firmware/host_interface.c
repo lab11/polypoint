@@ -112,6 +112,18 @@ void host_interface_notify_ranges (uint8_t* anchor_ids_ranges, uint8_t len) {
 	interrupt_host_set();
 }
 
+void host_interface_notify_calibration (uint8_t* calibration_data, uint8_t len) {
+	// TODO: this should be in an atomic block
+
+	// Save the relevant state for when the host asks for it
+	_interrupt_reason = HOST_IFACE_INTERRUPT_CALIBRATION;
+	_interrupt_buffer = calibration_data;
+	_interrupt_buffer_len = len;
+
+	// Let the host know it should ask
+	interrupt_host_set();
+}
+
 // Doesn't block, but waits for an I2C master to initiate a WRITE.
 uint32_t host_interface_wait () {
 	uint32_t ret;
@@ -151,7 +163,6 @@ uint32_t host_interface_respond (uint8_t length) {
 
 	return ret;
 }
-
 
 // Called when the I2C interface receives a WRITE message on the bus.
 // Based on what was received, either act or setup a response
@@ -335,28 +346,14 @@ void CPAL_I2C_RXTC_UserCallback(CPAL_InitTypeDef* pDevInitStruct) {
 		// Ask the TriPoint why it asserted the interrupt line.
 		/**********************************************************************/
 		case HOST_CMD_READ_INTERRUPT: {
+			// Clear interrupt
+			interrupt_host_clear();
+
 			// Prepare a packet to send back to the host
-
-			// What the packet looks like depends on which type it is
-			switch (_interrupt_reason) {
-				case HOST_IFACE_INTERRUPT_RANGES:
-					// Start by clearing the interrupt
-					interrupt_host_clear();
-
-					// Need a packet that looks like:
-					//    <length>
-					//    HOST_IFACE_INTERRUPT_RANGES
-					//    <number of anchor,range pairs>
-					//    <array of pairs>
-					txBuffer[0] = 1 + _interrupt_buffer_len;
-					txBuffer[1] = HOST_IFACE_INTERRUPT_RANGES;
-					memcpy(txBuffer+2, _interrupt_buffer, _interrupt_buffer_len);
-					host_interface_respond(txBuffer[0]+1);
-					break;
-
-				default:
-					break;
-			}
+			txBuffer[0] = 1 + _interrupt_buffer_len;
+			txBuffer[1] = _interrupt_reason;
+			memcpy(txBuffer+2, _interrupt_buffer, _interrupt_buffer_len);
+			host_interface_respond(txBuffer[0]+1);
 
 			break;
 		}
