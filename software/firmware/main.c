@@ -124,6 +124,8 @@ void polypoint_start () {
 		return;
 	}
 
+	_state = APPSTATE_RUNNING;
+
 	switch (_current_app) {
 		case APP_ONEWAY:
 			oneway_start();
@@ -144,6 +146,8 @@ void polypoint_stop () {
 	if (_state == APPSTATE_STOPPED) {
 		return;
 	}
+
+	_state = APPSTATE_STOPPED;
 
 	switch (_current_app) {
 		case APP_ONEWAY:

@@ -120,7 +120,7 @@ void oneway_reset (bool resume) {
 	}
 
 	if (resume) {
-		oneway_start();
+		polypoint_start();
 	}
 }
 
