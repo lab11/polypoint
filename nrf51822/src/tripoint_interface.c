@@ -13,37 +13,37 @@
 uint8_t response[256];
 
 nrf_drv_twi_t twi_instance = NRF_DRV_TWI_INSTANCE(1);
-void (*dataCallback)(uint8_t* data, uint32_t len);
 
-void tripoint_i2c_callback (nrf_drv_twi_evt_t* event) {
-	led_toggle(LED_0);
-}
+// Save the callback that we use to signal the main application that we
+// received data over I2C.
+tripoint_interface_data_cb_f _data_callback = NULL;
+
 
 void tripoint_interrupt_handler (nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action) {
 	// verify interrupt is from tripoint
 	if (pin == TRIPOINT_INTERRUPT_PIN) {
-		//ask whats up over I2C
+		// Ask whats up over I2C
 		uint32_t ret;
 		uint8_t cmd = TRIPOINT_CMD_READ_INTERRUPT;
 		ret = nrf_drv_twi_tx(&twi_instance, TRIPOINT_ADDRESS, &cmd, 1, false);
-		if (ret != NRF_SUCCESS) return ret;
+		if (ret != NRF_SUCCESS) return;
 
-		//figure out the length of what we need to receive (its the first rsp byte)
+		// Figure out the length of what we need to receive by
+		// checking the first byte of the response.
 		uint8_t len = 0;
 		ret = nrf_drv_twi_rx(&twi_instance, TRIPOINT_ADDRESS, &len, 1, true);
-		if (ret != NRF_SUCCESS) return ret;
+		if (ret != NRF_SUCCESS) return;
 
-		//read rest of the packet
-		if(len == 0) {
-			//some error?
+		// Read the rest of the packet
+		if (len == 0) {
+			// some error?
 		} else {
 			ret = nrf_drv_twi_rx(&twi_instance, TRIPOINT_ADDRESS, response, len, false);
-			if (ret != NRF_SUCCESS) return ret;
+			if (ret != NRF_SUCCESS) return;
 		}
 
-
-		//send back the I2C data
-		dataCallback(response, len);
+		// Send back the I2C data
+		_data_callback(response, len);
 	}
 }
 
@@ -57,7 +57,6 @@ ret_code_t tripoint_hw_init () {
 	twi_config.frequency          = NRF_TWI_FREQ_400K;
 	twi_config.interrupt_priority = APP_IRQ_PRIORITY_HIGH;
 
-	// ret = nrf_drv_twi_init(&twi_instance, &twi_config, tripoint_i2c_callback);
 	ret = nrf_drv_twi_init(&twi_instance, &twi_config, NULL);
 	if (ret != NRF_SUCCESS) return ret;
 	nrf_drv_twi_enable(&twi_instance);
@@ -74,8 +73,8 @@ ret_code_t tripoint_hw_init () {
 	return NRF_SUCCESS;
 }
 
-ret_code_t tripoint_init (void (*dataCall)(uint8_t* data, uint32_t len)) {
-	dataCallback = dataCall;
+ret_code_t tripoint_init (tripoint_interface_data_cb_f cb) {
+	_data_callback = cb;
 	ret_code_t ret;
 
 	// Wait for 500 ms to make sure the tripoint module is ready
@@ -163,6 +162,26 @@ ret_code_t tripoint_start_anchor () {
 	// buf_cmd[3] = rate;
 
 	ret = nrf_drv_twi_tx(&twi_instance, TRIPOINT_ADDRESS, buf_cmd, 2, false);
+	if (ret != NRF_SUCCESS) return ret;
+
+	return NRF_SUCCESS;
+}
+
+// Tell the attached TriPoint module that it should enter the calibration
+// mode.
+ret_code_t tripoint_start_calibration (uint8_t index) {
+	uint8_t buf_cmd[4];
+	ret_code_t ret;
+
+	buf_cmd[0] = TRIPOINT_CMD_CONFIG;
+
+	// Make TAG in CALIBRATION
+	buf_cmd[1] = 0x02;
+
+	// Set the index of the node in calibration
+	buf_cmd[2] = index;
+
+	ret = nrf_drv_twi_tx(&twi_instance, TRIPOINT_ADDRESS, buf_cmd, 3, false);
 	if (ret != NRF_SUCCESS) return ret;
 
 	return NRF_SUCCESS;

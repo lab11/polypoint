@@ -222,8 +222,6 @@ typedef enum {
 	UNDECIDED
 } dw1000_role_e;
 
-
-
 // Return values for our DW1000 library errors
 typedef enum {
 	DW1000_NO_ERR = 0,
@@ -233,7 +231,9 @@ typedef enum {
 } dw1000_err_e;
 
 
-
+/******************************************************************************/
+// Function prototypes
+/******************************************************************************/
 
 void dw1000_spi_fast ();
 void dw1000_spi_slow ();

@@ -48,11 +48,16 @@ Byte 2: version
 ```
 Byte 0: 0x02  Opcode
 
-Byte 1:       Config 1
-   Bits 1-7: Reserved
+Byte 1:      Config 1
+   Bits 4-7: Reserved
+   Bits 1-3: Application select.
+             Choose which ranging application to execute on the TriPoint.
+               0 = Default
+               1 = Calibration
+               2-7 = reserved
    Bit 0:    Anchor/Tag select.
-             0 = tag
-             1 = anchor
+               0 = tag
+               1 = anchor
 
 IF TAG:
 Byte 2:
@@ -76,12 +81,19 @@ Byte 2:
                0 = return ranges
                1 = return location
 
-Byte 3:       Location update rate.
-              Specify the rate at which the module should get location updates.
-              Specified in multiples of 0.1 Hz. 0 indicates as fast as possible.
+Byte 3:      Location update rate.
+             Specify the rate at which the module should get location updates.
+             Specified in multiples of 0.1 Hz. 0 indicates as fast as possible.
 
 IF ANCHOR:
    TODO
+
+IF CALIBRATION:
+Byte 2:      Calibration node index.
+             The index of the node in the calibration session. Valid values
+             are 0,1,2. When a node is assigned index 0, it automatically
+             starts the calibration round.
+
 ```
 
 

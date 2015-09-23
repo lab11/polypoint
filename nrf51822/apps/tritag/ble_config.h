@@ -29,13 +29,15 @@
 typedef struct ble_app_s {
     // uint16_t                     revision;           /**< Handle of DFU Service (as provided by the S110 SoftDevice). */
     uint16_t                     service_handle;        /**< Handle of DFU Service (as provided by the S110 SoftDevice). */
-    uint8_t                      uuid_type;             /**< UUID type assigned for DFU Service by the S110 SoftDevice. */
-    ble_gatts_char_handles_t     char_location_handles; /**< Handles related to the DFU Packet characteristic. */
+    ble_gatts_char_handles_t     char_location_handle; /**< Handles related to the DFU Packet characteristic. */
+    ble_gatts_char_handles_t     char_range_handle; /**< Handles related to the DFU Packet characteristic. */
     ble_gatts_char_handles_t     char_ranging_enable_handles; /**< Handles related to the DFU Packet characteristic. */
+    ble_gatts_char_handles_t     char_calibration_index_handle; /**< Handles related to the DFU Packet characteristic. */
     ble_srv_error_handler_t      error_handler;         /**< Function to be called in case of an error. */
     uint8_t                      current_location[6];    /** Value of num characteristic */
     uint8_t                      app_raw_response_buffer[128]; // Buffer to store raw responses from TriPoint so that it can be sent over BLE
     uint8_t                      app_ranging; // Whether or not the TriPoint module is running and ranging. 1 = yes, 0 = no
+    uint8_t                      calibration_index;
 } ble_app_t;
 
 #endif
