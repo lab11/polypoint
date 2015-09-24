@@ -13,6 +13,10 @@
 #include "calibration.h"
 
 
+/******************************************************************************/
+// Configuration and settings
+/******************************************************************************/
+
 // All of the configuration passed to us by the host for how this application
 // should operate.
 static calibration_config_t _config;
@@ -26,15 +30,19 @@ static const uint8_t channel_index_to_channel_rf_number[CALIB_NUM_CHANNELS] = {
 	1, 4, 3
 };
 
+/******************************************************************************/
+// Calibration state
+/******************************************************************************/
 // Which calibration round we are currently in
 static uint32_t _round_num = UINT32_MAX;
 
-// When we sent our START calibration message
-static uint64_t _calibration_start_send_time;
+// Timing of packet transmissions and receptions.
+// What these are vary based on which node this is.
+static uint64_t _calibration_timing[4];
+static uint8_t _timing_index = 0;
 
 // Buffer to send back to the host
 static uint8_t _calibration_response_buf[64];
-
 
 // Prepopulated struct of the outgoing broadcast poll packet.
 static struct pp_calibration_msg pp_calibration_pkt = {
@@ -56,13 +64,25 @@ static struct pp_calibration_msg pp_calibration_pkt = {
 	},
 	// PACKET BODY
 	.message_type = MSG_TYPE_PP_CALIBRATION_INIT,
-	.seq = 0
+	.seq = 0,
+	.num = 0
 };
+
+/******************************************************************************/
+// Function prototypes
+/******************************************************************************/
 
 static void calibration_txcallback (const dwt_callback_data_t *txd);
 static void calibration_rxcallback (const dwt_callback_data_t *txd);
 
+static void setup_round_antenna_channel (uint32_t round_num, bool initiator);
+static void calib_start_round ();
+static void send_calibration_pkt (uint8_t message_type, uint8_t packet_num);
+static void notify_host ();
 
+/******************************************************************************/
+// Application API for main()
+/******************************************************************************/
 
 static void init () {
 	// Make sure the SPI speed is slow for this function
@@ -86,115 +106,6 @@ static void init () {
 
 	// Make SPI fast now that everything has been setup
 	dw1000_spi_fast();
-}
-
-
-static void setup_round_antenna_channel (uint32_t round_num, bool initiator) {
-	uint8_t antenna;
-	uint8_t channel;
-	if (initiator) {
-		// This rotates the fastest
-		antenna = round_num % CALIB_NUM_ANTENNAS;
-	} else {
-		antenna = (round_num / CALIB_NUM_ANTENNAS) % CALIB_NUM_ANTENNAS;
-	}
-	channel = ((round_num / CALIB_NUM_ANTENNAS) / CALIB_NUM_ANTENNAS) % CALIB_NUM_CHANNELS;
-	dw1000_choose_antenna(antenna);
-	dw1000_update_channel(channel_index_to_channel_rf_number[channel]);
-}
-
-
-// Send the
-static void send_calibration_pkt (uint8_t message_type) {
-	// Record the packet length to send to DW1000
-	uint16_t tx_len = sizeof(struct pp_calibration_msg);
-
-	// Setup what needs to change in the outgoing packet
-	pp_calibration_pkt.header.seqNum++;
-	pp_calibration_pkt.message_type = message_type;
-	// Set this to the correct value so that all receivers know if they should
-	// be listening for it
-	if (message_type == MSG_TYPE_PP_CALIBRATION_INIT) {
-		pp_calibration_pkt.seq = _round_num;
-	} else if (message_type == MSG_TYPE_PP_CALIBRATION_START) {
-		pp_calibration_pkt.seq = (_round_num*CALIBRATION_NUM_NODES)+_config.index;
-	}
-
-	// Make sure we're out of RX mode before attempting to transmit
-	dwt_forcetrxoff();
-
-	// Tell the DW1000 about the packet
-	dwt_writetxfctrl(tx_len, 0);
-
-	// Setup the time the packet will go out at, and save that timestamp
-	uint32_t delay_time = dwt_readsystimestamphi32() + DW_DELAY_FROM_PKT_LEN(tx_len);
-	delay_time &= 0xFFFFFFFE; // Make sure last bit is zero
-	dwt_setdelayedtrxtime(delay_time);
-	_calibration_start_send_time = ((uint64_t) delay_time) << 8;
-
-	// Write the data
-	dwt_writetxdata(tx_len, (uint8_t*) &pp_calibration_pkt, 0);
-
-	// Start the transmission and enter RX mode
-	dwt_setrxaftertxdelay(1); // us
-	dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED);
-
-	// MP bug - TX antenna delay needs reprogramming as it is not preserved
-	dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
-}
-
-static void send_calibration_pkt_response (uint32_t seq, uint64_t rx_time) {
-	// Record the packet length to send to DW1000
-	uint16_t tx_len = sizeof(struct pp_calibration_msg);
-
-	// Setup what needs to change in the outgoing packet
-	pp_calibration_pkt.header.seqNum++;
-	pp_calibration_pkt.message_type = MSG_TYPE_PP_CALIBRATION_RESPONSE;
-	// Set this to the correct value so that all receivers know if they should
-	// be listening for it
-	pp_calibration_pkt.seq = seq;
-	pp_calibration_pkt.responder_rx = rx_time;
-
-	// Make sure we're out of RX mode before attempting to transmit
-	dwt_forcetrxoff();
-
-	// Tell the DW1000 about the packet
-	dwt_writetxfctrl(tx_len, 0);
-
-	// Setup the time the packet will go out at, and save that timestamp
-	uint32_t delay_time = dwt_readsystimestamphi32() + DW_DELAY_FROM_PKT_LEN(tx_len);
-	delay_time &= 0xFFFFFFFE; // Make sure last bit is zero
-	dwt_setdelayedtrxtime(delay_time);
-	pp_calibration_pkt.responder_tx = ((uint64_t) delay_time) << 8;
-
-	// Write the data
-	dwt_writetxdata(tx_len, (uint8_t*) &pp_calibration_pkt, 0);
-
-	// Start the transmission and enter RX mode
-	dwt_starttx(DWT_START_TX_DELAYED);
-
-	// MP bug - TX antenna delay needs reprogramming as it is not preserved
-	dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
-}
-
-// Timer callback that marks the start of each round
-static void calib_start_round () {
-
-	// Increment the round number
-	if (_round_num == UINT32_MAX) {
-		_round_num = 0;
-	} else {
-		_round_num++;
-	}
-
-	// At the start of the round, configure the RX parameters
-	setup_round_antenna_channel(_round_num, FALSE);
-
-	// If we are index 0, we start the round
-	if (_config.index == 0) {
-		// Just need to send the calibration packet now
-		send_calibration_pkt(MSG_TYPE_PP_CALIBRATION_INIT);
-	}
 }
 
 // Setup the calibration
@@ -244,29 +155,121 @@ void calibration_stop () {
 	dwt_forcetrxoff();
 }
 
-void calibration_reset (bool resume) {
+void calibration_reset () {
 	init();
-	if (resume) {
-		calibration_start();
-	}
 }
+
+/******************************************************************************/
+// Calibration action functions
+/******************************************************************************/
+
+static void setup_round_antenna_channel (uint32_t round_num, bool initiator) {
+	uint8_t antenna;
+	uint8_t channel;
+	if (initiator) {
+		// This rotates the fastest
+		antenna = round_num % CALIB_NUM_ANTENNAS;
+	} else {
+		antenna = (round_num / CALIB_NUM_ANTENNAS) % CALIB_NUM_ANTENNAS;
+	}
+	channel = ((round_num / CALIB_NUM_ANTENNAS) / CALIB_NUM_ANTENNAS) % CALIB_NUM_CHANNELS;
+	dw1000_choose_antenna(antenna);
+	dw1000_update_channel(channel_index_to_channel_rf_number[channel]);
+}
+
+// Timer callback that marks the start of each round
+static void calib_start_round () {
+
+	// Increment the round number
+	if (_round_num == UINT32_MAX) {
+		_round_num = 0;
+	} else {
+		_round_num++;
+	}
+
+	// Zero which point in the array we save timing data for
+	_timing_index = 0;
+
+	// Before the INIT packet, use the default settings
+	setup_round_antenna_channel(0, FALSE);
+
+	// Send a packet to announce the start of the a calibration round.
+	send_calibration_pkt(MSG_TYPE_PP_CALIBRATION_INIT, 0);
+}
+
+// Send a packet
+static void send_calibration_pkt (uint8_t message_type, uint8_t packet_num) {
+	// Record the packet length to send to DW1000
+	uint16_t tx_len = sizeof(struct pp_calibration_msg);
+
+	// Setup what needs to change in the outgoing packet
+	pp_calibration_pkt.header.seqNum++;
+	pp_calibration_pkt.message_type = message_type;
+	pp_calibration_pkt.seq = _round_num;
+	pp_calibration_pkt.num = packet_num;
+
+	// Make sure we're out of RX mode before attempting to transmit
+	dwt_forcetrxoff();
+
+	// Tell the DW1000 about the packet
+	dwt_writetxfctrl(tx_len, 0);
+
+	// Setup the time the packet will go out at, and save that timestamp
+	uint32_t delay_time = dwt_readsystimestamphi32() + DW_DELAY_FROM_PKT_LEN(tx_len);
+	delay_time &= 0xFFFFFFFE; // Make sure last bit is zero
+	dwt_setdelayedtrxtime(delay_time);
+	_calibration_timing[_timing_index++] = ((uint64_t) delay_time) << 8;
+
+	// Write the data
+	dwt_writetxdata(tx_len, (uint8_t*) &pp_calibration_pkt, 0);
+
+	// Start the transmission and enter RX mode
+	dwt_setrxaftertxdelay(1); // us
+	dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED);
+
+	// MP bug - TX antenna delay needs reprogramming as it is not preserved
+	dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
+}
+
+static void notify_host () {
+	_calibration_response_buf[0] = _config.index;
+	memcpy(_calibration_response_buf+1,  &_round_num, sizeof(uint32_t));
+	memcpy(_calibration_response_buf+5,  _calibration_timing, 4*sizeof(uint64_t));
+	host_interface_notify_calibration(_calibration_response_buf, 1+sizeof(uint32_t)+(4*sizeof(uint64_t)));
+}
+
+/******************************************************************************/
+// TX/RX callbacks
+/******************************************************************************/
 
 // Use this callback to start the next cycle in the round
 static void calibration_txcallback (const dwt_callback_data_t *txd) {
-	// On TX callback, we may want to send packets to the next node
-	// in the calibration system. This occurs if the last thing we did was
-	// send a RESPONSE and we are not the node with index 0 OR if we are index
-	// 0 and just sent an INIT packet.
-	if ((_config.index != 0 &&
-	    pp_calibration_pkt.message_type == MSG_TYPE_PP_CALIBRATION_RESPONSE) ||
-	    (_config.index == 0 &&
-	    pp_calibration_pkt.message_type == MSG_TYPE_PP_CALIBRATION_INIT)) {
+
+	// Nodes 0 and 1 send multiple messages in a row
+	if (_config.index == 0 &&
+	    pp_calibration_pkt.message_type == MSG_TYPE_PP_CALIBRATION_INIT) {
+		// We just sent the "get everybody on the same page packet".
+		// Now start the actual cycle.
 		// Delay a bit to give the other nodes a chance to download and
 		// process.
 		mDelay(2);
 		// Send on the next ranging cycle in this round
 		setup_round_antenna_channel(_round_num, TRUE);
-		send_calibration_pkt(MSG_TYPE_PP_CALIBRATION_START);
+		send_calibration_pkt(MSG_TYPE_PP_CALIBRATION_MSG, 0);
+
+	} else if (_config.index == 1 && pp_calibration_pkt.num == 1) {
+		// Node 1 sends two messages in a row
+		mDelay(2);
+		// Send on the next ranging cycle in this round
+		send_calibration_pkt(MSG_TYPE_PP_CALIBRATION_MSG, 2);
+
+	} else if (_config.index == 2 && pp_calibration_pkt.num == 3) {
+		// Node 2 is the last to transmit, need to notify at this
+		// point
+		notify_host();
+
+		// Last thing is to go back to default settings
+		setup_round_antenna_channel(0, TRUE);
 	}
 }
 
@@ -298,37 +301,33 @@ static void calibration_rxcallback (const dwt_callback_data_t *rxd) {
 			// Set the round number, and configure for that round
 			_round_num = rx_start_pkt->seq;
 			setup_round_antenna_channel(_round_num, FALSE);
+			// Zero the timing save array
+			_timing_index = 0;
 
-		} else if (message_type == MSG_TYPE_PP_CALIBRATION_START) {
-			// Check if this START CALIBRATION message is for us
-			uint8_t sender_index = rx_start_pkt->seq % CALIBRATION_NUM_NODES;
+		} else if (message_type == MSG_TYPE_PP_CALIBRATION_MSG) {
+			uint8_t packet_num = rx_start_pkt->num;
 
-			if ((sender_index + 1) % CALIBRATION_NUM_NODES == _config.index) {
-				// This packet was intended for me!
-				// Send the response packet back to the initiator
-				send_calibration_pkt_response(rx_start_pkt->seq, dw_rx_timestamp);
-			} else {
-				// We can just ignore this packet, it's not for us
-			}
+			// Record when we received this packet
+			_calibration_timing[_timing_index++] = dw_rx_timestamp;
 
-		} else if (message_type == MSG_TYPE_PP_CALIBRATION_RESPONSE) {
-			// Verify this came back with our index
-			uint8_t sender_index = rx_start_pkt->seq % CALIBRATION_NUM_NODES;
-			if (sender_index == _config.index) {
-				// This is the response from the remote node.
-				// Record the values.
-				_calibration_response_buf[0] = _config.index;
-				memcpy(_calibration_response_buf+1,  &_round_num, sizeof(uint32_t));
-				memcpy(_calibration_response_buf+5,  &_calibration_start_send_time, sizeof(uint64_t));
-				memcpy(_calibration_response_buf+13, &rx_start_pkt->responder_rx, sizeof(uint64_t));
-				memcpy(_calibration_response_buf+21, &rx_start_pkt->responder_tx, sizeof(uint64_t));
-				memcpy(_calibration_response_buf+29, &dw_rx_timestamp, sizeof(uint64_t));
-				host_interface_notify_calibration(_calibration_response_buf, 1+sizeof(uint32_t)+(4*sizeof(uint64_t)));
+			if (packet_num == 0 && _config.index == 1) {
+				// The second node sends the next packet
+				send_calibration_pkt(MSG_TYPE_PP_CALIBRATION_MSG, packet_num+1);
+
+			} else if (packet_num == 2 && _config.index == 2) {
+				// The third node sends the last packet
+				send_calibration_pkt(MSG_TYPE_PP_CALIBRATION_MSG, packet_num+1);
+
+			} else if (packet_num == 3) {
+				// This is the last packet, notify the host of our findings
+				notify_host();
+
+				// Last thing is to go back to default settings
+				setup_round_antenna_channel(0, TRUE);
 			}
 
 		}
 
 		dwt_rxenable(0);
-
 	}
 }

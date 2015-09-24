@@ -21,17 +21,15 @@ typedef struct {
 
 // Message types that identify the UWB packets. Very reminiscent of
 // Active Messages from the TinyOS days.
-#define MSG_TYPE_PP_CALIBRATION_INIT     0x90
-#define MSG_TYPE_PP_CALIBRATION_START    0x91
-#define MSG_TYPE_PP_CALIBRATION_RESPONSE 0x92
+#define MSG_TYPE_PP_CALIBRATION_INIT 0x90
+#define MSG_TYPE_PP_CALIBRATION_MSG  0x91
 
 // Packet the tag broadcasts to all nearby anchors
 struct pp_calibration_msg  {
 	struct ieee154_header_broadcast header;
 	uint8_t message_type;                   // Packet type identifier so the anchor knows what it is receiving.
 	uint32_t seq;                           // Index of which broadcast so nodes know if they should receive
-	uint64_t responder_rx;                  // In the ranging pair during calibration, this is when the receiving/responding node received the packet
-	uint64_t responder_tx;                  // And this is when the node transmitted this packet.
+	uint8_t num;                            // Index of this packet in the ranging round.
 	struct ieee154_footer footer;
 } __attribute__ ((__packed__));
 
@@ -39,6 +37,6 @@ struct pp_calibration_msg  {
 void calibration_configure (calibration_config_t* config, stm_timer_t* app_timer);
 void calibration_start ();
 void calibration_stop ();
-void calibration_reset (bool resume);
+void calibration_reset ();
 
 #endif

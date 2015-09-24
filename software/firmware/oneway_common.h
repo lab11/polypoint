@@ -132,7 +132,7 @@ typedef struct {
 void oneway_configure (oneway_config_t* config, stm_timer_t* app_timer);
 void oneway_start ();
 void oneway_stop ();
-void oneway_reset (bool resume);
+void oneway_reset ();
 void oneway_do_range ();
 oneway_config_t* oneway_get_config ();
 void oneway_set_ranges (int32_t* ranges_millimeters, anchor_responses_t* anchor_responses);

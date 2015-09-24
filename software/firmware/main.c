@@ -186,15 +186,19 @@ void polypoint_reset () {
 	// Re init the app
 	switch (_current_app) {
 		case APP_ONEWAY:
-			oneway_reset(resume);
+			oneway_reset();
 			break;
 
 		case APP_CALIBRATION:
-			calibration_reset(resume);
+			calibration_reset();
 			break;
 
 		default:
 			break;
+	}
+
+	if (resume) {
+		polypoint_start();
 	}
 }
 

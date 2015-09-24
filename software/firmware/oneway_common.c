@@ -114,16 +114,12 @@ void oneway_stop () {
 }
 
 // The whole DW1000 reset, so we need to get this app running again
-void oneway_reset (bool resume) {
+void oneway_reset () {
 	// Start by initing based on role
 	if (_config.my_role == TAG) {
 		oneway_tag_init();
 	} else if (_config.my_role == ANCHOR) {
 		oneway_anchor_init();
-	}
-
-	if (resume) {
-		polypoint_start();
 	}
 }
 
