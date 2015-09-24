@@ -19,7 +19,7 @@ static stm_timer_t* _app_timer;
 
 // Configure the RF channels to use. This is just a mapping from 0..2 to
 // the actual RF channel numbers the DW1000 uses.
-const uint8_t channel_index_to_channel_rf_number[NUM_RANGING_CHANNELS] = {
+static const uint8_t channel_index_to_channel_rf_number[NUM_RANGING_CHANNELS] = {
 	1, 4, 3
 };
 

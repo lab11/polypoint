@@ -20,6 +20,12 @@ static calibration_config_t _config;
 // code.
 static stm_timer_t* _app_timer;
 
+// Configure the RF channels to use. This is just a mapping from 0..2 to
+// the actual RF channel numbers the DW1000 uses.
+static const uint8_t channel_index_to_channel_rf_number[CALIB_NUM_CHANNELS] = {
+	1, 4, 3
+};
+
 // Which calibration round we are currently in
 static uint32_t _round_num = UINT32_MAX;
 
@@ -94,7 +100,7 @@ static void setup_round_antenna_channel (uint32_t round_num, bool initiator) {
 	}
 	channel = ((round_num / CALIB_NUM_ANTENNAS) / CALIB_NUM_ANTENNAS) % CALIB_NUM_CHANNELS;
 	dw1000_choose_antenna(antenna);
-	dw1000_update_channel(channel);
+	dw1000_update_channel(channel_index_to_channel_rf_number[channel]);
 }
 
 
