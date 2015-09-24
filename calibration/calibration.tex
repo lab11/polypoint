@@ -1,0 +1,77 @@
+\documentclass{article}
+
+\usepackage[top=.75in, bottom=.75in]{geometry}
+
+\usepackage{amsmath}
+\usepackage{xcolor}
+
+\begin{document}
+
+\newcommand{\tda}[1]{\textcolor{red}{#1}}
+\newcommand{\tdb}[1]{\textcolor{orange}{#1}}
+\newcommand{\tdc}[1]{\textcolor{blue}{#1}}
+
+\textbf{Setup:} Assume 3 polypoint tags, all 1~m from each other.
+
+\begin{itemize}
+  \item Colors are used to distinguish clock domains. Note that the
+    calibration factors don't belong to a clock domain.
+  \item S = timestamp sent
+  \item R = timestamp received
+  \item t = tx delay calibration factor (unknown)
+  \item r = rx delay calibration factor (unknown)
+  \item $\lambda$ = time of flight for 1~m ($\lambda = \frac{1}{c}$)
+\end{itemize}
+
+$\alpha:$ Tag 1 sends a packet
+\begin{align}
+  \tdb{R_\alpha} &= \tda{S_\alpha} + t_1 + r_2 \\
+  \tdc{R_\alpha} &= \tda{S_\alpha} + t_1 + r_3
+\end{align}
+
+$\beta:$ Tag 2 replies
+\begin{align}
+  \tda{R_\beta} &= \tdb{S_\beta} + t_2 + r_1 \\
+  \tdc{R_\beta} &= \tdb{S_\beta} + t_2 + r_3
+\end{align}
+
+$\gamma:$ Tag 2 replies again
+\begin{align}
+  \tda{R_\gamma} &= \tdb{S_\gamma} + t_2 + r_1 \\
+  \tdc{R_\gamma} &= \tdb{S_\gamma} + t_2 + r_3
+\end{align}
+
+$\zeta:$ Tag 3 sends a packet
+\begin{align}
+  \tda{R_\zeta} &= \tdc{S_\zeta} + t_3 + r_1 \\
+  \tdb{R_\zeta} &= \tdc{S_\zeta} + t_3 + r_2
+\end{align}
+
+After $\gamma$, we have factors to convert between all of the clock domains:
+\[ k_{1\rightarrow2} = \frac{\tdb{S_\gamma} - \tdb{S_\beta}}{\tda{R_\gamma}-\tda{R_\beta}} ,%
+   k_{2\rightarrow1} = \frac{\tda{R_\gamma}-\tda{R_\beta}}{\tdb{S_\gamma} - \tdb{S_\beta}} \]
+
+\[ k_{3\rightarrow2} = \frac{\tdb{S_\gamma} - \tdb{S_\beta}}{\tdc{R_\gamma}-\tdc{R_\beta}} ,%
+   k_{2\rightarrow3} = \frac{\tdc{R_\gamma}-\tdc{R_\beta}}{\tdb{S_\gamma} - \tdb{S_\beta}} \]
+
+\[ k_{3\rightarrow1} = k_{3\rightarrow2} * k_{2\rightarrow1}, etc \]
+
+Now, factor in the known time-of-flight:
+\[ \tdb{R_\alpha} * k_{2\rightarrow1} - \tda{S_\alpha} - \lambda = \Delta_{\alpha,1,2} = t_1 + r_2 \]
+\[ \tdc{R_\alpha} * k_{3\rightarrow1} - \tda{S_\alpha} - \lambda = \Delta_{\alpha,1,3} = t_1 + r_3 \]
+
+\[ \tda{R_\beta} * k_{1\rightarrow2} - \tdb{S_\beta} - \lambda = \Delta_{\beta,2,1} = t_2 + r_1 \]
+\[ \tdc{R_\beta} * k_{3\rightarrow2} - \tdb{S_\beta} - \lambda = \Delta_{\beta,2,3} = t_2 + r_3 \]
+
+Note that $\Delta_{\alpha,1,2} = \Delta_{\beta,2,1} \leftrightarrow$ the tx and rx delays
+are symmetric, which I don't think we can assume is true.
+
+Note that $\Delta_{\beta,2,1} = \Delta_{\gamma,2,1}$, so using $\gamma$ data
+gains us no benefit here.
+
+\[ \tda{R_\zeta} * k_{1\rightarrow3} - \tdc{S_\zeta} - \lambda = \Delta_{\zeta,3,1} = t_3 + r_1 \]
+\[ \tdb{R_\zeta} * k_{2\rightarrow3} - \tdc{S_\zeta} - \lambda = \Delta_{\zeta,3,2} = t_3 + r_2 \]
+
+Now we have 6 equations and 6 unknowns. Done.
+
+\end{document}
