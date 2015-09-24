@@ -44,6 +44,9 @@ static uint8_t _timing_index = 0;
 // Buffer to send back to the host
 static uint8_t _calibration_response_buf[64];
 
+// Counter for the weird timers
+static uint8_t _timeout_firing = 0;
+
 // Prepopulated struct of the outgoing broadcast poll packet.
 static struct pp_calibration_msg pp_calibration_pkt = {
 	.header = {
@@ -78,7 +81,7 @@ static void calibration_rxcallback (const dwt_callback_data_t *txd);
 static void setup_round_antenna_channel (uint32_t round_num, bool initiator);
 static void calib_start_round ();
 static void send_calibration_pkt (uint8_t message_type, uint8_t packet_num);
-static void notify_host ();
+static void finish ();
 
 /******************************************************************************/
 // Application API for main()
@@ -231,11 +234,36 @@ static void send_calibration_pkt (uint8_t message_type, uint8_t packet_num) {
 	dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
 }
 
-static void notify_host () {
+static void round_timeout () {
+	if (_timeout_firing == 0) {
+		// skip the immediate callback
+		_timeout_firing = 1;
+	} else {
+		timer_stop(_app_timer);
+
+		// Reset
+		_timing_index = 0;
+
+		// Wait for next round
+		setup_round_antenna_channel(0, FALSE);
+	}
+}
+
+static void finish () {
+	// Notify host
 	_calibration_response_buf[0] = _config.index;
-	memcpy(_calibration_response_buf+1,  &_round_num, sizeof(uint32_t));
-	memcpy(_calibration_response_buf+5,  _calibration_timing, 4*sizeof(uint64_t));
+	memcpy(_calibration_response_buf+1, &_round_num, sizeof(uint32_t));
+	memcpy(_calibration_response_buf+5, _calibration_timing, 4*sizeof(uint64_t));
 	host_interface_notify_calibration(_calibration_response_buf, 1+sizeof(uint32_t)+(4*sizeof(uint64_t)));
+
+	// Setup initial configs
+	setup_round_antenna_channel(0, FALSE);
+
+	if (_config.index != 0) {
+		// Stop the timeout timer
+		timer_stop(_app_timer);
+	}
+
 }
 
 /******************************************************************************/
@@ -266,10 +294,7 @@ static void calibration_txcallback (const dwt_callback_data_t *txd) {
 	} else if (_config.index == 2 && pp_calibration_pkt.num == 3) {
 		// Node 2 is the last to transmit, need to notify at this
 		// point
-		notify_host();
-
-		// Last thing is to go back to default settings
-		setup_round_antenna_channel(0, TRUE);
+		finish();
 	}
 }
 
@@ -304,6 +329,15 @@ static void calibration_rxcallback (const dwt_callback_data_t *rxd) {
 			// Zero the timing save array
 			_timing_index = 0;
 
+			// Set a timeout timer. If everything doesn't complete in a certain
+			// amount of time, go back to initial state.
+			// Also, just make sure that for some weird reason (aka it should
+			// never happen) that node 0 zero does not do this.
+			if (_config.index != 0) {
+				_timeout_firing = 0;
+				timer_start(_app_timer, CALIBRATION_ROUND_TIMEOUT_US, round_timeout);
+			}
+
 		} else if (message_type == MSG_TYPE_PP_CALIBRATION_MSG) {
 			uint8_t packet_num = rx_start_pkt->num;
 
@@ -320,10 +354,7 @@ static void calibration_rxcallback (const dwt_callback_data_t *rxd) {
 
 			} else if (packet_num == 3) {
 				// This is the last packet, notify the host of our findings
-				notify_host();
-
-				// Last thing is to go back to default settings
-				setup_round_antenna_channel(0, TRUE);
+				finish();
 			}
 
 		}

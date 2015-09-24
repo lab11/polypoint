@@ -10,6 +10,8 @@ typedef struct {
 // timing.
 #define CALIBRATION_ROUND_PERIOD_US 100000 // 100 ms
 
+#define CALIBRATION_ROUND_TIMEOUT_US 15000 // 15 ms
+
 // How many TriPoint nodes participate in calibration
 #define CALIBRATION_NUM_NODES 3
 

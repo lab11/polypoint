@@ -379,7 +379,8 @@ void dw1000_interrupt_fired () {
 /******************************************************************************/
 
 // Blocking SPI transfer
-static void spi_transfer () {
+static int spi_transfer () {
+	uint32_t loop = 0;
 
 	// Enable NSS output for master mode
 	SPI_SSOutputCmd(SPI1, ENABLE);
@@ -393,17 +394,44 @@ static void spi_transfer () {
 	DMA_Cmd(SPI1_RX_DMA_CHANNEL, ENABLE);
 	DMA_Cmd(SPI1_TX_DMA_CHANNEL, ENABLE);
 
+
+
 	// Wait for everything to finish
 	//TODO: Implement timeout so we don't get stuck
 	//uint32_t TimeOut = USER_TIMEOUT;
-	while ((DMA_GetFlagStatus(SPI1_RX_DMA_FLAG_TC) == RESET));
-	while ((DMA_GetFlagStatus(SPI1_TX_DMA_FLAG_TC) == RESET));
-	/* The BSY flag can be monitored to ensure that the SPI communication is complete.
-	This is required to avoid corrupting the last transmission before disabling
-	the SPI or entering the Stop mode. The software must first wait until TXE=1
-	and then until BSY=0.*/
-	while ((SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_TXE) == RESET));
-	while ((SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_BSY) == SET));
+	while ((DMA_GetFlagStatus(SPI1_RX_DMA_FLAG_TC) == RESET) && loop < 100000) {
+		loop++;
+	};
+	if (loop < 100000) {
+		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
+		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
+		while ((DMA_GetFlagStatus(SPI1_TX_DMA_FLAG_TC) == RESET));
+		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
+		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
+		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
+		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
+		/* The BSY flag can be monitored to ensure that the SPI communication is complete.
+		This is required to avoid corrupting the last transmission before disabling
+		the SPI or entering the Stop mode. The software must first wait until TXE=1
+		and then until BSY=0.*/
+		while ((SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_TXE) == RESET));
+		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
+		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
+		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
+		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
+		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
+		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
+		while ((SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_BSY) == SET));
+
+		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
+		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
+		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
+		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
+		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
+		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
+		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
+		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
+	}
 
 	// End the SPI transaction and DMA
 	// Clear DMA1 global flags
@@ -417,6 +445,12 @@ static void spi_transfer () {
 	// Disable the SPI Rx and Tx DMA requests
 	SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Rx, DISABLE);
 	SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Tx, DISABLE);
+
+	if (loop >= 100000) {
+		return -1;
+	} else {
+		return 0;
+	}
 }
 
 // Called by the DW1000 library to issue a read command to the DW1000.
@@ -424,16 +458,24 @@ int readfromspi (uint16_t headerLength,
                  const uint8_t *headerBuffer,
                  uint32_t readlength,
                  uint8_t *readBuffer) {
+	int ret;
 
 	SPI_Cmd(SPI1, ENABLE);
 	setup_dma_write(headerLength, headerBuffer);
-	spi_transfer();
+	ret = spi_transfer();
+	if (ret) goto error;
 
 	setup_dma_read(readlength, readBuffer);
-	spi_transfer();
+	ret = spi_transfer();
+	if (ret) goto error;
 
 	SPI_Cmd(SPI1, DISABLE);
 	return 0;
+
+error:
+	SPI_Cmd(SPI1, DISABLE);
+	polypoint_reset();
+	return -1;
 }
 
 // Called by the DW1000 library to issue a write to the DW1000.
@@ -441,16 +483,24 @@ int writetospi (uint16_t headerLength,
                 const uint8_t *headerBuffer,
                 uint32_t bodylength,
                 const uint8_t *bodyBuffer) {
+	int ret;
 
 	SPI_Cmd(SPI1, ENABLE);
 	setup_dma_write(headerLength, headerBuffer);
-	spi_transfer();
+	ret = spi_transfer();
+	if (ret) goto error;
 
 	setup_dma_write(bodylength, bodyBuffer);
-	spi_transfer();
+	ret = spi_transfer();
+	if (ret) goto error;
 
 	SPI_Cmd(SPI1, DISABLE);
 	return 0;
+
+error:
+	SPI_Cmd(SPI1, DISABLE);
+	polypoint_reset();
+	return -1;
 }
 
 // Atomic blocks for the DW1000 library

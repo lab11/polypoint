@@ -112,6 +112,12 @@ void timer_stop (stm_timer_t* t) {
 	timer_callbacks[t->index] = NULL;
 }
 
+typedef void (*timer_timeout_f) (void);
+
+void timer_timeout_set (uint8_t ms) {
+
+}
+
 /******************************************************************************/
 // Interrupt handling
 /******************************************************************************/
@@ -157,4 +163,8 @@ void TIM16_IRQHandler(void) {
 		// Clear Timer interrupt pending bit
 		TIM_ClearITPendingBit(TIM16, TIM_IT_Update);
 	}
+}
+
+void TIM15_IRQHandler(void) {
+
 }
