@@ -52,6 +52,9 @@ void oneway_configure (oneway_config_t* config, stm_timer_t* app_timer) {
 	// Save the application timer for use by this application
 	_app_timer = app_timer;
 
+	// Make sure the DW1000 is awake before trying to do anything.
+	dw1000_wakeup();
+
 	// Now init based on role
 	if (_config.my_role == TAG) {
 		oneway_tag_init();

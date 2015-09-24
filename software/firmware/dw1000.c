@@ -67,6 +67,9 @@ static bool _stm_dw1000_interface_setup = FALSE;
 // Whether or not interrupts are enabled.
 decaIrqStatus_t dw1000_irq_onoff = 0;
 
+// Whether the DW1000 is in SLEEP mode
+static bool _dw1000_asleep = FALSE;
+
 
 /******************************************************************************/
 // STM32F0 Hardware setup functions
@@ -485,6 +488,8 @@ void dw1000_reset () {
 	// Wait for ~100ms
 	mDelay(100);
 	GPIO_WriteBit(DW_RESET_PORT, DW_RESET_PIN, Bit_SET);
+
+	_dw1000_asleep = FALSE;
 }
 
 // Choose which antenna to connect to the radio
@@ -637,10 +642,32 @@ dw1000_err_e dw1000_configure_settings () {
 	return DW1000_NO_ERR;
 }
 
+// Put the DW1000 into sleep mode
+void dw1000_sleep () {
+	if (_dw1000_asleep) {
+		// The chip is already in SLEEP
+		return;
+	}
 
+	// Don't need the DW1000 to be in TX or RX mode
+	dwt_forcetrxoff();
+
+	// Put the TAG into sleep mode at this point.
+	// The chip will need to come out of sleep mode
+	dwt_entersleep();
+
+	// Mark that we put the DW1000 to sleep.
+	_dw1000_asleep = TRUE;
+}
 
 // Wake the DW1000 from sleep by asserting the WAKEUP pin
 dw1000_err_e dw1000_wakeup () {
+
+	if (!_dw1000_asleep) {
+		// The chip is already awake
+		return DW1000_NO_ERR;
+	}
+
 	// Assert the WAKEUP pin. There seems to be some weirdness where a single
 	// WAKEUP assert can get missed, so we do it multiple times to make
 	// sure the DW1000 is awake.
@@ -686,10 +713,18 @@ dw1000_err_e dw1000_wakeup () {
 		return DW1000_WAKEUP_ERR;
 	}
 
+	// No longer asleep
+	_dw1000_asleep = FALSE;
+
 	// Go back fast again
 	dw1000_spi_fast();
 
-	return DW1000_NO_ERR;
+	// This puts all of the settings back on the DW1000. In theory it
+	// is capable of remembering these, but that doesn't seem to work
+	// very well. This does work, so we do it and move on.
+	dw1000_configure_settings();
+
+	return DW1000_WAKEUP_SUCCESS;
 }
 
 // Call to change the DW1000 channel and force set all of the configs

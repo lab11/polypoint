@@ -72,6 +72,7 @@ static void tag_txcallback (const dwt_callback_data_t *txd);
 static void tag_rxcallback (const dwt_callback_data_t *rxd);
 
 // Do the TAG-specific init calls.
+// We trust that the DW1000 is not in SLEEP mode when this is called.
 void oneway_tag_init () {
 	// Make sure the SPI speed is slow for this function
 	dw1000_spi_slow();
@@ -107,29 +108,26 @@ void oneway_tag_init () {
 dw1000_err_e oneway_tag_start_ranging_event () {
 	dw1000_err_e err;
 
-	// Check if we are coming out of sleep to do this ranging event.
-	// If so, we need to wake the chip.
-	if (_state == TSTATE_SLEEP) {
-		// Start the DW1000 back up. This both wakes it up and makes sure
-		// the chip responds.
-		err = dw1000_wakeup();
-		if (err) {
-			// Chip did not seem to wakeup. This is not good, so we have
-			// to reset the application.
-			return err;
-		}
-
-		// This puts all of the settings back on the DW1000. In theory it
-		// is capable of remembering these, but that doesn't seem to work
-		// very well. This does work, so we do it and move on.
-		dw1000_configure_settings();
-
-		// Also put back the TAG settings.
-		oneway_tag_init();
-
-	} else if (_state != TSTATE_IDLE) {
+	if (_state != TSTATE_IDLE) {
 		// Cannot start a ranging event if we are currently busy with one.
 		return DW1000_BUSY;
+	}
+
+	// Make sure the DW1000 is awake. If it is, this will just return.
+	// If the chip had to awoken, it will return with DW1000_WAKEUP_SUCCESS.
+	err = dw1000_wakeup();
+	if (err == DW1000_WAKEUP_SUCCESS) {
+		// We woke the chip from sleep, so we need to reset the init params.
+		// In theory, this isn't necessary, but things seem to work
+		// better this way.
+
+		// Put back the TAG settings.
+		oneway_tag_init();
+
+	} else if (err) {
+		// Chip did not seem to wakeup. This is not good, so we have
+		// to reset the application.
+		return err;
 	}
 
 	// Move to the broadcast state
@@ -147,20 +145,15 @@ dw1000_err_e oneway_tag_start_ranging_event () {
 
 // Put the TAG into sleep mode
 void oneway_tag_stop () {
-	// Put the tag in SLEEP state. This is useful in case we need to
-	// re-init some stuff after the tag comes back alive.
-	_state = TSTATE_SLEEP;
+	// Put the tag in the idle mode. It will eventually go to sleep as well,
+	// but we just need to know it's idle
+	_state = TSTATE_IDLE;
 
 	// Stop the timer in case it was in use
 	timer_stop(_tag_timer);
 
-	// Don't need the DW1000 to be in TX or RX mode
-	dwt_forcetrxoff();
-
-	// Put the TAG into sleep mode at this point.
-	// The chip should come out of sleep automatically when the next
-	// SPI transaction is written to it.
-	dwt_entersleep();
+	// Use the DW1000 library to put the chip to sleep
+	dw1000_sleep();
 }
 
 // Called after the TAG has transmitted a packet.

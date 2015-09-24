@@ -5,7 +5,6 @@
 #include "deca_regs.h"
 
 typedef enum {
-	TSTATE_SLEEP,
 	TSTATE_IDLE,
 	TSTATE_BROADCASTS,
 	TSTATE_TRANSITION_TO_ANC_FINAL,

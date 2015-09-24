@@ -141,6 +141,7 @@ typedef enum {
 	DW1000_COMM_ERR,
 	DW1000_BUSY,
 	DW1000_WAKEUP_ERR,
+	DW1000_WAKEUP_SUCCESS,
 } dw1000_err_e;
 
 
@@ -162,6 +163,7 @@ void dw1000_choose_antenna (uint8_t antenna_number);
 void dw1000_read_eui (uint8_t *eui_buf);
 void dw1000_set_mode (dw1000_role_e role);
 dw1000_role_e dw1000_get_mode ();
+void dw1000_sleep ();
 dw1000_err_e dw1000_wakeup ();
 void dw1000_update_channel (uint8_t chan);
 void dw1000_reset_configuration ();

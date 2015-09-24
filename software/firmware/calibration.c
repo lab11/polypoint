@@ -195,6 +195,10 @@ void calibration_configure (calibration_config_t* config, stm_timer_t* app_timer
 	// Save the application timer for use by this application
 	_app_timer = app_timer;
 
+	// Make sure the DW1000 is awake before trying to do anything.
+	dw1000_wakeup();
+
+	// Set all of the calibration init settings
 	init();
 }
 
@@ -232,9 +236,15 @@ void calibration_reset (bool resume) {
 static void calibration_txcallback (const dwt_callback_data_t *txd) {
 	// On TX callback, we may want to send packets to the next node
 	// in the calibration system. This occurs if the last thing we did was
-	// send a RESPONSE and we are not the node with index 0.
-	if (_config.index != 0 &&
-	    pp_calibration_pkt.message_type == MSG_TYPE_PP_CALIBRATION_RESPONSE) {
+	// send a RESPONSE and we are not the node with index 0 OR if we are index
+	// 0 and just sent an INIT packet.
+	if ((_config.index != 0 &&
+	    pp_calibration_pkt.message_type == MSG_TYPE_PP_CALIBRATION_RESPONSE) ||
+	    (_config.index == 0 &&
+	    pp_calibration_pkt.message_type == MSG_TYPE_PP_CALIBRATION_INIT)) {
+		// Delay a bit to give the other nodes a chance to download and
+		// process.
+		mDelay(2);
 		// Send on the next ranging cycle in this round
 		setup_round_antenna_channel(_round_num, TRUE);
 		send_calibration_pkt(MSG_TYPE_PP_CALIBRATION_START);

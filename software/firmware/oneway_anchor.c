@@ -111,26 +111,16 @@ void oneway_anchor_init () {
 dw1000_err_e oneway_anchor_start () {
 	dw1000_err_e err;
 
-	// Check if we are in sleep mode. If we are, then we need to wake the chip
-	// and wait to set the SPI clock back fast before starting the anchor
-	// state machine again.
-	if (_state == ASTATE_SLEEP) {
-		// Start the DW1000 back up. This both wakes it up and makes sure
-		// the chip responds.
-		err = dw1000_wakeup();
-		if (err) {
-			// Chip did not seem to wakeup. This is not good, so we have
-			// to reset the application.
-			return err;
-		}
-
-		// This puts all of the settings back on the DW1000. In theory it
-		// is capable of remembering these, but that doesn't seem to work
-		// very well. This does work, so we do it and move on.
-		dw1000_configure_settings();
-
-		// Also put back the ANCHOR settings.
+	// Make sure the DW1000 is awake.
+	err = dw1000_wakeup();
+	if (err == DW1000_WAKEUP_SUCCESS) {
+		// We did wake the chip, so reconfigure it properly
+		// Put back the ANCHOR settings.
 		oneway_anchor_init();
+	} else if (err) {
+		// Chip did not seem to wakeup. This is not good, so we have
+		// to reset the application.
+		return err;
 	}
 
 	// Also we start over in case the anchor was doing anything before
@@ -151,18 +141,13 @@ dw1000_err_e oneway_anchor_start () {
 void oneway_anchor_stop () {
 	// Put the anchor in SLEEP state. This is useful in case we need to
 	// re-init some stuff after the anchor comes back alive.
-	_state = ASTATE_SLEEP;
+	_state = ASTATE_IDLE;
 
 	// Stop the timer in case it was in use
 	timer_stop(_anchor_timer);
 
-	// Don't need the DW1000 to be in TX or RX mode
-	dwt_forcetrxoff();
-
-	// Put the ANCHOR into sleep mode at this point.
-	// The chip should come out of sleep automatically when the next
-	// SPI transaction is written to it.
-	dwt_entersleep();
+	// Put the DW1000 in SLEEP mode.
+	dw1000_sleep();
 }
 
 // This is called by the periodic timer that tracks the tag's periodic
