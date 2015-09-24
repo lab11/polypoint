@@ -5,8 +5,10 @@
 #include "deca_regs.h"
 
 #include "timer.h"
+#include "delay.h"
 
 #include "dw1000.h"
+#include "host_interface.h"
 #include "firmware.h"
 #include "calibration.h"
 
@@ -68,8 +70,10 @@ static void init () {
 
 	// Setup parameters of how the radio should work
 	dwt_setautorxreenable(TRUE);
-	dwt_setdblrxbuffmode(TRUE);
-	dwt_enableautoack(DW1000_ACK_RESPONSE_TIME);
+	// dwt_setdblrxbuffmode(TRUE);
+	// dwt_enableautoack(DW1000_ACK_RESPONSE_TIME);
+	dwt_setdblrxbuffmode(FALSE);
+	dwt_setrxtimeout(FALSE);
 
 	// Put source EUI in the pp_tag_poll packet
 	dw1000_read_eui(pp_calibration_pkt.header.sourceAddr);
@@ -189,6 +193,8 @@ static void calib_start_round () {
 
 // Setup the calibration
 void calibration_configure (calibration_config_t* config, stm_timer_t* app_timer) {
+	dw1000_err_e err;
+
 	// Save the settings
 	memcpy(&_config, config, sizeof(calibration_config_t));
 
@@ -196,7 +202,14 @@ void calibration_configure (calibration_config_t* config, stm_timer_t* app_timer
 	_app_timer = app_timer;
 
 	// Make sure the DW1000 is awake before trying to do anything.
-	dw1000_wakeup();
+	err = dw1000_wakeup();
+	if (err == DW1000_WAKEUP_SUCCESS) {
+		// Going to init anyway
+	} else if (err) {
+		// Failed to wakeup
+		polypoint_reset();
+		return;
+	}
 
 	// Set all of the calibration init settings
 	init();
@@ -279,13 +292,12 @@ static void calibration_rxcallback (const dwt_callback_data_t *rxd) {
 			// Set the round number, and configure for that round
 			_round_num = rx_start_pkt->seq;
 			setup_round_antenna_channel(_round_num, FALSE);
-			dwt_rxenable(0);
 
 		} else if (message_type == MSG_TYPE_PP_CALIBRATION_START) {
 			// Check if this START CALIBRATION message is for us
 			uint8_t sender_index = rx_start_pkt->seq % CALIBRATION_NUM_NODES;
 
-			if ((sender_index + 1) % CALIBRATION_NUM_NODES) {
+			if ((sender_index + 1) % CALIBRATION_NUM_NODES == _config.index) {
 				// This packet was intended for me!
 				// Send the response packet back to the initiator
 				send_calibration_pkt_response(rx_start_pkt->seq, dw_rx_timestamp);
@@ -309,6 +321,8 @@ static void calibration_rxcallback (const dwt_callback_data_t *rxd) {
 			}
 
 		}
+
+		dwt_rxenable(0);
 
 	}
 }
