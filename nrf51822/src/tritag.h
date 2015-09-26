@@ -7,8 +7,8 @@
 #define DEVICE_NAME "tritag"
 #endif
 
-extern uint8_t MAC_ADDR[6];
 
+#define ADDRESS_FLASH_LOCATION 0x0003fff8
 
 
 // TRITAG

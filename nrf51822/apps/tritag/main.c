@@ -58,16 +58,20 @@ ble_uuid_t tritag_uuid;
 
 
 // Intervals for advertising and connections
-static const simple_ble_config_t ble_config = {
+static simple_ble_config_t ble_config = {
     // c0:98:e5:45:xx:xx
     .platform_id       = 0x45,              // used as 4th octect in device BLE address
+    .device_id         = DEVICE_ID_DEFAULT,
     .adv_name          = DEVICE_NAME,       // used in advertisements if there is room
     .adv_interval      = MSEC_TO_UNITS(1000, UNIT_0_625_MS),
-    .min_conn_interval = MSEC_TO_UNITS(500, UNIT_1_25_MS),
-    .max_conn_interval = MSEC_TO_UNITS(1000, UNIT_1_25_MS),
+    // .min_conn_interval = MSEC_TO_UNITS(500, UNIT_1_25_MS),
+    // .max_conn_interval = MSEC_TO_UNITS(1000, UNIT_1_25_MS),
+    .min_conn_interval = MSEC_TO_UNITS(10, UNIT_1_25_MS),
+    .max_conn_interval = MSEC_TO_UNITS(20, UNIT_1_25_MS),
 };
 
-
+// Copy address from flash
+uint8_t _ble_address[6];
 
 /*******************************************************************************
  *   State for this application
@@ -253,6 +257,11 @@ int main (void) {
 
     // Set to effective -1
     app.calibration_index = 255;
+
+    // Get stored address
+    memcpy(_ble_address, (uint8_t*) ADDRESS_FLASH_LOCATION, 6);
+    // And use it to setup the BLE
+    ble_config.device_id = (_ble_address[1] << 8) | _ble_address[0];
 
     // Setup BLE
     simple_ble_app = simple_ble_init(&ble_config);
