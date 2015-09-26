@@ -29,7 +29,7 @@ typedef enum {
 /******************************************************************************/
 // I2C for the application
 /******************************************************************************/
-#define I2C_OWN_ADDRESS         0x65
+#define I2C_OWN_ADDRESS 0x65
 
 // Identification byte that we return to an interested client. This is useful
 // for initializing and debugging to make sure that the I2C connection is
