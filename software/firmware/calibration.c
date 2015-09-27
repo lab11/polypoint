@@ -39,7 +39,6 @@ static uint32_t _round_num = UINT32_MAX;
 // Timing of packet transmissions and receptions.
 // What these are vary based on which node this is.
 static uint64_t _calibration_timing[4];
-static uint8_t _timing_index = 0;
 
 // Buffer to send back to the host
 static uint8_t _calibration_response_buf[64];
@@ -190,9 +189,6 @@ static void calib_start_round () {
 		_round_num++;
 	}
 
-	// Zero which point in the array we save timing data for
-	_timing_index = 0;
-
 	// Before the INIT packet, use the default settings
 	setup_round_antenna_channel(0, FALSE);
 
@@ -221,7 +217,7 @@ static void send_calibration_pkt (uint8_t message_type, uint8_t packet_num) {
 	uint32_t delay_time = dwt_readsystimestamphi32() + DW_DELAY_FROM_PKT_LEN(tx_len);
 	delay_time &= 0xFFFFFFFE; // Make sure last bit is zero
 	dwt_setdelayedtrxtime(delay_time);
-	_calibration_timing[_timing_index++] = ((uint64_t) delay_time) << 8;
+	_calibration_timing[packet_num] = ((uint64_t) delay_time) << 8;
 
 	// Write the data
 	dwt_writetxdata(tx_len, (uint8_t*) &pp_calibration_pkt, 0);
@@ -241,9 +237,6 @@ static void round_timeout () {
 	} else {
 		timer_stop(_app_timer);
 
-		// Reset
-		_timing_index = 0;
-
 		// Wait for next round
 		setup_round_antenna_channel(0, FALSE);
 	}
@@ -251,10 +244,11 @@ static void round_timeout () {
 
 static void finish () {
 	// Notify host
-	_calibration_response_buf[0] = _config.index;
-	memcpy(_calibration_response_buf+1, &_round_num, sizeof(uint32_t));
-	memcpy(_calibration_response_buf+5, _calibration_timing, 4*sizeof(uint64_t));
-	host_interface_notify_calibration(_calibration_response_buf, 1+sizeof(uint32_t)+(4*sizeof(uint64_t)));
+	// _calibration_response_buf[0] = _config.index;
+	// memcpy(_calibration_response_buf+1, &_round_num, sizeof(uint32_t));
+	// memcpy(_calibration_response_buf+5, _calibration_timing, 4*sizeof(uint64_t));
+	// host_interface_notify_calibration(_calibration_response_buf, 1+sizeof(uint32_t)+(4*sizeof(uint64_t)));
+
 
 	// Setup initial configs
 	setup_round_antenna_channel(0, FALSE);
@@ -263,6 +257,25 @@ static void finish () {
 		// Stop the timeout timer
 		timer_stop(_app_timer);
 	}
+
+	// Notify host
+	_calibration_response_buf[0] = _round_num & 0xFF;
+	_calibration_response_buf[1] = (_round_num >> 8) & 0xFF;
+	_calibration_response_buf[2] = (_calibration_timing[0] >> 0) & 0xFF;
+	_calibration_response_buf[3] = (_calibration_timing[0] >> 8) & 0xFF;
+	_calibration_response_buf[4] = (_calibration_timing[0] >> 16) & 0xFF;
+	_calibration_response_buf[5] = (_calibration_timing[0] >> 24) & 0xFF;
+	_calibration_response_buf[6] = (_calibration_timing[0] >> 32) & 0xFF;
+	uint32_t diff;
+	diff = (uint32_t) (_calibration_timing[1] - _calibration_timing[0]);
+	memcpy(_calibration_response_buf+7, &diff, sizeof(uint32_t));
+	diff = (uint32_t) (_calibration_timing[2] - _calibration_timing[1]);
+	memcpy(_calibration_response_buf+11, &diff, sizeof(uint32_t));
+	diff = (uint32_t) (_calibration_timing[3] - _calibration_timing[2]);
+	memcpy(_calibration_response_buf+15, &diff, sizeof(uint32_t));
+	host_interface_notify_calibration(_calibration_response_buf, 19);
+
+
 
 }
 
@@ -326,8 +339,6 @@ static void calibration_rxcallback (const dwt_callback_data_t *rxd) {
 			// Set the round number, and configure for that round
 			_round_num = rx_start_pkt->seq;
 			setup_round_antenna_channel(_round_num, FALSE);
-			// Zero the timing save array
-			_timing_index = 0;
 
 			// Set a timeout timer. If everything doesn't complete in a certain
 			// amount of time, go back to initial state.
@@ -341,8 +352,14 @@ static void calibration_rxcallback (const dwt_callback_data_t *rxd) {
 		} else if (message_type == MSG_TYPE_PP_CALIBRATION_MSG) {
 			uint8_t packet_num = rx_start_pkt->num;
 
-			// Record when we received this packet
-			_calibration_timing[_timing_index++] = dw_rx_timestamp;
+			// store timestamps.
+			//
+			// INDEX || SLOT0 | SLOT1 | SLOT2 | SLOT3
+			// --------------------------------------
+			//  0    || TX0   | RX1   | RX2   | RX3
+			//  1    || RX0   | TX1   | TX2   | RX3
+			//  2    || RX0   | RX1   | RX2   | TX3
+			_calibration_timing[packet_num] = dw_rx_timestamp;
 
 			if (packet_num == 0 && _config.index == 1) {
 				// The second node sends the next packet
