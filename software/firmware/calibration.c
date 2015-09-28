@@ -46,6 +46,10 @@ static uint8_t _calibration_response_buf[64];
 // Counter for the weird timers
 static uint8_t _timeout_firing = 0;
 
+// Keep track of if we got the init() packet from node 0. If not, then we didn't
+// set the antenna and channel correctly, so we shouldn't report these values.
+static bool _got_init = FALSE;
+
 // Prepopulated struct of the outgoing broadcast poll packet.
 static struct pp_calibration_msg pp_calibration_pkt = {
 	.header = {
@@ -77,7 +81,7 @@ static struct pp_calibration_msg pp_calibration_pkt = {
 static void calibration_txcallback (const dwt_callback_data_t *txd);
 static void calibration_rxcallback (const dwt_callback_data_t *txd);
 
-static void setup_round_antenna_channel (uint32_t round_num, bool initiator);
+static void setup_round_antenna_channel (uint32_t round_num);
 static void calib_start_round ();
 static void send_calibration_pkt (uint8_t message_type, uint8_t packet_num);
 static void finish ();
@@ -139,7 +143,8 @@ void calibration_start () {
 	_round_num = UINT32_MAX;
 
 	// Setup channel and antenna settings for round 0
-	setup_round_antenna_channel(0, FALSE);
+	setup_round_antenna_channel(0);
+	_got_init = FALSE;
 
 	// Determine what to do during calibration based on what index we are
 	if (_config.index == 0) {
@@ -165,16 +170,12 @@ void calibration_reset () {
 // Calibration action functions
 /******************************************************************************/
 
-static void setup_round_antenna_channel (uint32_t round_num, bool initiator) {
+static void setup_round_antenna_channel (uint32_t round_num) {
 	uint8_t antenna;
 	uint8_t channel;
-	if (initiator) {
-		// This rotates the fastest
-		antenna = round_num % CALIB_NUM_ANTENNAS;
-	} else {
-		antenna = (round_num / CALIB_NUM_ANTENNAS) % CALIB_NUM_ANTENNAS;
-	}
-	channel = ((round_num / CALIB_NUM_ANTENNAS) / CALIB_NUM_ANTENNAS) % CALIB_NUM_CHANNELS;
+	// This rotates the fastest
+	antenna = round_num % CALIB_NUM_ANTENNAS;
+	channel = (round_num / CALIB_NUM_ANTENNAS) % CALIB_NUM_CHANNELS;
 	dw1000_choose_antenna(antenna);
 	dw1000_update_channel(channel_index_to_channel_rf_number[channel]);
 }
@@ -190,7 +191,7 @@ static void calib_start_round () {
 	}
 
 	// Before the INIT packet, use the default settings
-	setup_round_antenna_channel(0, FALSE);
+	setup_round_antenna_channel(0);
 
 	// Send a packet to announce the start of the a calibration round.
 	send_calibration_pkt(MSG_TYPE_PP_CALIBRATION_INIT, 0);
@@ -238,35 +239,40 @@ static void round_timeout () {
 		timer_stop(_app_timer);
 
 		// Wait for next round
-		setup_round_antenna_channel(0, FALSE);
+		setup_round_antenna_channel(0);
+		_got_init = FALSE;
 	}
 }
 
 static void finish () {
 	// Setup initial configs
-	setup_round_antenna_channel(0, FALSE);
+	setup_round_antenna_channel(0);
 
 	if (_config.index != 0) {
 		// Stop the timeout timer
 		timer_stop(_app_timer);
 	}
 
-	// Notify host
-	_calibration_response_buf[0] = _round_num & 0xFF;
-	_calibration_response_buf[1] = (_round_num >> 8) & 0xFF;
-	_calibration_response_buf[2] = (_calibration_timing[0] >> 0) & 0xFF;
-	_calibration_response_buf[3] = (_calibration_timing[0] >> 8) & 0xFF;
-	_calibration_response_buf[4] = (_calibration_timing[0] >> 16) & 0xFF;
-	_calibration_response_buf[5] = (_calibration_timing[0] >> 24) & 0xFF;
-	_calibration_response_buf[6] = (_calibration_timing[0] >> 32) & 0xFF;
-	uint32_t diff;
-	diff = (uint32_t) (_calibration_timing[1] - _calibration_timing[0]);
-	memcpy(_calibration_response_buf+7, &diff, sizeof(uint32_t));
-	diff = (uint32_t) (_calibration_timing[2] - _calibration_timing[1]);
-	memcpy(_calibration_response_buf+11, &diff, sizeof(uint32_t));
-	diff = (uint32_t) (_calibration_timing[3] - _calibration_timing[2]);
-	memcpy(_calibration_response_buf+15, &diff, sizeof(uint32_t));
-	host_interface_notify_calibration(_calibration_response_buf, 19);
+	// Notify host if we are node 0 or we got the init() packet.
+	if (_got_init || _config.index == 0) {
+		_calibration_response_buf[0] = _round_num & 0xFF;
+		_calibration_response_buf[1] = (_round_num >> 8) & 0xFF;
+		_calibration_response_buf[2] = (_calibration_timing[0] >> 0) & 0xFF;
+		_calibration_response_buf[3] = (_calibration_timing[0] >> 8) & 0xFF;
+		_calibration_response_buf[4] = (_calibration_timing[0] >> 16) & 0xFF;
+		_calibration_response_buf[5] = (_calibration_timing[0] >> 24) & 0xFF;
+		_calibration_response_buf[6] = (_calibration_timing[0] >> 32) & 0xFF;
+		uint32_t diff;
+		diff = (uint32_t) (_calibration_timing[1] - _calibration_timing[0]);
+		memcpy(_calibration_response_buf+7, &diff, sizeof(uint32_t));
+		diff = (uint32_t) (_calibration_timing[2] - _calibration_timing[1]);
+		memcpy(_calibration_response_buf+11, &diff, sizeof(uint32_t));
+		diff = (uint32_t) (_calibration_timing[3] - _calibration_timing[2]);
+		memcpy(_calibration_response_buf+15, &diff, sizeof(uint32_t));
+		host_interface_notify_calibration(_calibration_response_buf, 19);
+	}
+
+	_got_init = FALSE;
 }
 
 /******************************************************************************/
@@ -285,7 +291,7 @@ static void calibration_txcallback (const dwt_callback_data_t *txd) {
 		// process.
 		mDelay(2);
 		// Send on the next ranging cycle in this round
-		setup_round_antenna_channel(_round_num, TRUE);
+		setup_round_antenna_channel(_round_num);
 		send_calibration_pkt(MSG_TYPE_PP_CALIBRATION_MSG, 0);
 
 	} else if (_config.index == 1 && pp_calibration_pkt.num == 1) {
@@ -328,7 +334,12 @@ static void calibration_rxcallback (const dwt_callback_data_t *rxd) {
 			// Got the start of round message
 			// Set the round number, and configure for that round
 			_round_num = rx_start_pkt->seq;
-			setup_round_antenna_channel(_round_num, FALSE);
+			setup_round_antenna_channel(_round_num);
+
+			// Note that we got the init() packet.
+			// This allows us to only report this round if we setup the antenna
+			// and channel correctly.
+			_got_init = TRUE;
 
 			// Set a timeout timer. If everything doesn't complete in a certain
 			// amount of time, go back to initial state.

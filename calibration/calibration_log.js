@@ -1,5 +1,4 @@
 var noble = require('noble');
-var loc = require('./localization');
 var buf = require('buffer');
 var fs = require('fs');
 var strftime = require('strftime');
