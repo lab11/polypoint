@@ -231,6 +231,10 @@ static void send_calibration_pkt (uint8_t message_type, uint8_t packet_num) {
 	dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
 }
 
+// Something went wrong (packet dropped most likely, or
+// one of the nodes is not configured yet) and our timeout fired. This
+// resets us so we can be ready for the next round.
+// This timeout does not apply to node 0.
 static void round_timeout () {
 	if (_timeout_firing == 0) {
 		// skip the immediate callback
@@ -244,6 +248,8 @@ static void round_timeout () {
 	}
 }
 
+// After we have sent/received all of the packets, tell the host about
+// our timestamps.
 static void finish () {
 	// Setup initial configs
 	setup_round_antenna_channel(0);
@@ -272,6 +278,7 @@ static void finish () {
 		host_interface_notify_calibration(_calibration_response_buf, 19);
 	}
 
+	// Reset this
 	_got_init = FALSE;
 }
 

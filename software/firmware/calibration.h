@@ -1,7 +1,7 @@
 #ifndef __CALIBRATION_H
 #define __CALIBRATION_H
 
-
+// Passed in over the host interface.
 typedef struct {
 	uint8_t index;
 } calibration_config_t;

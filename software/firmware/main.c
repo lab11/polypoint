@@ -14,16 +14,6 @@
 #include "delay.h"
 #include "firmware.h"
 
-
-
-// Put this somewhere??
-typedef enum {
-	APPSTATE_NOT_INITED,
-	APPSTATE_STOPPED,
-	APPSTATE_RUNNING
-} app_state_e;
-
-
 /******************************************************************************/
 // OS state
 /******************************************************************************/
@@ -47,8 +37,6 @@ static polypoint_application_e _current_app;
 static stm_timer_t* _app_timer;
 
 
-
-
 void start_dw1000 ();
 
 /******************************************************************************/
@@ -63,21 +51,14 @@ void mark_interrupt (interrupt_source_e src) {
 }
 
 static void error () {
-	// dw1000_init();
-	// led_on(LED2);
-	// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
-
-			GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
-			uDelay(10000);
-			GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
+	GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
+	GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
 }
 
 
 /******************************************************************************/
 // Main operation functions called by the host interface
 /******************************************************************************/
-
-
 
 // Call this to configure this TriPoint as the correct application.
 // If this is called while the application is stopped, it will not be

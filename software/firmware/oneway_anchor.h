@@ -27,7 +27,4 @@ void oneway_anchor_init ();
 dw1000_err_e oneway_anchor_start ();
 void oneway_anchor_stop ();
 
-// void oneway_anchor_txcallback (const dwt_callback_data_t *data);
-// void oneway_anchor_rxcallback (const dwt_callback_data_t *data);
-
 #endif

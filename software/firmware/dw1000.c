@@ -11,8 +11,6 @@
 #include "port.h"
 #include "board.h"
 #include "dw1000.h"
-// #include "dw1000_tag.h"
-// #include "dw1000_anchor.h"
 #include "delay.h"
 #include "firmware.h"
 

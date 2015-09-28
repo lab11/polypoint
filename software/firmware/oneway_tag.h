@@ -30,7 +30,6 @@ typedef enum {
 #define ONEWAY_TAG_RANGE_ERROR_MISC 0x8000000F
 
 
-
 // Size buffers for reading in packets
 #define ONEWAY_TAG_MAX_RX_PKT_LEN 296
 
@@ -38,8 +37,5 @@ typedef enum {
 void oneway_tag_init ();
 dw1000_err_e oneway_tag_start_ranging_event ();
 void oneway_tag_stop ();
-
-// void oneway_tag_txcallback (const dwt_callback_data_t *data);
-// void oneway_tag_rxcallback (const dwt_callback_data_t *data);
 
 #endif

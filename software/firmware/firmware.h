@@ -3,6 +3,13 @@
 
 #include "dw1000.h"
 
+// States the main application can be in.
+typedef enum {
+	APPSTATE_NOT_INITED,
+	APPSTATE_STOPPED,
+	APPSTATE_RUNNING
+} app_state_e;
+
 // All of the possible interrupt sources.
 typedef enum {
 	INTERRUPT_TIMER_17,
