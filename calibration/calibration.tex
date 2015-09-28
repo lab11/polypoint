@@ -23,54 +23,54 @@
   \item $\lambda$ = time of flight for 1~m ($\lambda = \frac{1}{c}$)
 \end{itemize}
 
-$\alpha:$ Tag 1 sends a packet
+$A:$ Tag 0 sends a packet       %alpha
 \begin{align}
-  \tdb{R_\alpha} &= \tda{S_\alpha} + t_1 + r_2 \\
-  \tdc{R_\alpha} &= \tda{S_\alpha} + t_1 + r_3
+  ARX1 &= ATX0 + t_0 + r_1 \\
+  ARX2 &= ATX0 + t_0 + r_2
 \end{align}
 
-$\beta:$ Tag 2 replies
+$B:$ Tag 1 replies              %beta
 \begin{align}
-  \tda{R_\beta} &= \tdb{S_\beta} + t_2 + r_1 \\
-  \tdc{R_\beta} &= \tdb{S_\beta} + t_2 + r_3
+  BRX0 &= BTX1 + t_1 + r_0 \\
+  BRX2 &= BTX1 + t_1 + r_2
 \end{align}
 
-$\gamma:$ Tag 2 replies again
+$C:$ Tag 1 replies again        %gamma
 \begin{align}
-  \tda{R_\gamma} &= \tdb{S_\gamma} + t_2 + r_1 \\
-  \tdc{R_\gamma} &= \tdb{S_\gamma} + t_2 + r_3
+  CRX0 &= CTX1 + t_1 + r_0 \\
+  CRX2 &= CTX1 + t_1 + r_2
 \end{align}
 
-$\zeta:$ Tag 3 sends a packet
+$D:$ Tag 2 sends a packet       %zeta
 \begin{align}
-  \tda{R_\zeta} &= \tdc{S_\zeta} + t_3 + r_1 \\
-  \tdb{R_\zeta} &= \tdc{S_\zeta} + t_3 + r_2
+  DRX0 &= DTX2 + t_2 + r_0 \\
+  DRX1 &= DTX2 + t_2 + r_1
 \end{align}
 
 After $\gamma$, we have factors to convert between all of the clock domains:
-\[ k_{1\rightarrow2} = \frac{\tdb{S_\gamma} - \tdb{S_\beta}}{\tda{R_\gamma}-\tda{R_\beta}} ,%
-   k_{2\rightarrow1} = \frac{\tda{R_\gamma}-\tda{R_\beta}}{\tdb{S_\gamma} - \tdb{S_\beta}} \]
+\[ k_{0\rightarrow1} = \frac{CTX1-BTX1}{CRX0-BRX0} ,%
+   k_{1\rightarrow0} = \frac{CRX0-BRX0}{CTX1-BTX1} \]
 
-\[ k_{3\rightarrow2} = \frac{\tdb{S_\gamma} - \tdb{S_\beta}}{\tdc{R_\gamma}-\tdc{R_\beta}} ,%
-   k_{2\rightarrow3} = \frac{\tdc{R_\gamma}-\tdc{R_\beta}}{\tdb{S_\gamma} - \tdb{S_\beta}} \]
+\[ k_{2\rightarrow1} = \frac{CTX1-BTX1}{CRX2-BRX2} ,%
+   k_{1\rightarrow2} = \frac{CRX2-BRX2}{CTX1-BTX1} \]
 
-\[ k_{3\rightarrow1} = k_{3\rightarrow2} * k_{2\rightarrow1}, etc \]
+\[ k_{2\rightarrow0} = k_{2\rightarrow1} * k_{1\rightarrow0}, etc \]
 
 Now, factor in the known time-of-flight:
-\[ \tdb{R_\alpha} * k_{2\rightarrow1} - \tda{S_\alpha} - \lambda = \Delta_{\alpha,1,2} = t_1 + r_2 \]
-\[ \tdc{R_\alpha} * k_{3\rightarrow1} - \tda{S_\alpha} - \lambda = \Delta_{\alpha,1,3} = t_1 + r_3 \]
+\[ ARX1 * k_{1\rightarrow0} - ATX0 - \lambda = \Delta_{A,0,1} = t_0 + r_1 \]
+\[ ARX2 * k_{2\rightarrow0} - ATX0 - \lambda = \Delta_{A,0,2} = t_0 + r_2 \]
 
-\[ \tda{R_\beta} * k_{1\rightarrow2} - \tdb{S_\beta} - \lambda = \Delta_{\beta,2,1} = t_2 + r_1 \]
-\[ \tdc{R_\beta} * k_{3\rightarrow2} - \tdb{S_\beta} - \lambda = \Delta_{\beta,2,3} = t_2 + r_3 \]
+\[ BRX0 * k_{0\rightarrow1} - BTX1 - \lambda = \Delta_{B,1,0} = t_1 + r_0 \]
+\[ BRX2 * k_{2\rightarrow1} - BTX1 - \lambda = \Delta_{B,1,2} = t_1 + r_2 \]
 
-Note that $\Delta_{\alpha,1,2} = \Delta_{\beta,2,1} \leftrightarrow$ the tx and rx delays
+Note that $\Delta_{A,0,1} = \Delta_{B,1,0} \leftrightarrow$ the tx and rx delays
 are symmetric, which I don't think we can assume is true.
 
-Note that $\Delta_{\beta,2,1} = \Delta_{\gamma,2,1}$, so using $\gamma$ data
+Note that $\Delta_{B,1,2} = \Delta_{C,1,0}$, so using $C$ data
 gains us no benefit here.
 
-\[ \tda{R_\zeta} * k_{1\rightarrow3} - \tdc{S_\zeta} - \lambda = \Delta_{\zeta,3,1} = t_3 + r_1 \]
-\[ \tdb{R_\zeta} * k_{2\rightarrow3} - \tdc{S_\zeta} - \lambda = \Delta_{\zeta,3,2} = t_3 + r_2 \]
+\[ DRX0 * k_{0\rightarrow2} - DTX2 - \lambda = \Delta_{D,2,0} = t_2 + r_0 \]
+\[ DRX1 * k_{1\rightarrow2} - DTX2 - \lambda = \Delta_{D,2,1} = t_2 + r_1 \]
 
 Now we have 6 equations and 6 unknowns. Done.
 
