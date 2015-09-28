@@ -1,0 +1,22 @@
+{
+  "name": "tripoint-calibration",
+  "version": "0.1.0",
+  "description": "Calibrate the TriPoint module.",
+  "main": "calibration_log.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lab11/polypoint"
+  },
+  "author": "",
+  "license": "BSD-2-Clause",
+  "bugs": {
+    "url": "https://github.com/lab11/polypoint/issues"
+  },
+  "dependencies": {
+    "noble": "^0.3.14",
+    "strftime": "^0.9.2"
+  }
+}
