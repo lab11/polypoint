@@ -115,13 +115,19 @@ Byte 0: Length of the following message.
 
 Byte 1: Interrupt reason
   1 = Ranges to anchors are available
+  2 = Calibration data
 
 
 IF byte1 == 0x1:
 Byte 2: Number of ranges.
 Bytes 3-n: 8 bytes of anchor EUI then 4 bytes of range in millimeters.
 
-
+IF byte1 == 0x2:
+Bytes 2-3:   Round number
+Bytes 4-8:   Round A timestamp. TX/RX depends on which node index this node is.
+Bytes 9-12:  Diff between Round A timestamp and Round B timestamp.
+Bytes 13-16: Diff between Round B timestamp and Round C timestamp.
+Bytes 17-20: Diff between Round C timestamp and Round D timestamp.
 
 TODO
 ```
