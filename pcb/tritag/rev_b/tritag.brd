@@ -822,7 +822,7 @@ This Sunstone Circuits 2 Layer .DRU has been set to cover our minimum requiremen
 <attribute name="NAME" x="8.659028125" y="0.364259375" size="1.016" layer="26" font="vector" ratio="12" rot="MR30" align="center-right"/>
 <attribute name="VALUE" x="7.312828125" y="-0.489725" size="1.016" layer="28" font="vector" ratio="12" rot="MR30" align="bottom-center"/>
 </element>
-<element name="R3" library="passives" package="0402_RES" value="2k 1%" x="6.6124625" y="0.94685625" smashed="yes" rot="MR120">
+<element name="R3" library="passives" package="0402_RES" value="560 1%" x="6.6124625" y="0.94685625" smashed="yes" rot="MR120">
 <attribute name="NAME" x="6.2312125" y="0.2991625" size="1.016" layer="26" font="vector" ratio="12" rot="MR120" align="center-right"/>
 <attribute name="VALUE" x="5.40263125" y="1.645359375" size="1.016" layer="28" font="vector" ratio="12" rot="MR120" align="bottom-center"/>
 </element>

@@ -4066,7 +4066,7 @@ new: Attribute TP_SIGNAL_NAME&lt;br&gt;
 <part name="U3" library="chips" deviceset="LTC4065" device=""/>
 <part name="R2" library="passives" deviceset="RESISTOR" device="0402_RES" value="1k"/>
 <part name="C13" library="passives" deviceset="CAPACITOR" device="" value="1uF"/>
-<part name="R3" library="passives" deviceset="RESISTOR" device="0402_RES" value="2k 1%"/>
+<part name="R3" library="passives" deviceset="RESISTOR" device="0402_RES" value="560 1%"/>
 <part name="SUPPLY5" library="supply1" deviceset="GND" device=""/>
 <part name="SUPPLY6" library="supply1" deviceset="GND" device=""/>
 <part name="P+1" library="supply1" deviceset="VCC" device=""/>
