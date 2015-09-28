@@ -243,13 +243,6 @@ static void round_timeout () {
 }
 
 static void finish () {
-	// Notify host
-	// _calibration_response_buf[0] = _config.index;
-	// memcpy(_calibration_response_buf+1, &_round_num, sizeof(uint32_t));
-	// memcpy(_calibration_response_buf+5, _calibration_timing, 4*sizeof(uint64_t));
-	// host_interface_notify_calibration(_calibration_response_buf, 1+sizeof(uint32_t)+(4*sizeof(uint64_t)));
-
-
 	// Setup initial configs
 	setup_round_antenna_channel(0, FALSE);
 
@@ -274,9 +267,6 @@ static void finish () {
 	diff = (uint32_t) (_calibration_timing[3] - _calibration_timing[2]);
 	memcpy(_calibration_response_buf+15, &diff, sizeof(uint32_t));
 	host_interface_notify_calibration(_calibration_response_buf, 19);
-
-
-
 }
 
 /******************************************************************************/
