@@ -312,24 +312,28 @@ static void setup_dma_read (uint32_t length, uint8_t* rx) {
 }
 
 // Setup full duplex SPI over DMA.
-static void setup_dma (uint32_t length, uint8_t* rx, uint8_t* tx) {
+// Commenting out for no compiler warning. May still want to try it out
+// at some point.
+// TODO: Determine if memcpy() plus 1 dma is better than no memcpy and
+//       2 dma.
+// static void setup_dma (uint32_t length, uint8_t* rx, uint8_t* tx) {
 
-	// DMA channel Rx of SPI Configuration
-	DMA_InitStructure.DMA_BufferSize = length;
-	DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t) rx;
-	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralSRC;
-	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
-	DMA_InitStructure.DMA_Priority = DMA_Priority_High;
-	DMA_Init(SPI1_RX_DMA_CHANNEL, &DMA_InitStructure);
+// 	// DMA channel Rx of SPI Configuration
+// 	DMA_InitStructure.DMA_BufferSize = length;
+// 	DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t) rx;
+// 	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralSRC;
+// 	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
+// 	DMA_InitStructure.DMA_Priority = DMA_Priority_High;
+// 	DMA_Init(SPI1_RX_DMA_CHANNEL, &DMA_InitStructure);
 
-	// DMA channel Tx of SPI Configuration
-	DMA_InitStructure.DMA_BufferSize = length;
-	DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t) tx;
-	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralDST;
-	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
-	DMA_InitStructure.DMA_Priority = DMA_Priority_Low;
-	DMA_Init(SPI1_TX_DMA_CHANNEL, &DMA_InitStructure);
-}
+// 	// DMA channel Tx of SPI Configuration
+// 	DMA_InitStructure.DMA_BufferSize = length;
+// 	DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t) tx;
+// 	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralDST;
+// 	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
+// 	DMA_InitStructure.DMA_Priority = DMA_Priority_Low;
+// 	DMA_Init(SPI1_TX_DMA_CHANNEL, &DMA_InitStructure);
+// }
 
 
 /******************************************************************************/
