@@ -12,6 +12,8 @@ I2C Address: 0x65
 Commands
 --------
 
+These commands are set as a WRITE I2C command from the host to the TriPoint. Each
+write command starts with the opcode.
 
 | Opcode           | Byte | Type | Description                                           |
 | ------           | ---- | ---- | -----------                                           |
