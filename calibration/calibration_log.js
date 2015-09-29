@@ -35,16 +35,14 @@ function encoded_mm_to_meters (b, offset) {
 }
 
 function record (b, fd) {
-	var round = b.readUInt16LE(1);
-	var t1 = (b.readUInt8(7) << 32) + b.readUInt32LE(3);
-	var offset1 = b.readUInt32LE(8);
-	var offset2 = b.readUInt32LE(12);
-	var offset3 = b.readUInt32LE(16);
+	var round = b.readUInt32LE(1);
+	var t1 = (b.readUInt8(9) << 32) + b.readUInt32LE(5);
+	var offset1 = b.readUInt32LE(10);
+	var offset2 = b.readUInt32LE(14);
 	var t2 = t1+offset1;
 	var t3 = t2+offset2;
-	var t4 = t3+offset3;
 
-	fs.write(fd, round+'\t'+t1+'\t'+t2+'\t'+t3+'\t'+t4+'\n');
+	fs.write(fd, round+'\t'+t1+'\t'+t2+'\t'+t3+'\n');
 
 	return round;
 }
@@ -54,13 +52,14 @@ function receive (peripheral, index, filename) {
 	var filename = filename_start + peripheral.uuid.replace(':', '') + '_' + index + '.data';
 	fs.open(filename, 'w', function (err, fd) {
 
-		if (index == 0) {
-			fs.writeSync(fd, 'Round\tATX0\tBRX0\tCRX0\tDRX0\n');
-		} else if (index == 1) {
-			fs.writeSync(fd, 'Round\tARX1\tBTX1\tCTX1\tDRX1\n');
-		} else if (index == 2) {
-			fs.writeSync(fd, 'Round\tARX2\tBRX2\tCRX2\tDTX2\n');
-		}
+		fs.writeSync(fd, 'Round\tA\tB\tC\n');
+		// if (index == 0) {
+		// 	fs.writeSync(fd, 'Round\tA\tB\tC\n');
+		// } else if (index == 1) {
+		// 	fs.writeSync(fd, 'Round\tARX1\tBTX1\tCTX1\tDRX1\n');
+		// } else if (index == 2) {
+		// 	fs.writeSync(fd, 'Round\tARX2\tBRX2\tCRX2\tDTX2\n');
+		// }
 
 		peripheral.connect(function (connect_err) {
 

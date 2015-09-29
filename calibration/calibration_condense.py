@@ -37,15 +37,19 @@ for filename in glob.glob(glob_filename):
 				t1 = int(times[1])
 				t2 = int(times[2])
 				t3 = int(times[3])
-				t4 = int(times[4])
 
 				if rnd not in data:
-					data[rnd] = [-1]*12
+					data[rnd] = [-1]*6
 
-				data[rnd][index+0] = t1
-				data[rnd][index+3] = t2
-				data[rnd][index+6] = t3
-				data[rnd][index+9] = t4
+				if ((rnd % 3) + 2) % 3 == index:
+					data[rnd][1] = t1
+					data[rnd][2] = t2
+					data[rnd][4] = t3
+				else:
+					data[rnd][0] = t1
+					data[rnd][3] = t2
+					data[rnd][5] = t3
+
 
 			except:
 				pass
@@ -54,16 +58,14 @@ for filename in glob.glob(glob_filename):
 
 outdata = []
 
-outdata.append(['RoundNum',
-                'ATX0', 'ARX1', 'ARX2',
-                'BRX0', 'BTX1', 'BRX2',
-                'CRX0', 'CTX1', 'CRX2',
-                'DRX0', 'DRX1', 'DTX2'])
+outdata.append(['RoundNum', 'NodeBeingCalibrated',
+                'L', 'M', 'N', 'O', 'P', 'Q'])
 
 for key in sorted(data):
 	if -1 in data[key]:
 		continue
-	outdata.append([key] + data[key])
+	node = ['A', 'B', 'C'][(((key % 3) + 2) % 3)]
+	outdata.append([key, node] + data[key])
 
 
 outfilename_base = 'tripoint_calibration_' + timestamp
