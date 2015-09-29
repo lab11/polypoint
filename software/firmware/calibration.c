@@ -38,7 +38,7 @@ static uint32_t _round_num = UINT32_MAX;
 
 // Timing of packet transmissions and receptions.
 // What these are vary based on which node this is.
-static uint64_t _calibration_timing[4];
+static uint64_t _calibration_timing[3];
 
 // Buffer to send back to the host
 static uint8_t _calibration_response_buf[64];
@@ -70,7 +70,7 @@ static struct pp_calibration_msg pp_calibration_pkt = {
 	},
 	// PACKET BODY
 	.message_type = MSG_TYPE_PP_CALIBRATION_INIT,
-	.seq = 0,
+	.round_num = 0,
 	.num = 0
 };
 
@@ -170,12 +170,14 @@ void calibration_reset () {
 // Calibration action functions
 /******************************************************************************/
 
+// We keep settings the same for three rounds in a row to get values for
+// each node before switching things up.
 static void setup_round_antenna_channel (uint32_t round_num) {
 	uint8_t antenna;
 	uint8_t channel;
 	// This rotates the fastest
-	antenna = round_num % CALIB_NUM_ANTENNAS;
-	channel = (round_num / CALIB_NUM_ANTENNAS) % CALIB_NUM_CHANNELS;
+	antenna = (round_num / CALIBRATION_NUM_NODES) % CALIB_NUM_ANTENNAS;
+	channel = ((round_num / CALIBRATION_NUM_NODES) / CALIB_NUM_ANTENNAS) % CALIB_NUM_CHANNELS;
 	dw1000_choose_antenna(antenna);
 	dw1000_update_channel(channel_index_to_channel_rf_number[channel]);
 }
@@ -205,7 +207,7 @@ static void send_calibration_pkt (uint8_t message_type, uint8_t packet_num) {
 	// Setup what needs to change in the outgoing packet
 	pp_calibration_pkt.header.seqNum++;
 	pp_calibration_pkt.message_type = message_type;
-	pp_calibration_pkt.seq = _round_num;
+	pp_calibration_pkt.round_num = _round_num;
 	pp_calibration_pkt.num = packet_num;
 
 	// Make sure we're out of RX mode before attempting to transmit
@@ -259,23 +261,24 @@ static void finish () {
 		timer_stop(_app_timer);
 	}
 
-	// Notify host if we are node 0 or we got the init() packet.
-	if (_got_init || _config.index == 0) {
-		_calibration_response_buf[0] = _round_num & 0xFF;
-		_calibration_response_buf[1] = (_round_num >> 8) & 0xFF;
-		_calibration_response_buf[2] = (_calibration_timing[0] >> 0) & 0xFF;
-		_calibration_response_buf[3] = (_calibration_timing[0] >> 8) & 0xFF;
-		_calibration_response_buf[4] = (_calibration_timing[0] >> 16) & 0xFF;
-		_calibration_response_buf[5] = (_calibration_timing[0] >> 24) & 0xFF;
-		_calibration_response_buf[6] = (_calibration_timing[0] >> 32) & 0xFF;
+	// Notify host if we are node 0 or we got the init() packet AND
+	// we are not the round starting node. That node doesn't have any
+	// useful timestamps.
+	if ((_got_init || _config.index == 0) &&
+	    !CALIBRATION_ROUND_STARTED_BY_ME(_round_num, _config.index)) {
+		// Round number
+		memcpy(_calibration_response_buf, &_round_num, sizeof(uint32_t));
+		_calibration_response_buf[4] = (_calibration_timing[0] >> 0) & 0xFF;
+		_calibration_response_buf[5] = (_calibration_timing[0] >> 8) & 0xFF;
+		_calibration_response_buf[6] = (_calibration_timing[0] >> 16) & 0xFF;
+		_calibration_response_buf[7] = (_calibration_timing[0] >> 24) & 0xFF;
+		_calibration_response_buf[8] = (_calibration_timing[0] >> 32) & 0xFF;
 		uint32_t diff;
 		diff = (uint32_t) (_calibration_timing[1] - _calibration_timing[0]);
-		memcpy(_calibration_response_buf+7, &diff, sizeof(uint32_t));
+		memcpy(_calibration_response_buf+9, &diff, sizeof(uint32_t));
 		diff = (uint32_t) (_calibration_timing[2] - _calibration_timing[1]);
-		memcpy(_calibration_response_buf+11, &diff, sizeof(uint32_t));
-		diff = (uint32_t) (_calibration_timing[3] - _calibration_timing[2]);
-		memcpy(_calibration_response_buf+15, &diff, sizeof(uint32_t));
-		host_interface_notify_calibration(_calibration_response_buf, 19);
+		memcpy(_calibration_response_buf+13, &diff, sizeof(uint32_t));
+		host_interface_notify_calibration(_calibration_response_buf, 17);
 	}
 
 	// Reset this
@@ -289,11 +292,11 @@ static void finish () {
 // Use this callback to start the next cycle in the round
 static void calibration_txcallback (const dwt_callback_data_t *txd) {
 
-	// Nodes 0 and 1 send multiple messages in a row
-	if (_config.index == 0 &&
-	    pp_calibration_pkt.message_type == MSG_TYPE_PP_CALIBRATION_INIT) {
+	if (pp_calibration_pkt.message_type == MSG_TYPE_PP_CALIBRATION_INIT &&
+	    CALIBRATION_ROUND_STARTED_BY_ME(_round_num, _config.index)) {
 		// We just sent the "get everybody on the same page packet".
-		// Now start the actual cycle.
+		// Now start the actual cycle because it is our turn to send the first
+		// packet.
 		// Delay a bit to give the other nodes a chance to download and
 		// process.
 		mDelay(2);
@@ -301,15 +304,15 @@ static void calibration_txcallback (const dwt_callback_data_t *txd) {
 		setup_round_antenna_channel(_round_num);
 		send_calibration_pkt(MSG_TYPE_PP_CALIBRATION_MSG, 0);
 
-	} else if (_config.index == 1 && pp_calibration_pkt.num == 1) {
-		// Node 1 sends two messages in a row
+	} else if (CALIBRATION_ROUND_FOR_ME(_round_num, _config.index) &&
+	           pp_calibration_pkt.num == 1) {
+		// We send the first response, now send another
 		mDelay(2);
 		// Send on the next ranging cycle in this round
 		send_calibration_pkt(MSG_TYPE_PP_CALIBRATION_MSG, 2);
 
-	} else if (_config.index == 2 && pp_calibration_pkt.num == 3) {
-		// Node 2 is the last to transmit, need to notify at this
-		// point
+	} else if (pp_calibration_pkt.num == 2) {
+		// We have sent enough packets, call this a day.
 		finish();
 	}
 }
@@ -340,7 +343,7 @@ static void calibration_rxcallback (const dwt_callback_data_t *rxd) {
 		if (message_type == MSG_TYPE_PP_CALIBRATION_INIT) {
 			// Got the start of round message
 			// Set the round number, and configure for that round
-			_round_num = rx_start_pkt->seq;
+			_round_num = rx_start_pkt->round_num;
 			setup_round_antenna_channel(_round_num);
 
 			// Note that we got the init() packet.
@@ -357,27 +360,24 @@ static void calibration_rxcallback (const dwt_callback_data_t *rxd) {
 				timer_start(_app_timer, CALIBRATION_ROUND_TIMEOUT_US, round_timeout);
 			}
 
+			// Decide which node should send packet number 0
+			if (CALIBRATION_ROUND_STARTED_BY_ME(_round_num, _config.index)) {
+				// This is us! Let's do it
+				send_calibration_pkt(MSG_TYPE_PP_CALIBRATION_MSG, 0);
+			}
+
 		} else if (message_type == MSG_TYPE_PP_CALIBRATION_MSG) {
 			uint8_t packet_num = rx_start_pkt->num;
 
 			// store timestamps.
-			//
-			// INDEX || SLOT0 | SLOT1 | SLOT2 | SLOT3
-			// --------------------------------------
-			//  0    || TX0   | RX1   | RX2   | RX3
-			//  1    || RX0   | TX1   | TX2   | RX3
-			//  2    || RX0   | RX1   | RX2   | TX3
 			_calibration_timing[packet_num] = dw_rx_timestamp;
 
-			if (packet_num == 0 && _config.index == 1) {
-				// The second node sends the next packet
-				send_calibration_pkt(MSG_TYPE_PP_CALIBRATION_MSG, packet_num+1);
+			if (packet_num == 0 && CALIBRATION_ROUND_FOR_ME(_round_num, _config.index)) {
+				// After the first packet, based on the round number the node to
+				// be calibrated sends the next two packets.
+				send_calibration_pkt(MSG_TYPE_PP_CALIBRATION_MSG, 1);
 
-			} else if (packet_num == 2 && _config.index == 2) {
-				// The third node sends the last packet
-				send_calibration_pkt(MSG_TYPE_PP_CALIBRATION_MSG, packet_num+1);
-
-			} else if (packet_num == 3) {
+			} else if (packet_num == 2) {
 				// This is the last packet, notify the host of our findings
 				finish();
 			}
