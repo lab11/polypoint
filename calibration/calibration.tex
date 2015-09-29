@@ -3,6 +3,7 @@
 \usepackage[top=.75in, bottom=.75in]{geometry}
 
 \usepackage{amsmath}
+\usepackage{graphicx}
 \usepackage{xcolor}
 
 \begin{document}
@@ -14,145 +15,45 @@
 \newcommand{\der}[1]{\textcolor{orange}{#1}}
 \newcommand{\off}[2]{\textnormal{\emph{Off}}_{#1\rightarrow#2}}
 
-\textbf{Setup:} Assume 3 polypoint tags, all 1~m from each other.
+\section*{Setup:} Assume 3 polypoint tags (A, B, C), all 1~m from each other.
 
 \begin{itemize}
-  \item t = tx delay calibration factor (unknown)
-  \item r = rx delay calibration factor (unknown)
+  \item $t_A$ = tx delay for tag A (unknown)
+  \item $r_A$ = rx delay for tag A (unknown)
   \item $\lambda$ = time of flight for 1~m ($\lambda = \frac{1}{c}\times\textnormal{\texttt{DWT\_TIME\_UNITS}}$)
   \item $\epsilon$ = precise delay before sending the next packet (i.e.\ 5\,ms)
 \end{itemize}
 
-$A:$ Tag 0 sends a packet
-\begin{align}
-  ARX1 &= ATX0 + t_0 + r_1 \\
-  ARX2 &= ATX0 + t_0 + r_2 \\
-  ARX3 &= ATX0 + t_0 + r_3
-\end{align}
+The goal is to determine the calibration factor for a tag, $cal_A = t_A + r_A$.
 
-$B:$ Tag 0 sends another packet
-\begin{align}
-  BRX1 &= BTX0 + t_0 + r_1 \\
-  BRX2 &= BTX0 + t_0 + r_2 \\
-  BRX3 &= BTX0 + t_0 + r_3
-\end{align}
+\section*{Protocol:}
 
-$C:$ Tag 1 sends a packet such that $CTX1 = BRX1 + \epsilon$\,ms
-\begin{align}
-  CRX0 &= CTX1 + t_1 + r_0 \\
-  CRX2 &= CTX1 + t_1 + r_2 \\
-  CRX3 &= CTX1 + t_1 + r_3
-\end{align}
+The following sequence will recover the $cal_C$. Note that timestamps from
+local clocks are not synchronized, nor can the clocks be assumed to be running
+at exactly the same speed.
 
-$D:$ Tag 2 sends a packet such that $DTX2 = CRX2 + \epsilon$\,ms
-\begin{align}
-  DRX0 &= DTX2 + t_2 + r_0 \\
-  DRX1 &= DTX2 + t_2 + r_1 \\
-  DRX3 &= DTX2 + t_2 + r_3
-\end{align}
+\bigskip
 
-$E:$ Tag 3 sends a packet such that $ETX3 = DRX3 + \epsilon$\,ms
-\begin{align}
-  ERX0 &= ETX3 + t_3 + r_0 \\
-  ERX1 &= ETX3 + t_3 + r_1 \\
-  ERX2 &= ETX3 + t_3 + r_2
-\end{align}
-
-Note that while all of [ABCDE][RT]X[0123] are known values, they cannot
-be used directly since they are measured by different clocks. To convert ARX1
-to ARX0, we need to derive a correction factor $k$ for the difference in
-oscillator speed between each node and find the offset of each clock \emph{at
-that point in time}.  Care must be taken to ensure that $k$ is factored in
-consistenly throughout the calibration.
-
-We make the assumption that each $k$ remains constant throughout the
-calibration procedure. We use the first two packets $A$ and $B$ to find $k$
-values for the rest of the round:
-\[ k_{0\rightarrow1} = \frac{BRX1-ARX1}{BTX0-ATX0} ,%
-   k_{0\rightarrow2} = \frac{BRX2-ARX2}{BTX0-ATX0} ,%
-   k_{0\rightarrow3} = \frac{BRX3-ARX3}{BTX0-ATX0} \]
-
-\[ k_{1\rightarrow2} = \frac{BRX2-ARX2}{BRX1-ARX1} ,%
-   k_{1\rightarrow3} = \frac{BRX3-ARX3}{BRX1-ARX1} ,%
-   k_{2\rightarrow3} = \frac{BRX3-ARX3}{BRX2-ARX2} \]
-
-\[
-  \textnormal{\emph{Other k's:}}~~~
-  k_{1\rightarrow0} = \frac{1}{k_{0\rightarrow1}},~~~
-  k_{2\rightarrow0} = k_{2\rightarrow1} \times k_{1\rightarrow0},~~~
-  \textnormal{\emph{etc}}
-\]
-
-\newpage
-
-Now we set up equations that exploit the known ranges between tags.
-$\lambda_{01}$ is the distance between tags 0 and 1 in decawave time units.
-If $t_0 = 0$, $r_1 = 0$, $k_{1\rightarrow0} = 1$, and $B\off{1}{0}0 = 0$, that is
-there is no transmission delay, no receive delay, and perfect clock
-calibration, then
-\[
-  BRX1 \times k_{1\rightarrow0} - B\off{1}{0}0 = BRX1 = BRX0
-  ~~~\textnormal{and}~~~
-  BRX0 - BTX0 = \lambda_{01}
-\]
-In practice, $t_0 \neq 0$ and $r_1 \neq 0$. We define the term $\Delta_{0,1}$
-to express the difference between the expected value and the measured value:
-\[
-  BRX0 - BTX0 - \lambda_{01} = \Delta_{0,1} = t_0 + r_1
-\]
-Critically, we do not assume that $t_0 = r_0$, that is the transmit and
-receive delay of a single node may not be symmetric. This means than
-$\Delta_{0,1}$ is not necessarily equal to $\Delta_{1,0}$.
-
-\medskip
-\noindent
-With the above in mind, the following equations provide sufficient relations.
-We convert everything to tag 0's time domain to make computing the offsets correctly easier.
-For clarity, in this section we color variables if the are \unk{unknown until
-the end} and \der{trivially derived from other unknowns}.
+\begin{minipage}{.4\textwidth}
+  \begin{enumerate}
+    \item Tag A sends a packet
+    \item Tag C sends a packet after $\epsilon$
+    \item Tag C sends a packet after $\epsilon$
+  \end{enumerate}
+\end{minipage}%
+\begin{minipage}{.6\textwidth}
+  \includegraphics[width=\linewidth]{calibration_diagram}
+\end{minipage}
 
 \begin{align}
-BRX0 \times k_{1\rightarrow0} - \unk{B\off{1}{0}0} - BTX0 - \lambda_{01} &= \Delta_{0,1} = \unk{t_0} + \unk{r_1} \\
-BRX0 \times k_{2\rightarrow0} - \unk{B\off{2}{0}0} - BTX0 - \lambda_{02} &= \Delta_{0,2} = \unk{t_0} + \unk{r_2} \\
-BRX0 \times k_{3\rightarrow0} - \unk{B\off{3}{0}0} - BTX0 - \lambda_{03} &= \Delta_{0,3} = \unk{t_0} + \unk{r_3} \\
-~\nonumber\\
-CRX0                                                 - (CTX1 \times k_{1\rightarrow0} - \der{C\off{1}{0}0}) - \lambda_{01} &= \Delta_{1,0} = \unk{t_1} + \unk{r_0} \\
-(CRX2 \times k_{2\rightarrow0} - \der{C\off{2}{0}0}) - (CTX1 \times k_{1\rightarrow0} - \der{C\off{1}{0}0}) - \lambda_{12} &= \Delta_{1,2} = \unk{t_1} + \unk{r_2} \\
-(CRX3 \times k_{3\rightarrow0} - \der{C\off{3}{0}0}) - (CTX1 \times k_{1\rightarrow0} - \der{C\off{1}{0}0}) - \lambda_{13} &= \Delta_{1,3} = \unk{t_1} + \unk{r_3} \\
-~\nonumber\\
-DRX0                                                 - (DTX2 \times k_{2\rightarrow0} - \der{D\off{2}{0}0}) - \lambda_{02} &= \Delta_{2,0} = \unk{t_2} + \unk{r_0} \\
-(DRX1 \times k_{1\rightarrow0} - \der{D\off{1}{0}0}) - (DTX2 \times k_{2\rightarrow0} - \der{D\off{2}{0}0}) - \lambda_{12} &= \Delta_{2,1} = \unk{t_2} + \unk{r_1} \\
-(DRX3 \times k_{3\rightarrow0} - \der{D\off{3}{0}0}) - (DTX2 \times k_{2\rightarrow0} - \der{D\off{2}{0}0}) - \lambda_{23} &= \Delta_{2,3} = \unk{t_2} + \unk{r_3} \\
-~\nonumber\\
-ERX0                                                 - (ETX3 \times k_{3\rightarrow0} - \der{E\off{3}{0}0}) - \lambda_{03} &= \Delta_{3,0} = \unk{t_3} + \unk{r_0} \\
-(ERX1 \times k_{1\rightarrow0} - \der{E\off{1}{0}0}) - (ETX3 \times k_{3\rightarrow0} - \der{E\off{3}{0}0}) - \lambda_{13} &= \Delta_{3,1} = \unk{t_3} + \unk{r_1} \\
-(ERX2 \times k_{2\rightarrow0} - \der{E\off{2}{0}0}) - (ETX3 \times k_{3\rightarrow0} - \der{E\off{3}{0}0}) - \lambda_{23} &= \Delta_{3,2} = \unk{t_3} + \unk{r_2}
+  BRX1 &= ATX1 + t_A + \lambda + r_B \\
+  BRX2 &= ATX1 + t_A + \lambda + r_C + \epsilon_C + t_C + \lambda + r_B \\
+  BRX2-BRX1 = \Delta_B &= r_C + t_C + \epsilon_C + \lambda \\
+  ~\nonumber\\
+  k_{C\rightarrow B} &= \frac{BRX3-BRX1}{CTX3-CRX2} \\
+  ~\nonumber\\
+  r_C + t_C &= \Delta_B - \epsilon_C \times k_{C\rightarrow B} - \lambda
 \end{align}
-
-Leveraging the precise $\epsilon$ between packets (i.e.\ $CTX1 = BRX1 + \epsilon$):
-\begin{align}
-\der{C\off{1}{0}0} &= \unk{B\off{1}{0}0} + \epsilon \times k_{1\rightarrow0} \\
-\der{C\off{2}{0}0} &= \unk{B\off{2}{0}0} + \epsilon \times k_{1\rightarrow0} \\
-\der{C\off{3}{0}0} &= \unk{B\off{3}{0}0} + \epsilon \times k_{1\rightarrow0} \\
-~\nonumber\\
-\der{D\off{1}{0}0} &= \der{C\off{1}{0}0} + \epsilon \times k_{2\rightarrow0} \\
-\der{D\off{2}{0}0} &= \der{C\off{2}{0}0} + \epsilon \times k_{2\rightarrow0} \\
-\der{D\off{3}{0}0} &= \der{C\off{3}{0}0} + \epsilon \times k_{2\rightarrow0} \\
-~\nonumber\\
-\der{E\off{1}{0}0} &= \der{D\off{1}{0}0} + \epsilon \times k_{3\rightarrow0} \\
-\der{E\off{2}{0}0} &= \der{D\off{2}{0}0} + \epsilon \times k_{3\rightarrow0} \\
-\der{E\off{3}{0}0} &= \der{D\off{3}{0}0} + \epsilon \times k_{3\rightarrow0}
-\end{align}
-
-
-We have 12 knowns $\Delta_{0,1} \dots \Delta_{3,2}$ for 11 unknowns
-$\unk{t_0, r_0, t_1, r_1, t_2, r_2, t_3, r_3, B\off{1}{0}0, B\off{2}{0}0, B\off{3}{0}0}$.
-
-\medskip
-\noindent
-\emph{Note if we had only used three anchors, we would have only 6 knowns
-$\Delta_{0,1} \dots \Delta_{2,1}$ for 8 unknowns. The fouth anchor adds 6 more
-knowns at the cost of $r_3, t_3, \textnormal{and}~B\off{3}{0}$.}
 
 
 \end{document}
