@@ -245,9 +245,15 @@ static void tag_rxcallback (const dwt_callback_data_t* rxd) {
 				_anchor_responses[_anchor_response_count].anchor_final_antenna_index = anc_final->final_antenna;
 
 				// Save when the anchor sent the packet we just received
-				_anchor_responses[_anchor_response_count].anc_final_tx_timestamp = ((uint64_t)anc_final->dw_time_sent) << 8;
-				// Save when we received the packet
-				_anchor_responses[_anchor_response_count].anc_final_rx_timestamp = dw_rx_timestamp;
+				_anchor_responses[_anchor_response_count].anc_final_tx_timestamp = anc_final->dw_time_sent;
+
+				// Save when we received the packet.
+				// This is where we factor in the TAG's TX and RX delays.
+				// To handle the offsets of when the TAG recorded timestamps
+				// and when they actually went out on the wire, we subtract
+				// the TX+RX delay from when we think we received the response
+				// from the anchor.
+				_anchor_responses[_anchor_response_count].anc_final_rx_timestamp = dw_rx_timestamp - dw1000_get_txrx_delay();
 
 				// Also need to save what window we are in when we received
 				// this packet. This is used so we know all of the settings

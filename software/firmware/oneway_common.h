@@ -88,7 +88,7 @@ struct pp_anc_final {
 	struct ieee154_header_unicast ieee154_header_unicast;
 	uint8_t message_type;
 	uint8_t final_antenna;                 // The antenna the anchor used when sending this packet.
-	uint32_t dw_time_sent;                 // The anchor timestamp of when it sent this packet
+	uint64_t dw_time_sent;                 // The anchor timestamp of when it sent this packet
 	uint64_t TOAs[NUM_RANGING_BROADCASTS]; // The anchor timestamps of when it received the tag poll messages.
 	struct ieee154_footer footer;
 } __attribute__ ((__packed__));

@@ -214,7 +214,15 @@ static void ranging_listening_window_task () {
 				(slot_num*_ranging_operation_config.anchor_reply_slot_time_in_us));
 
 		delay_time &= 0xFFFFFFFE;
-		pp_anc_final_pkt.dw_time_sent = delay_time;
+
+		// This is where calibration comes in to play. To account for the RX
+		// delays on all of the ranging packets, and the TX delay we will
+		// experience on sending this packet out, we add the RX+TX delays
+		// for this node to the reported timestamp so that all of the relative
+		// times are correct.
+		pp_anc_final_pkt.dw_time_sent = (((uint64_t) delay_time) << 8) + dw1000_get_txrx_delay();
+
+		// Set the packet to be transmitted later.
 		dwt_setdelayedtrxtime(delay_time);
 
 		// Send the response packet

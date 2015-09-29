@@ -566,6 +566,12 @@ void dw1000_read_eui (uint8_t *eui_buf) {
 	memcpy(eui_buf, (uint8_t*) EUI_FLASH_LOCATION, EUI_LEN);
 }
 
+// Return the TX+RX delay calibration value for this particular node
+// in DW1000 time format.
+uint64_t dw1000_get_txrx_delay () {
+	return 0;
+}
+
 // First (generic) init of the DW1000
 dw1000_err_e dw1000_init () {
 	dw1000_err_e err;
