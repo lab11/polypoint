@@ -1,5 +1,5 @@
 *.aux
 *.fdb_latexmk
 *.fls
-*.pdf
+calibration.pdf
 tripoint_calibration_*
