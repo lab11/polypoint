@@ -325,7 +325,7 @@ static void calibration_txcallback (const dwt_callback_data_t *txd) {
 	}
 }
 
-static uint8_t acc_data[512];
+static uint8_t acc_data[513];
 
 // Handle when we receive packets
 static void calibration_rxcallback (const dwt_callback_data_t *rxd) {
@@ -343,7 +343,7 @@ static void calibration_rxcallback (const dwt_callback_data_t *rxd) {
 		// Get the actual packet bytes
 		dwt_readrxdata(buf, MIN(CALIBRATION_MAX_RX_PKT_LEN, rxd->datalength), 0);
 		for(int ii = 0; ii < 4096; ii += 512){
-			dwt_readaccdata(acc_data, 512, ii);
+			dwt_readaccdata(acc_data, 513, ii);
 		}
 
 		//// We process based on the first byte in the packet. How very active
