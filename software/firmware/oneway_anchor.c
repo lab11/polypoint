@@ -401,4 +401,5 @@ static void anchor_rxcallback (const dwt_callback_data_t *rxd) {
 			// Some other unknown error, not sure what to do
 		}
 	}
+	dwt_rxenable(0);
 }

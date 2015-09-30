@@ -54,5 +54,6 @@ void calibration_configure (calibration_config_t* config, stm_timer_t* app_timer
 void calibration_start ();
 void calibration_stop ();
 void calibration_reset ();
+void calib_start_round ();
 
 #endif

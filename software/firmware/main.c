@@ -282,7 +282,21 @@ int main () {
 	GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
 	GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
 
+	RCC_AHBPeriphClockCmd(STM_GPIO0_CLK, ENABLE);
+	GPIO_InitStructure.GPIO_Pin = STM_GPIO0_PIN;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+	GPIO_Init(STM_GPIO0_PORT, &GPIO_InitStructure);
 
+	RCC_AHBPeriphClockCmd(STM_GPIO1_CLK, ENABLE);
+	GPIO_InitStructure.GPIO_Pin = STM_GPIO1_PIN;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+	GPIO_Init(STM_GPIO1_PORT, &GPIO_InitStructure);
 
 	// In case we need a timer, get one. This is used for things like periodic
 	// ranging events.
@@ -303,11 +317,19 @@ int main () {
 	// of the settings on the DW1000.
 	start_dw1000();
 
+	//// MAIN LOOP -- TAG
+	//dw1000_wakeup();
+	//init();
+	//timer_start(_app_timer, 4000, calib_start_round);
 
+	// MAIN LOOP -- ANCHOR
+	dw1000_wakeup();
+	init();
+	setup_round_antenna_channel(0);
+	dwt_rxenable(0);
 
-	// MAIN LOOP
-	while (1) {
-
+	while(1)
+	{
 		PWR_EnterSleepMode(PWR_SLEEPEntry_WFI);
 		// PWR_EnterSTOPMode(PWR_Regulator_LowPower, PWR_STOPEntry_WFI);
 

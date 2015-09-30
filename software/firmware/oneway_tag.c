@@ -63,7 +63,7 @@ static struct pp_tag_poll pp_tag_poll_pkt = {
 };
 
 // Functions
-static void send_poll ();
+void send_poll ();
 static void ranging_broadcast_subsequence_task ();
 static void ranging_listening_window_task ();
 static void calculate_ranges ();
@@ -286,7 +286,7 @@ static void tag_rxcallback (const dwt_callback_data_t* rxd) {
 // Send one of the ranging broadcast packets.
 // After it sends the last of the subsequence this function automatically
 // puts the DW1000 in RX mode.
-static void send_poll () {
+void send_poll () {
 	int err;
 
 	// Record the packet length to send to DW1000
