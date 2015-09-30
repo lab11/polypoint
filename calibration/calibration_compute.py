@@ -19,6 +19,7 @@ meta = os.path.splitext(condensed)[0] + '.meta'
 SPEED_OF_LIGHT = 299792458
 DWT_TIME_UNITS = (1.0/499.2e6/128.0) #!< = 15.65e-12 s
 
+
 def dwtime_to_dist(dwtime):
 	dist = dwtime * DWT_TIME_UNITS * SPEED_OF_LIGHT;
 	#dist += ANCHOR_CAL_LEN;
@@ -50,7 +51,7 @@ for line in open(condensed):
 	except ValueError:
 		continue
 
-	k = sub_dw_ts(Q,L) / sub_dw_ts(P,M)
+	k = sub_dw_ts(Q,O) / sub_dw_ts(P,N)
 	deltaB = sub_dw_ts(O,L)
 	epsilonC = sub_dw_ts(N,M)
 
