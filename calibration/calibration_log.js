@@ -2,6 +2,7 @@ var noble = require('noble');
 var buf = require('buffer');
 var fs = require('fs');
 var strftime = require('strftime');
+var Long = require('long');
 
 var TRITAG_SERVICE_UUID          = 'd68c3152a23fee900c455231395e5d2e';
 var TRITAG_CHAR_UUID_RAW         = 'd68c3153a23fee900c455231395e5d2e';
@@ -36,11 +37,12 @@ function encoded_mm_to_meters (b, offset) {
 
 function record (b, fd) {
 	var round = b.readUInt32LE(1);
-	var t1 = (b.readUInt8(9) << 32) + b.readUInt32LE(5);
+	// var t1 = (b.readUInt8(9) << 32) + b.readUInt32LE(5);
+	var t1 = new Long(b.readUInt32LE(5), b.readUInt8(9));
 	var offset1 = b.readUInt32LE(10);
 	var offset2 = b.readUInt32LE(14);
-	var t2 = t1+offset1;
-	var t3 = t2+offset2;
+	var t2 = t1.add(offset1);
+	var t3 = t2.add(offset2);
 
 	fs.write(fd, round+'\t'+t1+'\t'+t2+'\t'+t3+'\n');
 
