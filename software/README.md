@@ -29,7 +29,8 @@ https://www.segger.com/jlink-6-pin-needle-adapter.html.
 	SEGGER_SERIAL=<segger id> make flash ID=c0:98:e5:50:50:00:00:01
 
 
-I2C API -------
+I2C API
+-------
 
 The interface between the host and TriPoint is described in `firmware/API.md`.
 
