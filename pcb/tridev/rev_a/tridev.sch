@@ -3156,138 +3156,6 @@ Standard schematic elements and footprints for 5mm, 3mm, 1206, and 0603 sized LE
 </deviceset>
 </devicesets>
 </library>
-<library name="tripoint">
-<packages>
-<package name="TRIPOINT">
-<wire x1="-15.875" y1="9.17143125" x2="15.875" y2="9.17143125" width="0.127" layer="21"/>
-<wire x1="15.875" y1="9.17143125" x2="0" y2="-18.33676875" width="0.127" layer="21"/>
-<wire x1="0" y1="-18.33676875" x2="-15.875" y2="9.17143125" width="0.127" layer="21"/>
-<smd name="43" x="0" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
-<smd name="42" x="1.5875" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
-<smd name="39" x="6.35" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
-<smd name="38" x="7.9375" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
-<smd name="37" x="9.525" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
-<smd name="36" x="11.1125" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
-<smd name="35" x="12.7" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
-<smd name="44" x="-1.5875" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
-<smd name="47" x="-6.35" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
-<smd name="48" x="-7.9375" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
-<smd name="49" x="-9.525" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
-<smd name="50" x="-11.1125" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
-<smd name="51" x="-12.7" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
-<smd name="26" x="7.9375" y="-4.58266875" dx="1.27" dy="1.905" layer="1" rot="R60"/>
-<smd name="27" x="8.73125" y="-3.207765625" dx="1.27" dy="1.905" layer="1" rot="R60"/>
-<smd name="28" x="9.525" y="-1.8328625" dx="1.27" dy="1.905" layer="1" rot="R60"/>
-<smd name="29" x="10.31875" y="-0.4579625" dx="1.27" dy="1.905" layer="1" rot="R60"/>
-<smd name="30" x="11.1125" y="0.916940625" dx="1.27" dy="1.905" layer="1" rot="R60"/>
-<smd name="31" x="11.90625" y="2.29184375" dx="1.27" dy="1.905" layer="1" rot="R60"/>
-<smd name="32" x="12.7" y="3.66674375" dx="1.27" dy="1.905" layer="1" rot="R60"/>
-<smd name="33" x="13.49375" y="5.041646875" dx="1.27" dy="1.905" layer="1" rot="R60"/>
-<smd name="34" x="14.2875" y="6.41655" dx="1.27" dy="1.905" layer="1" rot="R60"/>
-<smd name="25" x="7.14375" y="-5.95756875" dx="1.27" dy="1.905" layer="1" rot="R60"/>
-<smd name="24" x="6.35" y="-7.332471875" dx="1.27" dy="1.905" layer="1" rot="R60"/>
-<smd name="23" x="5.55625" y="-8.707375" dx="1.27" dy="1.905" layer="1" rot="R60"/>
-<smd name="22" x="4.7625" y="-10.082275" dx="1.27" dy="1.905" layer="1" rot="R60"/>
-<smd name="21" x="3.96875" y="-11.457178125" dx="1.27" dy="1.905" layer="1" rot="R60"/>
-<smd name="20" x="3.175" y="-12.832078125" dx="1.27" dy="1.905" layer="1" rot="R60"/>
-<smd name="19" x="2.38125" y="-14.20698125" dx="1.27" dy="1.905" layer="1" rot="R60"/>
-<smd name="18" x="1.5875" y="-15.581884375" dx="1.27" dy="1.905" layer="1" rot="R60"/>
-<smd name="9" x="-7.9375" y="-4.58266875" dx="1.27" dy="1.905" layer="1" rot="R120"/>
-<smd name="8" x="-8.73125" y="-3.207765625" dx="1.27" dy="1.905" layer="1" rot="R120"/>
-<smd name="7" x="-9.525" y="-1.8328625" dx="1.27" dy="1.905" layer="1" rot="R120"/>
-<smd name="6" x="-10.31875" y="-0.4579625" dx="1.27" dy="1.905" layer="1" rot="R120"/>
-<smd name="5" x="-11.1125" y="0.916940625" dx="1.27" dy="1.905" layer="1" rot="R120"/>
-<smd name="4" x="-11.90625" y="2.29184375" dx="1.27" dy="1.905" layer="1" rot="R120"/>
-<smd name="3" x="-12.7" y="3.66674375" dx="1.27" dy="1.905" layer="1" rot="R120"/>
-<smd name="2" x="-13.49375" y="5.041646875" dx="1.27" dy="1.905" layer="1" rot="R120"/>
-<smd name="1" x="-14.2875" y="6.41655" dx="1.27" dy="1.905" layer="1" rot="R120"/>
-<smd name="10" x="-7.14375" y="-5.95756875" dx="1.27" dy="1.905" layer="1" rot="R120"/>
-<smd name="11" x="-6.35" y="-7.332471875" dx="1.27" dy="1.905" layer="1" rot="R120"/>
-<smd name="12" x="-5.556253125" y="-8.707375" dx="1.27" dy="1.905" layer="1" rot="R120"/>
-<smd name="13" x="-4.7625" y="-10.082275" dx="1.27" dy="1.905" layer="1" rot="R120"/>
-<smd name="14" x="-3.96875" y="-11.457178125" dx="1.27" dy="1.905" layer="1" rot="R120"/>
-<smd name="15" x="-3.175" y="-12.832078125" dx="1.27" dy="1.905" layer="1" rot="R120"/>
-<smd name="16" x="-2.38125" y="-14.20698125" dx="1.27" dy="1.905" layer="1" rot="R120"/>
-<smd name="17" x="-1.5875" y="-15.581884375" dx="1.27" dy="1.905" layer="1" rot="R120"/>
-<text x="0" y="10.23823125" size="1.016" layer="25" font="vector" ratio="12" align="bottom-center">&gt;NAME</text>
-</package>
-</packages>
-<symbols>
-<symbol name="TRIPOINT">
-<pin name="VCC" x="-22.86" y="15.24" length="short"/>
-<wire x1="17.78" y1="17.78" x2="-20.32" y2="17.78" width="0.254" layer="94"/>
-<wire x1="-20.32" y1="17.78" x2="-20.32" y2="-35.56" width="0.254" layer="94"/>
-<wire x1="-20.32" y1="-35.56" x2="17.78" y2="-35.56" width="0.254" layer="94"/>
-<wire x1="17.78" y1="-35.56" x2="17.78" y2="17.78" width="0.254" layer="94"/>
-<pin name="SCL" x="-22.86" y="10.16" length="short"/>
-<pin name="SDA" x="-22.86" y="7.62" length="short"/>
-<pin name="INTERRUPT" x="-22.86" y="2.54" length="short"/>
-<pin name="GPIO0" x="-22.86" y="-2.54" length="short"/>
-<pin name="GPIO1" x="-22.86" y="-5.08" length="short"/>
-<pin name="GPIO2" x="-22.86" y="-7.62" length="short"/>
-<pin name="GPIO3" x="-22.86" y="-10.16" length="short"/>
-<pin name="GPIO4" x="-22.86" y="-12.7" length="short"/>
-<pin name="ANT1" x="20.32" y="12.7" length="short" rot="R180"/>
-<pin name="ANT2" x="20.32" y="7.62" length="short" rot="R180"/>
-<pin name="ANT3" x="20.32" y="2.54" length="short" rot="R180"/>
-<pin name="GND" x="-22.86" y="-17.78" length="short"/>
-<pin name="SWDIO" x="20.32" y="-10.16" length="short" rot="R180"/>
-<pin name="SWDCLK" x="20.32" y="-12.7" length="short" rot="R180"/>
-<pin name="!RESET" x="20.32" y="-15.24" length="short" rot="R180"/>
-<text x="-20.32" y="18.288" size="1.778" layer="95" ratio="12">&gt;NAME</text>
-<text x="-20.32" y="-38.1" size="1.778" layer="96" ratio="12">&gt;VALUE</text>
-<pin name="!DEBUG_DW_RST" x="20.32" y="-20.32" length="short" rot="R180"/>
-<pin name="DEBUG_DW_IRQ" x="20.32" y="-22.86" length="short" rot="R180"/>
-<pin name="DEBUG_DW_MOSI" x="20.32" y="-25.4" length="short" rot="R180"/>
-<pin name="DEBUG_DW_MISO" x="20.32" y="-27.94" length="short" rot="R180"/>
-<pin name="DEBUG_DW_CLK" x="20.32" y="-30.48" length="short" rot="R180"/>
-<pin name="!DEBUG_DW_CS" x="20.32" y="-33.02" length="short" rot="R180"/>
-<pin name="DW_SYNC" x="20.32" y="-2.54" length="short" rot="R180"/>
-<pin name="DW_XTAL1" x="20.32" y="-5.08" length="short" rot="R180"/>
-</symbol>
-</symbols>
-<devicesets>
-<deviceset name="TRIPOINT" prefix="U">
-<description>UWB Ranging Module</description>
-<gates>
-<gate name="G$1" symbol="TRIPOINT" x="0" y="0"/>
-</gates>
-<devices>
-<device name="" package="TRIPOINT">
-<connects>
-<connect gate="G$1" pin="!DEBUG_DW_CS" pad="23"/>
-<connect gate="G$1" pin="!DEBUG_DW_RST" pad="24"/>
-<connect gate="G$1" pin="!RESET" pad="30"/>
-<connect gate="G$1" pin="ANT1" pad="9"/>
-<connect gate="G$1" pin="ANT2" pad="26"/>
-<connect gate="G$1" pin="ANT3" pad="43"/>
-<connect gate="G$1" pin="DEBUG_DW_CLK" pad="22"/>
-<connect gate="G$1" pin="DEBUG_DW_IRQ" pad="39"/>
-<connect gate="G$1" pin="DEBUG_DW_MISO" pad="21"/>
-<connect gate="G$1" pin="DEBUG_DW_MOSI" pad="20"/>
-<connect gate="G$1" pin="DW_SYNC" pad="19"/>
-<connect gate="G$1" pin="DW_XTAL1" pad="49"/>
-<connect gate="G$1" pin="GND" pad="8 10 18 25 27 42 44"/>
-<connect gate="G$1" pin="GPIO0" pad="31"/>
-<connect gate="G$1" pin="GPIO1" pad="32"/>
-<connect gate="G$1" pin="GPIO2" pad="33"/>
-<connect gate="G$1" pin="GPIO3" pad="34"/>
-<connect gate="G$1" pin="GPIO4" pad="35"/>
-<connect gate="G$1" pin="INTERRUPT" pad="38"/>
-<connect gate="G$1" pin="SCL" pad="37"/>
-<connect gate="G$1" pin="SDA" pad="36"/>
-<connect gate="G$1" pin="SWDCLK" pad="29"/>
-<connect gate="G$1" pin="SWDIO" pad="28"/>
-<connect gate="G$1" pin="VCC" pad="17"/>
-</connects>
-<technologies>
-<technology name=""/>
-</technologies>
-</device>
-</devices>
-</deviceset>
-</devicesets>
-</library>
 <library name="holes">
 <description>&lt;b&gt;Mounting Holes and Pads&lt;/b&gt;&lt;p&gt;
 &lt;author&gt;Created by librarian@cadsoft.de&lt;/author&gt;</description>
@@ -3843,6 +3711,240 @@ Standard schematic elements and footprints for 5mm, 3mm, 1206, and 0603 sized LE
 </deviceset>
 </devicesets>
 </library>
+<library name="tripoint">
+<packages>
+<package name="TRIPOINT">
+<wire x1="-15.875" y1="9.17143125" x2="15.875" y2="9.17143125" width="0.127" layer="21"/>
+<wire x1="15.875" y1="9.17143125" x2="0" y2="-18.33676875" width="0.127" layer="21"/>
+<wire x1="0" y1="-18.33676875" x2="-15.875" y2="9.17143125" width="0.127" layer="21"/>
+<smd name="43" x="0" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
+<smd name="42" x="1.5875" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
+<smd name="39" x="6.35" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
+<smd name="38" x="7.9375" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
+<smd name="37" x="9.525" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
+<smd name="36" x="11.1125" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
+<smd name="35" x="12.7" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
+<smd name="44" x="-1.5875" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
+<smd name="47" x="-6.35" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
+<smd name="48" x="-7.9375" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
+<smd name="49" x="-9.525" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
+<smd name="50" x="-11.1125" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
+<smd name="51" x="-12.7" y="9.17143125" dx="1.27" dy="1.905" layer="1"/>
+<smd name="26" x="7.9375" y="-4.58266875" dx="1.27" dy="1.905" layer="1" rot="R60"/>
+<smd name="27" x="8.73125" y="-3.207765625" dx="1.27" dy="1.905" layer="1" rot="R60"/>
+<smd name="28" x="9.525" y="-1.8328625" dx="1.27" dy="1.905" layer="1" rot="R60"/>
+<smd name="29" x="10.31875" y="-0.4579625" dx="1.27" dy="1.905" layer="1" rot="R60"/>
+<smd name="30" x="11.1125" y="0.916940625" dx="1.27" dy="1.905" layer="1" rot="R60"/>
+<smd name="31" x="11.90625" y="2.29184375" dx="1.27" dy="1.905" layer="1" rot="R60"/>
+<smd name="32" x="12.7" y="3.66674375" dx="1.27" dy="1.905" layer="1" rot="R60"/>
+<smd name="33" x="13.49375" y="5.041646875" dx="1.27" dy="1.905" layer="1" rot="R60"/>
+<smd name="34" x="14.2875" y="6.41655" dx="1.27" dy="1.905" layer="1" rot="R60"/>
+<smd name="25" x="7.14375" y="-5.95756875" dx="1.27" dy="1.905" layer="1" rot="R60"/>
+<smd name="24" x="6.35" y="-7.332471875" dx="1.27" dy="1.905" layer="1" rot="R60"/>
+<smd name="23" x="5.55625" y="-8.707375" dx="1.27" dy="1.905" layer="1" rot="R60"/>
+<smd name="22" x="4.7625" y="-10.082275" dx="1.27" dy="1.905" layer="1" rot="R60"/>
+<smd name="21" x="3.96875" y="-11.457178125" dx="1.27" dy="1.905" layer="1" rot="R60"/>
+<smd name="20" x="3.175" y="-12.832078125" dx="1.27" dy="1.905" layer="1" rot="R60"/>
+<smd name="19" x="2.38125" y="-14.20698125" dx="1.27" dy="1.905" layer="1" rot="R60"/>
+<smd name="18" x="1.5875" y="-15.581884375" dx="1.27" dy="1.905" layer="1" rot="R60"/>
+<smd name="9" x="-7.9375" y="-4.58266875" dx="1.27" dy="1.905" layer="1" rot="R120"/>
+<smd name="8" x="-8.73125" y="-3.207765625" dx="1.27" dy="1.905" layer="1" rot="R120"/>
+<smd name="7" x="-9.525" y="-1.8328625" dx="1.27" dy="1.905" layer="1" rot="R120"/>
+<smd name="6" x="-10.31875" y="-0.4579625" dx="1.27" dy="1.905" layer="1" rot="R120"/>
+<smd name="5" x="-11.1125" y="0.916940625" dx="1.27" dy="1.905" layer="1" rot="R120"/>
+<smd name="4" x="-11.90625" y="2.29184375" dx="1.27" dy="1.905" layer="1" rot="R120"/>
+<smd name="3" x="-12.7" y="3.66674375" dx="1.27" dy="1.905" layer="1" rot="R120"/>
+<smd name="2" x="-13.49375" y="5.041646875" dx="1.27" dy="1.905" layer="1" rot="R120"/>
+<smd name="1" x="-14.2875" y="6.41655" dx="1.27" dy="1.905" layer="1" rot="R120"/>
+<smd name="10" x="-7.14375" y="-5.95756875" dx="1.27" dy="1.905" layer="1" rot="R120"/>
+<smd name="11" x="-6.35" y="-7.332471875" dx="1.27" dy="1.905" layer="1" rot="R120"/>
+<smd name="12" x="-5.556253125" y="-8.707375" dx="1.27" dy="1.905" layer="1" rot="R120"/>
+<smd name="13" x="-4.7625" y="-10.082275" dx="1.27" dy="1.905" layer="1" rot="R120"/>
+<smd name="14" x="-3.96875" y="-11.457178125" dx="1.27" dy="1.905" layer="1" rot="R120"/>
+<smd name="15" x="-3.175" y="-12.832078125" dx="1.27" dy="1.905" layer="1" rot="R120"/>
+<smd name="16" x="-2.38125" y="-14.20698125" dx="1.27" dy="1.905" layer="1" rot="R120"/>
+<smd name="17" x="-1.5875" y="-15.581884375" dx="1.27" dy="1.905" layer="1" rot="R120"/>
+<text x="0" y="10.23823125" size="1.016" layer="25" font="vector" ratio="12" align="bottom-center">&gt;NAME</text>
+</package>
+<package name="TRIPOINT-BREAKOUT">
+<wire x1="-15.875" y1="10.44143125" x2="15.875" y2="10.44143125" width="0.127" layer="21"/>
+<wire x1="15.875" y1="10.44143125" x2="0" y2="-17.06676875" width="0.127" layer="21"/>
+<wire x1="0" y1="-17.06676875" x2="-15.875" y2="10.44143125" width="0.127" layer="21"/>
+<smd name="43" x="0" y="13.49196875" dx="1.143" dy="6.096" layer="1"/>
+<smd name="42" x="1.5875" y="13.49196875" dx="1.143" dy="6.096" layer="1"/>
+<smd name="39" x="6.35" y="13.49196875" dx="1.143" dy="6.096" layer="1"/>
+<smd name="38" x="7.9375" y="13.49196875" dx="1.143" dy="6.096" layer="1"/>
+<smd name="37" x="9.525" y="13.49196875" dx="1.143" dy="6.096" layer="1"/>
+<smd name="36" x="11.1125" y="13.49196875" dx="1.143" dy="6.096" layer="1"/>
+<smd name="35" x="12.7" y="13.49196875" dx="1.143" dy="6.096" layer="1"/>
+<smd name="44" x="-1.5875" y="13.49196875" dx="1.143" dy="6.096" layer="1"/>
+<smd name="47" x="-6.35" y="13.49196875" dx="1.143" dy="6.096" layer="1"/>
+<smd name="48" x="-7.9375" y="13.49196875" dx="1.143" dy="6.096" layer="1"/>
+<smd name="49" x="-9.525" y="13.49196875" dx="1.143" dy="6.096" layer="1"/>
+<smd name="50" x="-11.1125" y="13.49196875" dx="1.143" dy="6.096" layer="1"/>
+<smd name="51" x="-12.7" y="13.49196875" dx="1.143" dy="6.096" layer="1"/>
+<smd name="26" x="10.5791" y="-4.839209375" dx="1.143" dy="6.096" layer="1" rot="R60"/>
+<smd name="27" x="11.37285" y="-3.46430625" dx="1.143" dy="6.096" layer="1" rot="R60"/>
+<smd name="28" x="12.1666" y="-2.089403125" dx="1.143" dy="6.096" layer="1" rot="R60"/>
+<smd name="29" x="12.96035" y="-0.714503125" dx="1.143" dy="6.096" layer="1" rot="R60"/>
+<smd name="30" x="13.7541" y="0.6604" dx="1.143" dy="6.096" layer="1" rot="R60"/>
+<smd name="31" x="14.54785" y="2.035303125" dx="1.143" dy="6.096" layer="1" rot="R60"/>
+<smd name="32" x="15.3416" y="3.410203125" dx="1.143" dy="6.096" layer="1" rot="R60"/>
+<smd name="33" x="16.13535" y="4.78510625" dx="1.143" dy="6.096" layer="1" rot="R60"/>
+<smd name="34" x="16.9291" y="6.160009375" dx="1.143" dy="6.096" layer="1" rot="R60"/>
+<smd name="25" x="9.78535" y="-6.214109375" dx="1.143" dy="6.096" layer="1" rot="R60"/>
+<smd name="24" x="8.9916" y="-7.5890125" dx="1.143" dy="6.096" layer="1" rot="R60"/>
+<smd name="23" x="8.19785" y="-8.963915625" dx="1.143" dy="6.096" layer="1" rot="R60"/>
+<smd name="22" x="7.4041" y="-10.338815625" dx="1.143" dy="6.096" layer="1" rot="R60"/>
+<smd name="21" x="6.61035" y="-11.71371875" dx="1.143" dy="6.096" layer="1" rot="R60"/>
+<smd name="20" x="5.8166" y="-13.08861875" dx="1.143" dy="6.096" layer="1" rot="R60"/>
+<smd name="19" x="5.02285" y="-14.463521875" dx="1.143" dy="6.096" layer="1" rot="R60"/>
+<smd name="18" x="4.2291" y="-15.838425" dx="1.143" dy="6.096" layer="1" rot="R60"/>
+<smd name="9" x="-10.5791" y="-4.839209375" dx="1.143" dy="6.096" layer="1" rot="R120"/>
+<smd name="8" x="-11.37285" y="-3.46430625" dx="1.143" dy="6.096" layer="1" rot="R120"/>
+<smd name="7" x="-12.1666" y="-2.089403125" dx="1.143" dy="6.096" layer="1" rot="R120"/>
+<smd name="6" x="-12.96035" y="-0.714503125" dx="1.143" dy="6.096" layer="1" rot="R120"/>
+<smd name="5" x="-13.7541" y="0.6604" dx="1.143" dy="6.096" layer="1" rot="R120"/>
+<smd name="4" x="-14.54785" y="2.035303125" dx="1.143" dy="6.096" layer="1" rot="R120"/>
+<smd name="3" x="-15.3416" y="3.410203125" dx="1.143" dy="6.096" layer="1" rot="R120"/>
+<smd name="2" x="-16.13535" y="4.78510625" dx="1.143" dy="6.096" layer="1" rot="R120"/>
+<smd name="1" x="-16.9291" y="6.160009375" dx="1.143" dy="6.096" layer="1" rot="R120"/>
+<smd name="10" x="-9.78535" y="-6.214109375" dx="1.143" dy="6.096" layer="1" rot="R120"/>
+<smd name="11" x="-8.9916" y="-7.5890125" dx="1.143" dy="6.096" layer="1" rot="R120"/>
+<smd name="12" x="-8.197853125" y="-8.963915625" dx="1.143" dy="6.096" layer="1" rot="R120"/>
+<smd name="13" x="-7.4041" y="-10.338815625" dx="1.143" dy="6.096" layer="1" rot="R120"/>
+<smd name="14" x="-6.61035" y="-11.71371875" dx="1.143" dy="6.096" layer="1" rot="R120"/>
+<smd name="15" x="-5.8166" y="-13.08861875" dx="1.143" dy="6.096" layer="1" rot="R120"/>
+<smd name="16" x="-5.02285" y="-14.463521875" dx="1.143" dy="6.096" layer="1" rot="R120"/>
+<smd name="17" x="-4.2291" y="-15.838425" dx="1.143" dy="6.096" layer="1" rot="R120"/>
+<text x="0" y="0" size="1.016" layer="25" font="vector" ratio="12" align="bottom-center">&gt;NAME</text>
+<wire x1="-15.875" y1="13.44168125" x2="15.875" y2="13.44168125" width="0.127" layer="21"/>
+<wire x1="18.47341875" y1="8.9408" x2="2.59841875" y2="-18.5547" width="0.127" layer="21"/>
+<wire x1="-2.59841875" y1="-18.5547" x2="-18.47341875" y2="8.9408" width="0.127" layer="21"/>
+<wire x1="-15.875" y1="15.01648125" x2="15.875" y2="15.01648125" width="0.127" layer="21"/>
+<wire x1="15.875" y1="15.01648125" x2="15.875" y2="13.44168125" width="0.127" layer="21"/>
+<wire x1="-15.875" y1="15.01648125" x2="-15.875" y2="13.44168125" width="0.127" layer="21"/>
+<wire x1="18.47341875" y1="8.9408" x2="19.8374" y2="8.1534" width="0.127" layer="21"/>
+<wire x1="-18.47341875" y1="8.9408" x2="-19.8374" y2="8.1534" width="0.127" layer="21"/>
+<wire x1="2.59841875" y1="-18.5547" x2="3.9624" y2="-19.3421" width="0.127" layer="21"/>
+<wire x1="19.8374" y1="8.1534" x2="3.9624" y2="-19.3421" width="0.127" layer="21"/>
+<wire x1="-2.59841875" y1="-18.5547" x2="-3.9624" y2="-19.3421" width="0.127" layer="21"/>
+<wire x1="-19.8374" y1="8.1534" x2="-3.9624" y2="-19.3421" width="0.127" layer="21"/>
+<smd name="SOLDERPAD2" x="16.51" y="14.22908125" dx="2.54" dy="3.81" layer="1"/>
+<smd name="SOLDERPAD3" x="19.42591875" y="8.89" dx="2.54" dy="3.81" layer="1" rot="R60"/>
+<smd name="SOLDERPAD1" x="-16.51" y="14.22908125" dx="2.54" dy="3.81" layer="1"/>
+<smd name="SOLDERPAD6" x="-19.304" y="9.01191875" dx="2.54" dy="3.81" layer="1" rot="R120"/>
+<smd name="SOLDERPAD4" x="3.16991875" y="-19.304" dx="2.54" dy="3.81" layer="1" rot="R60"/>
+<smd name="SOLDERPAD5" x="-3.048" y="-19.43608125" dx="2.54" dy="3.81" layer="1" rot="R120"/>
+</package>
+</packages>
+<symbols>
+<symbol name="TRIPOINT">
+<pin name="VCC" x="-22.86" y="15.24" length="short"/>
+<wire x1="17.78" y1="17.78" x2="-20.32" y2="17.78" width="0.254" layer="94"/>
+<wire x1="-20.32" y1="17.78" x2="-20.32" y2="-35.56" width="0.254" layer="94"/>
+<wire x1="-20.32" y1="-35.56" x2="17.78" y2="-35.56" width="0.254" layer="94"/>
+<wire x1="17.78" y1="-35.56" x2="17.78" y2="17.78" width="0.254" layer="94"/>
+<pin name="SCL" x="-22.86" y="10.16" length="short"/>
+<pin name="SDA" x="-22.86" y="7.62" length="short"/>
+<pin name="INTERRUPT" x="-22.86" y="2.54" length="short"/>
+<pin name="GPIO0" x="-22.86" y="-2.54" length="short"/>
+<pin name="GPIO1" x="-22.86" y="-5.08" length="short"/>
+<pin name="GPIO2" x="-22.86" y="-7.62" length="short"/>
+<pin name="GPIO3" x="-22.86" y="-10.16" length="short"/>
+<pin name="GPIO4" x="-22.86" y="-12.7" length="short"/>
+<pin name="ANT1" x="20.32" y="12.7" length="short" rot="R180"/>
+<pin name="ANT2" x="20.32" y="7.62" length="short" rot="R180"/>
+<pin name="ANT3" x="20.32" y="2.54" length="short" rot="R180"/>
+<pin name="GND" x="-22.86" y="-17.78" length="short"/>
+<pin name="SWDIO" x="20.32" y="-10.16" length="short" rot="R180"/>
+<pin name="SWDCLK" x="20.32" y="-12.7" length="short" rot="R180"/>
+<pin name="!RESET" x="20.32" y="-15.24" length="short" rot="R180"/>
+<text x="-20.32" y="18.288" size="1.778" layer="95" ratio="12">&gt;NAME</text>
+<text x="-20.32" y="-38.1" size="1.778" layer="96" ratio="12">&gt;VALUE</text>
+<pin name="!DEBUG_DW_RST" x="20.32" y="-20.32" length="short" rot="R180"/>
+<pin name="DEBUG_DW_IRQ" x="20.32" y="-22.86" length="short" rot="R180"/>
+<pin name="DEBUG_DW_MOSI" x="20.32" y="-25.4" length="short" rot="R180"/>
+<pin name="DEBUG_DW_MISO" x="20.32" y="-27.94" length="short" rot="R180"/>
+<pin name="DEBUG_DW_CLK" x="20.32" y="-30.48" length="short" rot="R180"/>
+<pin name="!DEBUG_DW_CS" x="20.32" y="-33.02" length="short" rot="R180"/>
+<pin name="DW_SYNC" x="20.32" y="-2.54" length="short" rot="R180"/>
+<pin name="DW_XTAL1" x="20.32" y="-5.08" length="short" rot="R180"/>
+</symbol>
+</symbols>
+<devicesets>
+<deviceset name="TRIPOINT" prefix="U">
+<description>UWB Ranging Module</description>
+<gates>
+<gate name="G$1" symbol="TRIPOINT" x="0" y="0"/>
+</gates>
+<devices>
+<device name="AA" package="TRIPOINT">
+<connects>
+<connect gate="G$1" pin="!DEBUG_DW_CS" pad="23"/>
+<connect gate="G$1" pin="!DEBUG_DW_RST" pad="24"/>
+<connect gate="G$1" pin="!RESET" pad="30"/>
+<connect gate="G$1" pin="ANT1" pad="9"/>
+<connect gate="G$1" pin="ANT2" pad="26"/>
+<connect gate="G$1" pin="ANT3" pad="43"/>
+<connect gate="G$1" pin="DEBUG_DW_CLK" pad="22"/>
+<connect gate="G$1" pin="DEBUG_DW_IRQ" pad="39"/>
+<connect gate="G$1" pin="DEBUG_DW_MISO" pad="21"/>
+<connect gate="G$1" pin="DEBUG_DW_MOSI" pad="20"/>
+<connect gate="G$1" pin="DW_SYNC" pad="19"/>
+<connect gate="G$1" pin="DW_XTAL1" pad="49"/>
+<connect gate="G$1" pin="GND" pad="8 10 18 25 27 42 44"/>
+<connect gate="G$1" pin="GPIO0" pad="31"/>
+<connect gate="G$1" pin="GPIO1" pad="32"/>
+<connect gate="G$1" pin="GPIO2" pad="33"/>
+<connect gate="G$1" pin="GPIO3" pad="34"/>
+<connect gate="G$1" pin="GPIO4" pad="35"/>
+<connect gate="G$1" pin="INTERRUPT" pad="38"/>
+<connect gate="G$1" pin="SCL" pad="37"/>
+<connect gate="G$1" pin="SDA" pad="36"/>
+<connect gate="G$1" pin="SWDCLK" pad="29"/>
+<connect gate="G$1" pin="SWDIO" pad="28"/>
+<connect gate="G$1" pin="VCC" pad="17"/>
+</connects>
+<technologies>
+<technology name=""/>
+</technologies>
+</device>
+<device name="-BREAKOUT" package="TRIPOINT-BREAKOUT">
+<connects>
+<connect gate="G$1" pin="!DEBUG_DW_CS" pad="23"/>
+<connect gate="G$1" pin="!DEBUG_DW_RST" pad="24"/>
+<connect gate="G$1" pin="!RESET" pad="30"/>
+<connect gate="G$1" pin="ANT1" pad="9"/>
+<connect gate="G$1" pin="ANT2" pad="26"/>
+<connect gate="G$1" pin="ANT3" pad="43"/>
+<connect gate="G$1" pin="DEBUG_DW_CLK" pad="22"/>
+<connect gate="G$1" pin="DEBUG_DW_IRQ" pad="39"/>
+<connect gate="G$1" pin="DEBUG_DW_MISO" pad="21"/>
+<connect gate="G$1" pin="DEBUG_DW_MOSI" pad="20"/>
+<connect gate="G$1" pin="DW_SYNC" pad="19"/>
+<connect gate="G$1" pin="DW_XTAL1" pad="49"/>
+<connect gate="G$1" pin="GND" pad="8 10 18 25 27 42 44"/>
+<connect gate="G$1" pin="GPIO0" pad="31"/>
+<connect gate="G$1" pin="GPIO1" pad="32"/>
+<connect gate="G$1" pin="GPIO2" pad="33"/>
+<connect gate="G$1" pin="GPIO3" pad="34"/>
+<connect gate="G$1" pin="GPIO4" pad="35"/>
+<connect gate="G$1" pin="INTERRUPT" pad="38"/>
+<connect gate="G$1" pin="SCL" pad="37"/>
+<connect gate="G$1" pin="SDA" pad="36"/>
+<connect gate="G$1" pin="SWDCLK" pad="29"/>
+<connect gate="G$1" pin="SWDIO" pad="28"/>
+<connect gate="G$1" pin="VCC" pad="17"/>
+</connects>
+<technologies>
+<technology name=""/>
+</technologies>
+</device>
+</devices>
+</deviceset>
+</devicesets>
+</library>
 </libraries>
 <attributes>
 <attribute name="AUTHOR" value="Brad Campbell"/>
@@ -3905,7 +4007,6 @@ Standard schematic elements and footprints for 5mm, 3mm, 1206, and 0603 sized LE
 <part name="R1" library="passives" deviceset="RESISTOR" device="0402_RES" value="1k"/>
 <part name="D2" library="SparkFun-LED" deviceset="LED" device="0603" value="BLUE"/>
 <part name="P+5" library="supply1" deviceset="VCC" device=""/>
-<part name="U2" library="tripoint" deviceset="TRIPOINT" device=""/>
 <part name="P+6" library="supply1" deviceset="VCC" device=""/>
 <part name="GND1" library="supply1" deviceset="GND" device=""/>
 <part name="P+7" library="supply1" deviceset="VCC" device=""/>
@@ -3930,6 +4031,7 @@ Standard schematic elements and footprints for 5mm, 3mm, 1206, and 0603 sized LE
 <part name="H7" library="holes" deviceset="MOUNT-HOLE" device="3.2"/>
 <part name="H8" library="holes" deviceset="MOUNT-HOLE" device="3.2"/>
 <part name="JP1" library="pinhead" deviceset="PINHD-2X10" device=""/>
+<part name="U2" library="tripoint" deviceset="TRIPOINT" device="-BREAKOUT"/>
 </parts>
 <sheets>
 <sheet>
@@ -3977,7 +4079,6 @@ Standard schematic elements and footprints for 5mm, 3mm, 1206, and 0603 sized LE
 <instance part="R1" gate="G$1" x="99.06" y="121.92" rot="R90"/>
 <instance part="D2" gate="G$1" x="99.06" y="111.76"/>
 <instance part="P+5" gate="VCC" x="99.06" y="132.08"/>
-<instance part="U2" gate="G$1" x="167.64" y="121.92"/>
 <instance part="P+6" gate="VCC" x="241.3" y="119.38"/>
 <instance part="GND1" gate="1" x="241.3" y="96.52"/>
 <instance part="P+7" gate="VCC" x="142.24" y="144.78"/>
@@ -3994,6 +4095,7 @@ Standard schematic elements and footprints for 5mm, 3mm, 1206, and 0603 sized LE
 <instance part="H7" gate="G$1" x="185.42" y="30.48"/>
 <instance part="H8" gate="G$1" x="185.42" y="25.4"/>
 <instance part="JP1" gate="A" x="218.44" y="66.04"/>
+<instance part="U2" gate="G$1" x="167.64" y="121.92"/>
 </instances>
 <busses>
 </busses>
@@ -4121,10 +4223,10 @@ Standard schematic elements and footprints for 5mm, 3mm, 1206, and 0603 sized LE
 <pinref part="J3" gate="G$1" pin="GND"/>
 </segment>
 <segment>
-<pinref part="U2" gate="G$1" pin="GND"/>
 <wire x1="144.78" y1="104.14" x2="142.24" y2="104.14" width="0.1524" layer="91"/>
 <pinref part="GND2" gate="1" pin="GND"/>
 <wire x1="142.24" y1="104.14" x2="142.24" y2="96.52" width="0.1524" layer="91"/>
+<pinref part="U2" gate="G$1" pin="GND"/>
 </segment>
 <segment>
 <pinref part="A1" gate="G$1" pin="P$4"/>
@@ -4220,10 +4322,10 @@ Standard schematic elements and footprints for 5mm, 3mm, 1206, and 0603 sized LE
 <pinref part="J3" gate="G$1" pin="VCC"/>
 </segment>
 <segment>
-<pinref part="U2" gate="G$1" pin="VCC"/>
 <pinref part="P+7" gate="VCC" pin="VCC"/>
 <wire x1="144.78" y1="137.16" x2="142.24" y2="137.16" width="0.1524" layer="91"/>
 <wire x1="142.24" y1="137.16" x2="142.24" y2="142.24" width="0.1524" layer="91"/>
+<pinref part="U2" gate="G$1" pin="VCC"/>
 </segment>
 </net>
 <net name="N$15" class="0">
@@ -4255,7 +4357,6 @@ Standard schematic elements and footprints for 5mm, 3mm, 1206, and 0603 sized LE
 </net>
 <net name="DW_INT" class="0">
 <segment>
-<pinref part="U2" gate="G$1" pin="INTERRUPT"/>
 <wire x1="144.78" y1="124.46" x2="111.76" y2="124.46" width="0.1524" layer="91"/>
 <wire x1="111.76" y1="124.46" x2="111.76" y2="93.98" width="0.1524" layer="91"/>
 <label x="93.98" y="81.28" size="1.27" layer="95" xref="yes"/>
@@ -4265,6 +4366,7 @@ Standard schematic elements and footprints for 5mm, 3mm, 1206, and 0603 sized LE
 <wire x1="111.76" y1="93.98" x2="91.44" y2="93.98" width="0.1524" layer="91"/>
 <wire x1="91.44" y1="93.98" x2="91.44" y2="81.28" width="0.1524" layer="91"/>
 <junction x="91.44" y="81.28"/>
+<pinref part="U2" gate="G$1" pin="INTERRUPT"/>
 </segment>
 </net>
 <net name="I2C_SDA" class="0">
@@ -4276,12 +4378,12 @@ Standard schematic elements and footprints for 5mm, 3mm, 1206, and 0603 sized LE
 <pinref part="U1" gate="G$1" pin="P29"/>
 <wire x1="86.36" y1="71.12" x2="109.22" y2="71.12" width="0.1524" layer="91"/>
 <wire x1="109.22" y1="71.12" x2="109.22" y2="129.54" width="0.1524" layer="91"/>
-<pinref part="U2" gate="G$1" pin="SDA"/>
 <wire x1="109.22" y1="129.54" x2="119.38" y2="129.54" width="0.1524" layer="91"/>
 <wire x1="119.38" y1="129.54" x2="144.78" y2="129.54" width="0.1524" layer="91"/>
 <wire x1="119.38" y1="137.16" x2="119.38" y2="129.54" width="0.1524" layer="91"/>
 <junction x="119.38" y="137.16"/>
 <junction x="119.38" y="129.54"/>
+<pinref part="U2" gate="G$1" pin="SDA"/>
 </segment>
 </net>
 <net name="I2C_SCL" class="0">
@@ -4290,7 +4392,6 @@ Standard schematic elements and footprints for 5mm, 3mm, 1206, and 0603 sized LE
 <wire x1="127" y1="139.7" x2="127" y2="137.16" width="0.1524" layer="91"/>
 <wire x1="127" y1="137.16" x2="129.54" y2="137.16" width="0.1524" layer="91"/>
 <label x="129.54" y="137.16" size="1.27" layer="95" xref="yes"/>
-<pinref part="U2" gate="G$1" pin="SCL"/>
 <wire x1="144.78" y1="132.08" x2="127" y2="132.08" width="0.1524" layer="91"/>
 <wire x1="127" y1="132.08" x2="106.68" y2="132.08" width="0.1524" layer="91"/>
 <wire x1="106.68" y1="132.08" x2="106.68" y2="73.66" width="0.1524" layer="91"/>
@@ -4299,6 +4400,7 @@ Standard schematic elements and footprints for 5mm, 3mm, 1206, and 0603 sized LE
 <wire x1="127" y1="137.16" x2="127" y2="132.08" width="0.1524" layer="91"/>
 <junction x="127" y="137.16"/>
 <junction x="127" y="132.08"/>
+<pinref part="U2" gate="G$1" pin="SCL"/>
 </segment>
 </net>
 <net name="N$17" class="0">
@@ -4384,50 +4486,50 @@ Standard schematic elements and footprints for 5mm, 3mm, 1206, and 0603 sized LE
 </net>
 <net name="N$1" class="0">
 <segment>
-<pinref part="U2" gate="G$1" pin="ANT1"/>
 <wire x1="187.96" y1="134.62" x2="195.58" y2="134.62" width="0.1524" layer="91"/>
 <wire x1="195.58" y1="134.62" x2="195.58" y2="144.78" width="0.1524" layer="91"/>
+<pinref part="U2" gate="G$1" pin="ANT1"/>
 </segment>
 </net>
 <net name="N$2" class="0">
 <segment>
-<pinref part="U2" gate="G$1" pin="ANT2"/>
 <wire x1="187.96" y1="129.54" x2="213.36" y2="129.54" width="0.1524" layer="91"/>
 <wire x1="213.36" y1="129.54" x2="213.36" y2="144.78" width="0.1524" layer="91"/>
+<pinref part="U2" gate="G$1" pin="ANT2"/>
 </segment>
 </net>
 <net name="N$3" class="0">
 <segment>
-<pinref part="U2" gate="G$1" pin="ANT3"/>
 <wire x1="187.96" y1="124.46" x2="231.14" y2="124.46" width="0.1524" layer="91"/>
 <wire x1="231.14" y1="124.46" x2="231.14" y2="144.78" width="0.1524" layer="91"/>
+<pinref part="U2" gate="G$1" pin="ANT3"/>
 </segment>
 </net>
 <net name="N$4" class="0">
 <segment>
-<pinref part="U2" gate="G$1" pin="SWDIO"/>
 <wire x1="187.96" y1="111.76" x2="195.58" y2="111.76" width="0.1524" layer="91"/>
 <wire x1="195.58" y1="111.76" x2="195.58" y2="114.3" width="0.1524" layer="91"/>
 <wire x1="195.58" y1="114.3" x2="213.36" y2="114.3" width="0.1524" layer="91"/>
 <pinref part="J3" gate="G$1" pin="SWDIO"/>
+<pinref part="U2" gate="G$1" pin="SWDIO"/>
 </segment>
 </net>
 <net name="N$7" class="0">
 <segment>
 <wire x1="213.36" y1="111.76" x2="198.12" y2="111.76" width="0.1524" layer="91"/>
 <wire x1="198.12" y1="111.76" x2="198.12" y2="109.22" width="0.1524" layer="91"/>
-<pinref part="U2" gate="G$1" pin="SWDCLK"/>
 <wire x1="198.12" y1="109.22" x2="187.96" y2="109.22" width="0.1524" layer="91"/>
 <pinref part="J3" gate="G$1" pin="SWDCLK"/>
+<pinref part="U2" gate="G$1" pin="SWDCLK"/>
 </segment>
 </net>
 <net name="N$8" class="0">
 <segment>
-<pinref part="U2" gate="G$1" pin="!RESET"/>
 <wire x1="187.96" y1="106.68" x2="198.12" y2="106.68" width="0.1524" layer="91"/>
 <wire x1="198.12" y1="106.68" x2="198.12" y2="104.14" width="0.1524" layer="91"/>
 <wire x1="198.12" y1="104.14" x2="213.36" y2="104.14" width="0.1524" layer="91"/>
 <pinref part="J3" gate="G$1" pin="!RESET"/>
+<pinref part="U2" gate="G$1" pin="!RESET"/>
 </segment>
 </net>
 <net name="BATIN" class="0">
