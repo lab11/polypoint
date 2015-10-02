@@ -9,11 +9,11 @@
                 "parents": {
                     "/*": [
                         {
-                            "xml": "<feature name=\"Whitelist\"><param name=\"android-package\" value=\"org.apache.cordova.whitelist.WhitelistPlugin\" /><param name=\"onload\" value=\"true\" /></feature>",
+                            "xml": "<feature name=\"BluetoothLePlugin\"><param name=\"android-package\" value=\"com.randdusing.bluetoothle.BluetoothLePlugin\" /></feature>",
                             "count": 1
                         },
                         {
-                            "xml": "<feature name=\"BluetoothLePlugin\"><param name=\"android-package\" value=\"com.randdusing.bluetoothle.BluetoothLePlugin\" /></feature>",
+                            "xml": "<feature name=\"Whitelist\"><param name=\"android-package\" value=\"org.apache.cordova.whitelist.WhitelistPlugin\" /><param name=\"onload\" value=\"true\" /></feature>",
                             "count": 1
                         }
                     ],
@@ -43,16 +43,16 @@
         }
     },
     "installed_plugins": {
-        "cordova-plugin-whitelist": {
+        "cordova-plugin-ble-central": {
             "PACKAGE_NAME": "edu.umich.eecs.lab11.bleesApp"
         },
-        "com.megster.cordova.ble": {
+        "com.randdusing.bluetoothle": {
             "PACKAGE_NAME": "edu.umich.eecs.lab11.bleesApp"
         },
         "cordova-plugin-console": {
             "PACKAGE_NAME": "edu.umich.eecs.lab11.bleesApp"
         },
-        "com.randdusing.bluetoothle": {
+        "cordova-plugin-whitelist": {
             "PACKAGE_NAME": "edu.umich.eecs.lab11.bleesApp"
         }
     },
