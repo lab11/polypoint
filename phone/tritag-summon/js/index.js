@@ -24,7 +24,7 @@ var app = {
     initialize: function () {
         // app.log("whereami");
 
-        app.log('init cb setup11');
+        app.log('init cb setup12');
         console.log('WHAT ARE WE DOING HERE');
 
         if (window.cordova) {
