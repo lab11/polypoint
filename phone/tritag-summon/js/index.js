@@ -3,10 +3,14 @@ var device_id = '';
 var device_name = '';
 
 // Known constants for TriTag
-var uuid_service_tritag = '';
-var uuid_tritag_char_raw = '';
-var uuid_tritag_char_startstop = '';
-var uuid_tritag_char_calibration = '';
+var uuid_service_tritag = 'd68c3152-a23f-ee90-0c45-5231395e5d2e';
+var uuid_tritag_char_raw = 'd68c3153-a23f-ee90-0c45-5231395e5d2e';
+var uuid_tritag_char_startstop = 'd68c3154-a23f-ee90-0c45-5231395e5d2e';
+var uuid_tritag_char_calibration = 'd68c3159-a23f-ee90-0c45-5231395e5d2e';
+
+// Interrupt reasons
+var TRIPOINT_READ_INT_RANGES = 1
+var TRIPOINT_READ_INT_CALIBRATION = 2
 
 // Application state
 // var device_connected = false;
@@ -19,21 +23,78 @@ var switch_visibility_console_check = "visible";
 var switch_visibility_steadyscan_check = "visible";
 var steadyscan_on = true;
 
+
+function buf_to_eui (b, offset) {
+    var eui = '';
+    for (var i=0; i<8; i++) {
+        var val = new Uint8Array(b, offset+i, 1)[0];
+        var val = val.toString(16);
+        if (val.length == 1) {
+            val = '0' + val;
+        }
+        eui = val+eui;
+        if (i<7) {
+            eui = ':' + eui;
+        }
+    }
+    return eui;
+}
+
+function encoded_mm_to_meters (b, offset) {
+    var mm = new Int32Array(b, offset, 1)[0];
+    return mm / 1000.0;
+}
+
+function process_raw_buffer (buf) {
+    // The first byte is the reason byte. This tells us what the TriPoint
+    // is sending back to us.
+    var reason_byte = new Uint8Array(buf, 0, 1)[0];
+
+    app.log('reason: ' + reason_byte);
+
+    // Process the buffer correctly
+    if (reason_byte == TRIPOINT_READ_INT_RANGES) {
+        // Got range data from TriPoint
+        // How many?
+        var num_ranges = new Uint8Array(buf, 1, 1)[0];
+        if (num_ranges == 0) {
+            app.log('Got range, 0 anchors');
+        } else {
+            var offset_start = 2;
+            var instance_length = 12;
+            var ranges = {};
+            for (var i=0; i<num_ranges; i++) {
+                var start = offset_start + (i*instance_length);
+                var eui = buf_to_eui(data, start);
+                var range = encoded_mm_to_meters(data, start+8);
+                app.log(eui);
+                app.log(range);
+                ranges[eui] = range;
+            }
+
+            // Got ranges
+            app.log('Got ' + num_ranges + ' ranges');
+            app.log(JSON.stringify(ranges));
+        }
+    }
+}
+
+
+
 var app = {
     // Application Constructor
     initialize: function () {
         // app.log("whereami");
 
-        app.log('init cb setup12');
-        console.log('WHAT ARE WE DOING HERE');
+        app.log('init cb setup19');
 
         if (window.cordova) {
             app.log('cordova is here');
         }
 
-        document.addEventListener("deviceready", this.onAppReady, false);
-        // document.addEventListener("resume", app.onAppReady, false);
-        // document.addEventListener("pause", app.onAppPause, false);
+        document.addEventListener("deviceready", app.onAppReady, false);
+        document.addEventListener("resume", app.onAppReady, false);
+        document.addEventListener("pause", app.onAppPause, false);
 
         //bleesimg.addEventListener('touchend', app.onTouch, false);                // if bulb image touched, goto: onToggle
         //bleesimg.addEventListener('touchstart', app.onStartTimer, false);         // if bulb image touched, goto: onToggle
@@ -80,8 +141,10 @@ var app = {
             // Try to connect to the device that was selected.
             // ble.connect(device_id, app.bleDeviceConnected, app.bleDeviceConnectionError);
 
-            app.log('start scan');
-            ble.startScan([], app.blePeripheralDiscovered);
+            // app.log('start scan');
+            // ble.startScan([], app.blePeripheralDiscovered);
+
+            ble.isEnabled(app.bleEnabled, app.bleDisabled);
 
         } else {
             // Not opened in Summon. Don't know what to do with this.
@@ -89,7 +152,7 @@ var app = {
         }
 
         // app.log("Checking if ble is enabled...");
-        // // ble.isEnabled(app.bleEnabled, app.bleDisabled);
+        // ble.isEnabled(app.bleEnabled, app.bleDisabled);
         // app.bleEnabled();
     },
     // App Paused Event Handler
@@ -100,7 +163,7 @@ var app = {
         // if (device_connected) {
         //     app.log("Disconnecting from BLEES device!");
         //     bluetoothle.disconnect(app.ondisconnectsuccess, app.onError, { "address": deviceId});
-        //     ble.disconnect(deviceId);
+            ble.disconnect(device_id);
         //     bluetoothle.close(app.ondisconnectsuccess, app.onError, { "address": deviceId});
         //     device_connected = false;
         // }
@@ -108,23 +171,55 @@ var app = {
 
     // Callbacks to make sure that the phone has BLE enabled.
     bleEnabled: function () {
-        app.log('Started BLE scan.');
+        app.log('BLE is enabled.');
         // Start scanning. Since we don't have space to advertise a service UUID,
         // we must look for all peripherals.
         // ble.startScan([], app.blePeripheralDiscovered);
         // app.log("Searching for " + deviceName + " (" + deviceId + ").");
+
+        app.log('Trying to connect to the proper TriTag.');
+        ble.connect(device_id, app.bleDeviceConnected, app.bleDeviceConnectionError);
     },
     bleDisabled: function () {
         app.log('BLE disabled. Boo.');
-        $('#log').append('BLE disabled.');
     },
 
     bleDeviceConnected: function (device) {
         app.log('Successfully connected to TriTag');
+
+        console.log(JSON.stringify(device));
+
+        ble.startNotification(device_id, uuid_service_tritag, uuid_tritag_char_raw,
+          app.bleRawBufferNotify, app.bleRawBufferNotifyError);
     },
 
     bleDeviceConnectionError: function (err) {
         app.log('Error connecting to TriTag');
+        app.log('TriTag reconnecting try');
+
+        ble.connect(device_id, app.bleDeviceConnected, app.bleDeviceConnectionError);
+    },
+
+    bleRawBufferNotify: function (data) {
+        app.log('got notify data');
+        process_raw_buffer(data);
+    },
+
+    bleRawBufferNotifyError: function (err) {
+        app.log('Notify raw buffer error.');
+    },
+
+    bleTestRead: function (data) {
+        app.log('read');
+        app.log(data);
+
+
+    },
+
+    bleTestReadFail: function (err) {
+        app.log('error read');
+
+
     },
 
     // Found a peripheral. This will get called multiple times, and we only
