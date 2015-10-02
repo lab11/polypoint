@@ -3,13 +3,13 @@
 
 #include "app_timer.h"
 
-#define PHYSWEB_URL "goo.gl/XMRl3M"
+#define PHYSWEB_URL "goo.gl/Edukt0"
 
-#define APP_COMPANY_IDENTIFIER			0x11BB
-#define MANUFACTURER_NAME 				"Lab11UMich"
-#define MODEL_NUMBER 					DEVICE_NAME
-#define HARDWARE_REVISION 				"A"
-#define FIRMWARE_REVISION 				"0.1"
+#define APP_COMPANY_IDENTIFIER 0x11BB
+#define MANUFACTURER_NAME      "Lab11UMich"
+#define MODEL_NUMBER           DEVICE_NAME
+#define HARDWARE_REVISION      "A"
+#define FIRMWARE_REVISION      "0.1"
 
 
 #define UPDATE_RATE                     APP_TIMER_TICKS(1000, 0)
