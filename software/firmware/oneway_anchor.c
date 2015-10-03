@@ -386,6 +386,8 @@ static void anchor_rxcallback (const dwt_callback_data_t *rxd) {
 
 		} else {
 			// Other message types go here, if they get added
+			// We do want to enter RX mode again, however
+			dwt_rxenable(0);
 		}
 
 	} else {
