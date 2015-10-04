@@ -37,7 +37,8 @@ function buf_to_eui (dv, offset) {
 }
 
 function encoded_mm_to_meters (dv, offset) {
-    var mm = dv.getInt32(offset);
+    // Read the value as little-endian
+    var mm = dv.getInt32(offset, true);
     return mm / 1000.0;
 }
 
@@ -47,8 +48,6 @@ function process_raw_buffer (buf) {
     // The first byte is the reason byte. This tells us what the TriPoint
     // is sending back to us.
     var reason_byte = dv.getUint8(0);
-
-    app.log('reason: ' + reason_byte);
 
     // Process the buffer correctly
     if (reason_byte == TRIPOINT_READ_INT_RANGES) {
@@ -66,17 +65,11 @@ function process_raw_buffer (buf) {
                 var start = offset_start + (i*instance_length);
                 var eui = buf_to_eui(dv, start);
                 var range = encoded_mm_to_meters(dv, start+8);
-                app.log(eui);
-                app.log(range);
                 ranges[eui] = range;
             }
 
             // Got ranges
-            app.log('Got ' + num_ranges + ' ranges');
             app.log(JSON.stringify(ranges));
-            if (num_ranges < 3) {
-              app.update_location('Only got ' + num_ranges + ' ranges.');
-            }
         }
     }
 }
