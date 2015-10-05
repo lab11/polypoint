@@ -37,6 +37,11 @@ def dist_to_dwtime(dist):
 	dwtime = dist / (DWT_TIME_UNITS * SPEED_OF_LIGHT)
 	return dwtime
 
+def nodeid_to_tripoint_id(nodeid):
+	tripoint_base = 'c0:98:e5:50:50:44:5'
+	out = '{}{}:{}'.format(tripoint_base, nodeid[9], nodeid[10:])
+	return out
+
 # Distance in dwtime between tags
 l = dist_to_dwtime(0.15)
 
@@ -95,7 +100,7 @@ for node in ('A', 'B', 'C'):
 			print(rej)
 			calibration[node][conf] = -1
 		else:
-			calibration[node][conf] = np.mean(rej)
+			calibration[node][conf] = int(round(np.mean(rej)))
 
 pprint.pprint(calibration)
 
@@ -132,7 +137,7 @@ header.extend(map(str, print_order))
 outdata.append(header)
 
 for node_id in sorted(nodes.keys()):
-	row = [node_id,]
+	row = [nodeid_to_tripoint_id(node_id),]
 	row.extend(nodes[node_id])
 	outdata.append(row)
 
