@@ -22,11 +22,11 @@ https://www.segger.com/jlink-6-pin-needle-adapter.html.
 
 4. Program the STM32F0, and set the ID:
 
-	make flash ID=c0:98:e5:50:50:00:00:01
+        make flash ID=c0:98:e5:50:50:00:00:01
         
     If you have multiple JLink boxes attached to your computer:
     
-	SEGGER_SERIAL=<segger id> make flash ID=c0:98:e5:50:50:00:00:01
+        SEGGER_SERIAL=<segger id> make flash ID=c0:98:e5:50:50:00:00:01
 
 
 I2C API
