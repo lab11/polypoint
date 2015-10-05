@@ -25,6 +25,11 @@ with open(CALIBRATIONS_FNAME) as f:
 		if values[0] == ID:
 			# Found the calibration values
 			calib_values = values[1:]
+			# Check if there were calibration values we couldn't get.
+			# If so, use the default value.
+			for i in range(len(calib_values)):
+				if calib_values[i] == -1:
+					calib_values[i] = DEFAULT_CALIB
 			break
 	else:
 		print('Did not find calibration values for {}'.format(ID), file=sys.stderr)
