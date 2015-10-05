@@ -58,6 +58,7 @@ function process_raw_buffer (buf) {
             app.log('Got range, 0 anchors');
             app.update_location('Didn\'t get any ranges.');
         } else {
+            app.log('Got ' + num_ranges + ' ranges.');
             var offset_start = 2;
             var instance_length = 12;
             var ranges = {};
@@ -71,7 +72,10 @@ function process_raw_buffer (buf) {
             // Got ranges
             app.log(JSON.stringify(ranges));
         }
+    } else {
+        app.log('Got different reason byte: ' + reason_byte);
     }
+
 }
 
 
@@ -140,16 +144,27 @@ var app = {
 
     bleRawBufferNotify: function (data) {
         app.log('got notify data');
-        process_raw_buffer(data);
+
+        // Read to get the rest of the buffer
+        ble.read(device_id, uuid_service_tritag, uuid_tritag_char_raw,
+          app.bleRawBufferRead, app.bleRawBufferReadError);
+        // process_raw_buffer(data);
     },
 
     bleRawBufferNotifyError: function (err) {
         app.log('Notify raw buffer error.');
     },
 
+    bleRawBufferRead: function (data) {
+        process_raw_buffer(data);
+    },
+    bleRawBufferReadError: function (err) {
+        app.log('Read raw buf error');
+    },
+
     update_location: function (str) {
       // $('#location').text(str);
-    document.querySelector("#location").innerHTML = str;
+        document.querySelector("#location").innerHTML = str;
 
     },
     // Function to Log Text to Screen
