@@ -282,8 +282,6 @@ int main (void) {
 
     // Start the ranging!!!
     if (tripoint_inited) {
-        uint8_t b[32];
-        tripoint_get_calibration(b);
         tripoint_start_ranging(true, 10);
     }
 

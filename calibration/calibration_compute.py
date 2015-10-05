@@ -9,6 +9,8 @@ import sys
 
 import dataprint
 
+OUTPUT_FNAME = 'tripoint_calibration.data'
+
 if len(sys.argv) != 2:
 	print('Need to pass condensed calibration file as first argument.')
 	sys.exit(1)
@@ -112,7 +114,7 @@ for ch in range(3):
 
 nodes = {}
 try:
-	for line in open('tripoint_calibration.txt'):
+	for line in open(OUTPUT_FNAME):
 		if '#' in line:
 			continue
 		node_id,rest = line.split(maxsplit=1)
@@ -121,14 +123,14 @@ except IOError:
 	pass
 
 for node in (('A','0'), ('B','1'), ('C','2')):
-	node_id = meta[node[1]]
+	node_id = nodeid_to_tripoint_id(meta[node[1]])
 	row = []
 	for conf in print_order:
 		try:
 			row.append(calibration[node[0]][conf])
 		except KeyError:
 			row.append(-1)
-	nodes[nodeid_to_tripoint_id(node_id)] = row
+	nodes[node_id] = row
 
 outdata = []
 outdata.append('# Columns are formatted as (channel, antenna)'.split())
@@ -143,5 +145,5 @@ for tripoint_id in sorted(nodes.keys()):
 
 print(outdata)
 
-dataprint.to_newfile('tripoint_calibration.txt', outdata, overwrite=True)
+dataprint.to_newfile(OUTPUT_FNAME, outdata, overwrite=True)
 
