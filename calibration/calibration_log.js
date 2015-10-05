@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 var noble = require('noble');
 var buf = require('buffer');
 var fs = require('fs');
@@ -42,7 +44,7 @@ function record (b, fd) {
 	var offset1 = b.readUInt32LE(10);
 	var offset2 = b.readUInt32LE(14);
 	var t2 = t1.add(offset1);
-	var t3 = t2.add(offset2;
+	var t3 = t2.add(offset2);
 
 	fs.write(fd, round+'\t'+t1+'\t'+t2+'\t'+t3+'\n');
 
