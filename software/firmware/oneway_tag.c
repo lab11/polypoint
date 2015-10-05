@@ -248,12 +248,9 @@ static void tag_rxcallback (const dwt_callback_data_t* rxd) {
 				_anchor_responses[_anchor_response_count].anc_final_tx_timestamp = anc_final->dw_time_sent;
 
 				// Save when we received the packet.
-				// This is where we factor in the TAG's TX and RX delays.
-				// To handle the offsets of when the TAG recorded timestamps
-				// and when they actually went out on the wire, we subtract
-				// the TX+RX delay from when we think we received the response
-				// from the anchor.
-				_anchor_responses[_anchor_response_count].anc_final_rx_timestamp = dw_rx_timestamp - dw1000_get_txrx_delay();
+				// We have already handled the calibration values so
+				// we don't need to here.
+				_anchor_responses[_anchor_response_count].anc_final_rx_timestamp = dw_rx_timestamp;
 
 				// Also need to save what window we are in when we received
 				// this packet. This is used so we know all of the settings
@@ -306,7 +303,11 @@ static void send_poll () {
 	uint32_t delay_time = dwt_readsystimestamphi32() + DW_DELAY_FROM_PKT_LEN(tx_len);
 	delay_time &= 0xFFFFFFFE; //Make sure last bit is zero
 	dwt_setdelayedtrxtime(delay_time);
-	_ranging_broadcast_ss_send_times[_ranging_broadcast_ss_num] = ((uint64_t) delay_time) << 8;
+
+	// Take the TX+RX delay into account here by adding it to the time stamp
+	// of each outgoing packet.
+	_ranging_broadcast_ss_send_times[_ranging_broadcast_ss_num] =
+		(((uint64_t) delay_time) << 8) + oneway_get_txrxdelay_from_subsequence(TAG, _ranging_broadcast_ss_num);
 
 	// Write the data
 	dwt_writetxdata(tx_len, (uint8_t*) &pp_tag_poll_pkt, 0);

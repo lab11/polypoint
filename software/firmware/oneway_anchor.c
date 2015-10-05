@@ -215,12 +215,9 @@ static void ranging_listening_window_task () {
 
 		delay_time &= 0xFFFFFFFE;
 
-		// This is where calibration comes in to play. To account for the RX
-		// delays on all of the ranging packets, and the TX delay we will
-		// experience on sending this packet out, we add the RX+TX delays
-		// for this node to the reported timestamp so that all of the relative
-		// times are correct.
-		pp_anc_final_pkt.dw_time_sent = (((uint64_t) delay_time) << 8) + dw1000_get_txrx_delay();
+		// Record the outgoing time in the packet. Do not take calibration into
+		// account here, as that is done on all of the RX timestamps.
+		pp_anc_final_pkt.dw_time_sent = (((uint64_t) delay_time) << 8);
 
 		// Set the packet to be transmitted later.
 		dwt_setdelayedtrxtime(delay_time);
@@ -321,8 +318,10 @@ static void anchor_rxcallback (const dwt_callback_data_t *rxd) {
 					memcpy(pp_anc_final_pkt.ieee154_header_unicast.destAddr, rx_poll_pkt->header.sourceAddr, 8);
 					// Record which ranging subsequence the tag is on
 					_ranging_broadcast_ss_num = rx_poll_pkt->subsequence;
-					// Record the timestamp
-					pp_anc_final_pkt.TOAs[_ranging_broadcast_ss_num] = dw_rx_timestamp;
+					// Record the timestamp. Need to subtract off the TX+RX delay from each recorded
+					// timestamp.
+					pp_anc_final_pkt.TOAs[_ranging_broadcast_ss_num] =
+						dw_rx_timestamp - oneway_get_txrxdelay_from_subsequence(ANCHOR, _ranging_broadcast_ss_num);
 					// Also record parameters the tag has sent us about how to respond
 					// (or other operational parameters).
 					_ranging_operation_config.reply_after_subsequence = rx_poll_pkt->reply_after_subsequence;
@@ -357,8 +356,9 @@ static void anchor_rxcallback (const dwt_callback_data_t *rxd) {
 
 					if (rx_poll_pkt->subsequence == _ranging_broadcast_ss_num) {
 						// This is the packet we were expecting from the tag.
-						// Record the TOA.
-						pp_anc_final_pkt.TOAs[_ranging_broadcast_ss_num] = dw_rx_timestamp;
+						// Record the TOA, and adjust it with the calibration value.
+						pp_anc_final_pkt.TOAs[_ranging_broadcast_ss_num] =
+							dw_rx_timestamp - oneway_get_txrxdelay_from_subsequence(ANCHOR, _ranging_broadcast_ss_num);
 
 						// Update the statistics we keep about which antenna
 						// receives the most packets from the tag

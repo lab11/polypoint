@@ -38,6 +38,10 @@
 // line (this may happen because it thinks we switched the interrupt polarity).
 #define DW1000_NUM_CONSECUTIVE_INTERRUPTS_BEFORE_RESET 10
 
+// In case we don't have a value calculated and stored.
+// This represents the sum of the TX and RX delays.
+#define DW1000_DEFAULT_CALIBRATION 33000
+
 /******************************************************************************/
 // Timing defines for this particular MCU
 /******************************************************************************/
@@ -146,29 +150,42 @@ typedef enum {
 
 
 /******************************************************************************/
+// Structs for data stored in the flash
+/******************************************************************************/
+
+#define PROGRAMMED_MAGIC 0x77AA38F9
+
+typedef struct {
+	uint32_t magic; // Known special magic value that verifies this struct was written
+	uint16_t calibration_values[3][3]; // TX+RX delays for each channel and antenna.
+} __attribute__ ((__packed__)) dw1000_programmed_values_t;
+
+
+/******************************************************************************/
 // Function prototypes
 /******************************************************************************/
 
-void dw1000_spi_fast ();
-void dw1000_spi_slow ();
-
-int dwtime_to_millimeters (double dwtime);
+// Utility
+int  dwtime_to_millimeters (double dwtime);
 void insert_sorted (int arr[], int new, unsigned end);
 
-
-dw1000_err_e dw1000_init ();
-dw1000_err_e dw1000_configure_settings ();
-void dw1000_reset ();
-void dw1000_choose_antenna (uint8_t antenna_number);
-void dw1000_read_eui (uint8_t *eui_buf);
-uint64_t dw1000_get_txrx_delay ();
-void dw1000_set_mode (dw1000_role_e role);
+// Main API
+dw1000_err_e  dw1000_init ();
+void          dw1000_spi_fast ();
+void          dw1000_spi_slow ();
+dw1000_err_e  dw1000_configure_settings ();
+void          dw1000_reset ();
+void          dw1000_choose_antenna (uint8_t antenna_number);
+void          dw1000_read_eui (uint8_t *eui_buf);
+uint64_t      dw1000_get_txrx_delay (uint8_t antenna_index, uint8_t channel_index);
+void          dw1000_set_mode (dw1000_role_e role);
 dw1000_role_e dw1000_get_mode ();
-void dw1000_sleep ();
-dw1000_err_e dw1000_wakeup ();
-void dw1000_update_channel (uint8_t chan);
-void dw1000_reset_configuration ();
+void          dw1000_sleep ();
+dw1000_err_e  dw1000_wakeup ();
+void          dw1000_update_channel (uint8_t chan);
+void          dw1000_reset_configuration ();
 
-void dw1000_interrupt_fired ();
+// for main.c
+void          dw1000_interrupt_fired ();
 
 #endif

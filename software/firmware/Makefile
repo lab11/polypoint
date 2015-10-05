@@ -67,6 +67,8 @@ ifeq ($(ID), )
 ID = c0:98:e5:50:50:44:50:FF
 endif
 
+USER_FLASH_COMMANDS = $(shell ./insert_calibration.py $(ID))
+
 CFLAGS += -Os
 GDB_PORT_NUMBER = 2331
 

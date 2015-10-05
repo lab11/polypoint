@@ -54,6 +54,9 @@ static SPI_InitTypeDef SPI_InitStructure;
 static dwt_config_t _dw1000_config;
 static dwt_txconfig_t global_tx_config;
 
+// Calibration values and other things programmed in with flash
+static dw1000_programmed_values_t _prog_values;
+
 
 /******************************************************************************/
 // Internal state for this file
@@ -253,6 +256,16 @@ static void setup () {
 	DMA_InitStructure.DMA_Mode               = DMA_Mode_Normal;
 	DMA_InitStructure.DMA_M2M                = DMA_M2M_Disable;
 
+	// Pull from flash the calibration values
+	memcpy(&_prog_values, (uint8_t*) INIT_FLASH_LOCATION, sizeof(dw1000_programmed_values_t));
+	if (_prog_values.magic != PROGRAMMED_MAGIC) {
+		// Hmm this wasn't set on this chip. Not much we can do other
+		// than use default values.
+		for (uint8_t i=0; i<9; i++) {
+			_prog_values.calibration_values[i/3][i%3] = DW1000_DEFAULT_CALIBRATION;
+		}
+	}
+
 	// Mark that this function has run so we don't do it again.
 	_stm_dw1000_interface_setup = TRUE;
 }
@@ -396,43 +409,18 @@ static int spi_transfer () {
 	DMA_Cmd(SPI1_RX_DMA_CHANNEL, ENABLE);
 	DMA_Cmd(SPI1_TX_DMA_CHANNEL, ENABLE);
 
-
-
 	// Wait for everything to finish
-	//TODO: Implement timeout so we don't get stuck
-	//uint32_t TimeOut = USER_TIMEOUT;
 	while ((DMA_GetFlagStatus(SPI1_RX_DMA_FLAG_TC) == RESET) && loop < 100000) {
 		loop++;
 	};
 	if (loop < 100000) {
-		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
-		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
 		while ((DMA_GetFlagStatus(SPI1_TX_DMA_FLAG_TC) == RESET));
-		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
-		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
-		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
-		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
 		/* The BSY flag can be monitored to ensure that the SPI communication is complete.
 		This is required to avoid corrupting the last transmission before disabling
 		the SPI or entering the Stop mode. The software must first wait until TXE=1
 		and then until BSY=0.*/
 		while ((SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_TXE) == RESET));
-		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
-		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
-		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
-		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
-		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
-		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
 		while ((SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_BSY) == SET));
-
-		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
-		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
-		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
-		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
-		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
-		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
-		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_SET);
-		// GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
 	}
 
 	// End the SPI transaction and DMA
@@ -568,8 +556,12 @@ void dw1000_read_eui (uint8_t *eui_buf) {
 
 // Return the TX+RX delay calibration value for this particular node
 // in DW1000 time format.
-uint64_t dw1000_get_txrx_delay () {
-	return 0;
+uint64_t dw1000_get_txrx_delay (uint8_t antenna_index, uint8_t channel_index) {
+	// Make sure that antenna and channel are 0<=index<3
+	antenna_index = antenna_index % 3;
+	channel_index = channel_index % 3;
+
+	return (uint64_t) _prog_values.calibration_values[channel_index][antenna_index];
 }
 
 // First (generic) init of the DW1000

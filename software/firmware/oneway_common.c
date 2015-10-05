@@ -175,6 +175,12 @@ void oneway_set_ranges (int32_t* ranges_millimeters, anchor_responses_t* anchor_
 // Ranging Protocol Algorithm Functions
 /******************************************************************************/
 
+// Break this out into two functions.
+// (Mostly needed for calibration purposes.)
+static uint8_t subsequence_number_to_channel_index (uint8_t subseq_num) {
+	return subseq_num % NUM_RANGING_CHANNELS;;
+}
+
 // Return the RF channel to use for a given subsequence number
 static uint8_t subsequence_number_to_channel (uint8_t subseq_num) {
 	// ALGORITHM
@@ -183,7 +189,7 @@ static uint8_t subsequence_number_to_channel (uint8_t subseq_num) {
 	// as possible so that they can join the sequence as early as possible. This
 	// increases the number of successful packet transmissions and increases
 	// ranging accuracy.
-	uint8_t channel_index = subseq_num % NUM_RANGING_CHANNELS;
+	uint8_t channel_index = subsequence_number_to_channel_index(subseq_num);
 	return channel_index_to_channel_rf_number[channel_index];
 }
 
@@ -278,4 +284,13 @@ uint8_t oneway_get_ss_index_from_settings (uint8_t anchor_antenna_index,
 	return antenna_and_channel_to_subsequence_number(tag_antenna_index,
 	                                                 anchor_antenna_index,
 	                                                 channel_index);
+}
+
+// Get the TX+RX delay for this node, given the antenna and channel value
+uint64_t oneway_get_txrxdelay_from_subsequence (dw1000_role_e role,
+                                                uint8_t subseq_num) {
+	// Need to get channel and antenna to call the dw1000 function
+	uint8_t antenna_index = oneway_subsequence_number_to_antenna(role, subseq_num);
+	uint8_t channel_index = subsequence_number_to_channel_index(subseq_num);
+	return dw1000_get_txrx_delay(antenna_index, channel_index);
 }
