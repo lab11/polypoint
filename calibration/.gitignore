@@ -2,4 +2,4 @@
 *.fdb_latexmk
 *.fls
 calibration.pdf
-tripoint_calibration_*
+tripoint_calibration*
