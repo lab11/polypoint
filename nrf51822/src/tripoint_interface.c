@@ -187,6 +187,23 @@ ret_code_t tripoint_start_calibration (uint8_t index) {
 	return NRF_SUCCESS;
 }
 
+// Read the TriPoint stored calibration values into a buffer (must be
+// at least 18 bytes long).
+ret_code_t tripoint_get_calibration (uint8_t* calib_buf) {
+	uint8_t buf_cmd[1] = {TRIPOINT_CMD_READ_CALIBRATION};
+	ret_code_t ret;
+
+	// Send outgoing command that indicates we want the device info string
+	ret = nrf_drv_twi_tx(&twi_instance, TRIPOINT_ADDRESS, buf_cmd, 1, false);
+	if (ret != NRF_SUCCESS) return ret;
+
+	// Read back the 18 bytes of calibration values
+	ret = nrf_drv_twi_rx(&twi_instance, TRIPOINT_ADDRESS, calib_buf, 18, false);
+	if (ret != NRF_SUCCESS) return ret;
+
+	return NRF_SUCCESS;
+}
+
 // Stop the TriPoint module and put it in sleep mode
 ret_code_t tripoint_sleep () {
 	uint8_t buf_cmd[1] = {TRIPOINT_CMD_SLEEP};

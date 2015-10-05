@@ -272,6 +272,7 @@ void host_interface_rx_fired () {
 		/**********************************************************************/
 		case HOST_CMD_INFO:
 		case HOST_CMD_READ_INTERRUPT:
+		case HOST_CMD_READ_CALIBRATION:
 			break;
 
 
@@ -355,6 +356,16 @@ void CPAL_I2C_RXTC_UserCallback(CPAL_InitTypeDef* pDevInitStruct) {
 			memcpy(txBuffer+2, _interrupt_buffer, _interrupt_buffer_len);
 			host_interface_respond(txBuffer[0]+1);
 
+			break;
+		}
+
+		/**********************************************************************/
+		// Respond with the stored calibration values
+		/**********************************************************************/
+		case HOST_CMD_READ_CALIBRATION: {
+			// Copy the raw values from the stored array
+			memcpy(txBuffer, dw1000_get_txrx_delay_raw(), 18);
+			host_interface_respond(18);
 			break;
 		}
 

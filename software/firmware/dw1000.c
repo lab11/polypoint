@@ -564,6 +564,11 @@ uint64_t dw1000_get_txrx_delay (uint8_t antenna_index, uint8_t channel_index) {
 	return (uint64_t) _prog_values.calibration_values[channel_index][antenna_index];
 }
 
+// Get access to the pointer of calibration values. Used for the host interface.
+uint8_t* dw1000_get_txrx_delay_raw () {
+	return (uint8_t*) _prog_values.calibration_values;
+}
+
 // First (generic) init of the DW1000
 dw1000_err_e dw1000_init () {
 	dw1000_err_e err;

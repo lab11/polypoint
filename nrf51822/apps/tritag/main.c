@@ -89,7 +89,6 @@ bool tripoint_inited = false;
 
 
 
-
 /*******************************************************************************
  *   nRF CALLBACKS - In response to various BLE/hardware events.
  ******************************************************************************/
@@ -97,7 +96,6 @@ bool tripoint_inited = false;
 // Function for handling the WRITE CHARACTERISTIC BLE event.
 void ble_evt_write (ble_evt_t* p_ble_evt) {
     ble_gatts_evt_write_t* p_evt_write = &p_ble_evt->evt.gatts_evt.params.write;
-
 
     if (p_evt_write->handle == app.char_ranging_enable_handles.value_handle) {
         // Handle a write to the characteristic that starts and stops
@@ -114,7 +112,6 @@ void ble_evt_write (ble_evt_t* p_ble_evt) {
 
     } else if (p_evt_write->handle == app.char_calibration_index_handle.value_handle) {
         // Handle a write to the characteristic that starts calibration
-
         app.calibration_index = p_evt_write->data[0];
 
         // Configure this node for calibration and set the calibration node
@@ -180,9 +177,6 @@ static void timer_handler (void* p_context) {
         }
     }
 }
-
-
-
 
 
 
@@ -288,6 +282,8 @@ int main (void) {
 
     // Start the ranging!!!
     if (tripoint_inited) {
+        uint8_t b[32];
+        tripoint_get_calibration(b);
         tripoint_start_ranging(true, 10);
     }
 

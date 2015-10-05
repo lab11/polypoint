@@ -15,15 +15,16 @@ Commands
 These commands are set as a WRITE I2C command from the host to the TriPoint. Each
 write command starts with the opcode.
 
-| Opcode           | Byte | Type | Description                                           |
-| ------           | ---- | ---- | -----------                                           |
-| `INFO`           | 0x01 | W/R  | Get information about the module.                     |
-| `CONFIG`         | 0x02 | W    | Configure options. Set tag/anchor.                    |
-| `READ_INTERRUPT` | 0x03 | W/R  | Ask the chip why it asserted the interrupt pin.       |
-| `DO_RANGE`       | 0x04 | W    | If not doing periodic ranging, initiate a range now.  |
-| `SLEEP`          | 0x05 | W    | Stop all ranging and put the device in sleep mode.    |
-| `RESUME`         | 0x06 | W    | Restart ranging.                                      |
-| `SET_LOCATION`   | 0x07 | W    | Set location of this device. Useful only for anchors. |
+| Opcode             | Byte | Type | Description                                            |
+| ------             | ---- | ---- | -----------                                            |
+| `INFO`             | 0x01 | W/R  | Get information about the module.                      |
+| `CONFIG`           | 0x02 | W    | Configure options. Set tag/anchor.                     |
+| `READ_INTERRUPT`   | 0x03 | W/R  | Ask the chip why it asserted the interrupt pin.        |
+| `DO_RANGE`         | 0x04 | W    | If not doing periodic ranging, initiate a range now.   |
+| `SLEEP`            | 0x05 | W    | Stop all ranging and put the device in sleep mode.     |
+| `RESUME`           | 0x06 | W    | Restart ranging.                                       |
+| `SET_LOCATION`     | 0x07 | W    | Set location of this device. Useful only for anchors.  |
+| `READ_CALIBRATION` | 0x08 | W/R  | Read the stored calibration values from this TriPoint. |
 
 
 
@@ -150,8 +151,27 @@ previous settings.
 Byte 0: 0x06  Opcode
 ````
 
+#### `READ_CALBRATION`
 
+Read the stored calibration values off of the device.
 
+Write:
+```
+Byte 0: 0x08  Opcode
+````
+
+Read:
+```
+Bytes 0-1:   Channel 0, Antenna 0 TX+RX delay
+Bytes 2-3:   Channel 0, Antenna 1 TX+RX delay
+Bytes 4-5:   Channel 0, Antenna 2 TX+RX delay
+Bytes 6-7:   Channel 1, Antenna 0 TX+RX delay
+Bytes 8-9:   Channel 1, Antenna 1 TX+RX delay
+Bytes 10-11: Channel 1, Antenna 2 TX+RX delay
+Bytes 12-13: Channel 2, Antenna 0 TX+RX delay
+Bytes 14-15: Channel 2, Antenna 1 TX+RX delay
+Bytes 16-17: Channel 2, Antenna 2 TX+RX delay
+```
 
 ### TAG Commands
 

@@ -9,6 +9,7 @@
 #define HOST_CMD_SLEEP            0x05
 #define HOST_CMD_RESUME           0x06
 #define HOST_CMD_SET_LOCATION     0x07
+#define HOST_CMD_READ_CALIBRATION 0x08
 
 
 // Structs for parsing the messages for each command

@@ -178,6 +178,7 @@ void          dw1000_reset ();
 void          dw1000_choose_antenna (uint8_t antenna_number);
 void          dw1000_read_eui (uint8_t *eui_buf);
 uint64_t      dw1000_get_txrx_delay (uint8_t antenna_index, uint8_t channel_index);
+uint8_t*      dw1000_get_txrx_delay_raw ();
 void          dw1000_set_mode (dw1000_role_e role);
 dw1000_role_e dw1000_get_mode ();
 void          dw1000_sleep ();
