@@ -128,7 +128,7 @@ for node in (('A','0'), ('B','1'), ('C','2')):
 			row.append(calibration[node[0]][conf])
 		except KeyError:
 			row.append(-1)
-	nodes[node_id] = row
+	nodes[nodeid_to_tripoint_id(node_id)] = row
 
 outdata = []
 outdata.append('# Columns are formatted as (channel, antenna)'.split())
@@ -136,9 +136,9 @@ header = ['# Node ID',]
 header.extend(map(str, print_order))
 outdata.append(header)
 
-for node_id in sorted(nodes.keys()):
-	row = [nodeid_to_tripoint_id(node_id),]
-	row.extend(nodes[node_id])
+for tripoint_id in sorted(nodes.keys()):
+	row = [tripoint_id,]
+	row.extend(nodes[tripoint_id])
 	outdata.append(row)
 
 print(outdata)
