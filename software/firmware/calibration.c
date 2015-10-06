@@ -185,12 +185,8 @@ static void setup_round_antenna_channel (uint32_t round_num) {
 // Timer callback that marks the start of each round
 static void calib_start_round () {
 
-	// Increment the round number
-	if (_round_num == UINT32_MAX) {
-		_round_num = 0;
-	} else {
-		_round_num++;
-	}
+	// Increment the round number (unsigned rollover is well-defined in C, safe)
+	_round_num++;
 
 	// Before the INIT packet, use the default settings
 	setup_round_antenna_channel(0);
