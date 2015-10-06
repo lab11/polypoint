@@ -123,14 +123,14 @@ except IOError:
 	pass
 
 for node in (('A','0'), ('B','1'), ('C','2')):
-	node_id = nodeid_to_tripoint_id(meta[node[1]])
+	node_id = meta[node[1]]
 	row = []
 	for conf in print_order:
 		try:
 			row.append(calibration[node[0]][conf])
 		except KeyError:
 			row.append(-1)
-	nodes[node_id] = row
+	nodes[nodeid_to_tripoint_id(node_id)] = row
 
 outdata = []
 outdata.append('# Columns are formatted as (channel, antenna)'.split())
