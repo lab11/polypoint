@@ -40,7 +40,7 @@ ifeq ($(DEVICE_FAMILY), STM32F031)
 CFLAGS += -DI2C2_IRQn=24
 endif
 
-CFLAGS += -Wall
+CFLAGS += -Wall -Wextra -g
 
 #The install locations of the STM Standard library
 #################################################
