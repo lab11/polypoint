@@ -112,13 +112,13 @@ for ch in range(3):
 	for ant in range(3):
 		print_order.append((ch,ant))
 
-nodes = {}
+tripoint_nodes = {}
 try:
 	for line in open(OUTPUT_FNAME):
 		if '#' in line:
 			continue
-		node_id,rest = line.split(maxsplit=1)
-		nodes[node_id] = rest
+		tripoint_node_id,rest = line.split(maxsplit=1)
+		tripoint_nodes[tripoint_node_id] = rest.split()
 except IOError:
 	pass
 
@@ -130,7 +130,7 @@ for node in (('A','0'), ('B','1'), ('C','2')):
 			row.append(calibration[node[0]][conf])
 		except KeyError:
 			row.append(-1)
-	nodes[nodeid_to_tripoint_id(node_id)] = row
+	tripoint_nodes[nodeid_to_tripoint_id(node_id)] = row
 
 outdata = []
 outdata.append('# Columns are formatted as (channel, antenna)'.split())
@@ -138,9 +138,9 @@ header = ['# Node ID',]
 header.extend(map(str, print_order))
 outdata.append(header)
 
-for tripoint_id in sorted(nodes.keys()):
+for tripoint_id in sorted(tripoint_nodes.keys()):
 	row = [tripoint_id,]
-	row.extend(nodes[tripoint_id])
+	row.extend(tripoint_nodes[tripoint_id])
 	outdata.append(row)
 
 print(outdata)
