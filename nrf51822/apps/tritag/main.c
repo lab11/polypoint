@@ -46,6 +46,7 @@
 #define TRITAG_CHAR_LOCATION_SHORT_UUID       0x3153
 #define TRITAG_CHAR_RANGING_ENABLE_SHORT_UUID 0x3154
 #define TRITAG_CHAR_CALIBRATION_SHORT_UUID    0x3159
+#define TRITAG_CHAR_STATUS_SHORT_UUID         0x3155
 
 // Randomly generated UUID
 const ble_uuid128_t tritag_uuid128 = {
@@ -233,6 +234,14 @@ void services_init (void) {
                                   1, &app.app_ranging,
                                   app.service_handle,
                                   &app.char_ranging_enable_handles);
+
+    // Status
+    simple_ble_add_characteristic(1, 0, 0,  // read, write, notify
+                                  tritag_uuid.type,
+                                  TRITAG_CHAR_STATUS_SHORT_UUID,
+                                  1,(uint8_t*) &tripoint_inited,
+                                  app.service_handle,
+                                  &app.char_status_handle);
 }
 
 

@@ -50,6 +50,10 @@ static uint8_t _timeout_firing = 0;
 // set the antenna and channel correctly, so we shouldn't report these values.
 static bool _got_init = FALSE;
 
+// Use this in case we get transmission delay errors to extend how long we delay
+// the packet.
+static uint32_t _dw_slack_delay_multiplier = 1;
+
 // Prepopulated struct of the outgoing broadcast poll packet.
 static struct pp_calibration_msg pp_calibration_pkt = {
 	.header = {
@@ -96,6 +100,9 @@ static void init () {
 
 	// Setup callbacks to this TAG
 	dwt_setcallbacks(calibration_txcallback, calibration_rxcallback);
+
+	// Make sure the radio starts off
+	dwt_forcetrxoff();
 
 	// Allow data and ack frames
 	dwt_enableframefilter(DWT_FF_DATA_EN | DWT_FF_ACK_EN);
@@ -197,6 +204,8 @@ static void calib_start_round () {
 
 // Send a packet
 static void send_calibration_pkt (uint8_t message_type, uint8_t packet_num) {
+	int ret;
+
 	// Record the packet length to send to DW1000
 	uint16_t tx_len = sizeof(struct pp_calibration_msg);
 
@@ -213,7 +222,9 @@ static void send_calibration_pkt (uint8_t message_type, uint8_t packet_num) {
 	dwt_writetxfctrl(tx_len, 0);
 
 	// Setup the time the packet will go out at, and save that timestamp
-	uint32_t delay_time = dwt_readsystimestamphi32() + DW_DELAY_FROM_PKT_LEN(tx_len);
+	uint32_t delay_time = dwt_readsystimestamphi32() +
+		(DW_DELAY_FROM_PKT_LEN(tx_len)*_dw_slack_delay_multiplier);
+	// uint32_t delay_time = dwt_readsystimestamphi32() + (APP_US_TO_DEVICETIMEU32(1000)>>8);
 	delay_time &= 0xFFFFFFFE; // Make sure last bit is zero
 	dwt_setdelayedtrxtime(delay_time);
 	_calibration_timing[packet_num] = ((uint64_t) delay_time) << 8;
@@ -223,7 +234,12 @@ static void send_calibration_pkt (uint8_t message_type, uint8_t packet_num) {
 
 	// Start the transmission and enter RX mode
 	dwt_setrxaftertxdelay(1); // us
-	dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED);
+	ret = dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED);
+	if (ret != DWT_SUCCESS) {
+		// If we could not send this delayed packet, try extending the delay
+		// period next time.
+		_dw_slack_delay_multiplier++;
+	}
 
 	// MP bug - TX antenna delay needs reprogramming as it is not preserved
 	dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
@@ -288,8 +304,14 @@ static void finish () {
 // Use this callback to start the next cycle in the round
 static void calibration_txcallback (const dwt_callback_data_t *txd) {
 
+
+
 	if (pp_calibration_pkt.message_type == MSG_TYPE_PP_CALIBRATION_INIT &&
 	    CALIBRATION_ROUND_STARTED_BY_ME(_round_num, _config.index)) {
+
+
+
+
 		// We just sent the "get everybody on the same page packet".
 		// Now start the actual cycle because it is our turn to send the first
 		// packet.
@@ -358,6 +380,10 @@ static void calibration_rxcallback (const dwt_callback_data_t *rxd) {
 
 			// Decide which node should send packet number 0
 			if (CALIBRATION_ROUND_STARTED_BY_ME(_round_num, _config.index)) {
+				// Delay to make sure all other nodes are ready to receive
+				// this packet.
+				mDelay(2);
+
 				// This is us! Let's do it
 				send_calibration_pkt(MSG_TYPE_PP_CALIBRATION_MSG, 0);
 			}
@@ -379,7 +405,9 @@ static void calibration_rxcallback (const dwt_callback_data_t *rxd) {
 			}
 
 		}
-
-		dwt_rxenable(0);
+	} else {
+		setup_round_antenna_channel(0);
 	}
+
+	dwt_rxenable(0);
 }

@@ -150,8 +150,20 @@ noble.on('stateChange', function (state) {
 });
 
 noble.on('discover', function (peripheral) {
-	if (peripheral.advertisement.localName == 'tritag') {
+	if (peripheral.advertisement.localName == 'tritag' && assignment_index >= 0) {
 		console.log('Found TriTag: ' + peripheral.uuid);
+
+		// if (peripheral.uuid == 'c098e5450002') {
+		// 	receive(peripheral, 2);
+		// }
+
+		// if (peripheral.uuid == 'c098e5450005') {
+		// 	receive(peripheral, 1);
+		// }
+
+		// if (peripheral.uuid == 'c098e5450004') {
+		// 	receive(peripheral, 0);
+		// }
 
 		receive(peripheral, assignment_index--);
 	}

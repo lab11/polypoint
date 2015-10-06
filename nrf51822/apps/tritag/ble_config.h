@@ -33,6 +33,7 @@ typedef struct ble_app_s {
     ble_gatts_char_handles_t     char_range_handle; /**< Handles related to the DFU Packet characteristic. */
     ble_gatts_char_handles_t     char_ranging_enable_handles; /**< Handles related to the DFU Packet characteristic. */
     ble_gatts_char_handles_t     char_calibration_index_handle; /**< Handles related to the DFU Packet characteristic. */
+    ble_gatts_char_handles_t     char_status_handle; /**< Handles related to the DFU Packet characteristic. */
     ble_srv_error_handler_t      error_handler;         /**< Function to be called in case of an error. */
     uint8_t                      current_location[6];    /** Value of num characteristic */
     uint8_t                      app_raw_response_buffer[128]; // Buffer to store raw responses from TriPoint so that it can be sent over BLE
