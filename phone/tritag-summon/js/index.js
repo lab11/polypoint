@@ -13,12 +13,88 @@ var TRIPOINT_READ_INT_RANGES = 1
 var TRIPOINT_READ_INT_CALIBRATION = 2
 
 // Application state
-
+var _anchor_locations = {
+    'c0:98:e5:50:50:44:50:13': [0.000, 0.000, 0.000],
+    'c0:98:e5:50:50:44:50:10': [0.000, 1.000, 0.000],
+    'c0:98:e5:50:50:44:50:0f': [0.866, 0.500, 0.000]
+};
 
 var switch_visibility_console_check = "visible";
 var switch_visibility_steadyscan_check = "visible";
 var steadyscan_on = true;
 
+/******************************************************************************/
+// LOCATION CALCULATION FUNCTIONS
+/******************************************************************************/
+
+// Convert a map of {anchor_id: range_in_meters} to a 3D location.
+// Anchor locations is a map of {anchor_id: [X, Y, Z]}.
+function calculate_location (anchor_ranges, anchor_locations) {
+
+    // First need two arrays, one of the ranges to the anchors,
+    // and one of the anchor locations.
+    ranges = [];
+    locations = [];
+    for (var anchor_id in anchor_ranges) {
+        if (anchor_ranges.hasOwnProperty(anchor_id)) {
+            ranges.push(anchor_ranges[anchor_id]);
+            locations.push(anchor_locations[anchor_id]);
+        }
+    }
+
+    // Now that we have those data structures setup, we can run
+    // the optimization function that calculates the most likely
+    // position.
+    var location_optimize_with_args = function (start) {
+        return location_optimize(start, ranges, locations);
+    };
+
+    var best = numeric.uncmin(location_optimize_with_args, [0,0,0]);
+    return best.solution;
+}
+
+function location_optimize (tag_position, anchor_ranges, anchor_locations) {
+    // First create an array that is the same length as the number of
+    // ranges that contains the initial tag_position duplicated.
+    var start = [];
+    for (var i=0; i<anchor_ranges.length; i++) {
+        start.push(tag_position);
+    }
+
+    // Do a distance calculate between tag and anchor known locations
+    var next = [];
+    var out = [];
+    for (var i=0; i<anchor_ranges.length; i++) {
+        next.push([]);
+        // Subtract
+        next[i][0] = start[i][0] - anchor_locations[i][0];
+        next[i][1] = start[i][1] - anchor_locations[i][1];
+        next[i][2] = start[i][2] - anchor_locations[i][2];
+
+        // ^2
+        next[i][0] = next[i][0] * next[i][0];
+        next[i][1] = next[i][1] * next[i][1];
+        next[i][2] = next[i][2] * next[i][2];
+
+        // sum and sqrt
+        var dist = Math.sqrt(next[i][0] + next[i][1] + next[i][2]);
+
+        // Now subtract from that the range to that anchor, and square that
+        var sub = dist - anchor_ranges[i];
+        out.push(sub*sub);
+    }
+
+    // Sum the range comparisons and return that value
+    var end = out.reduce(function(a, b){return a+b;});
+
+    // console.log(end);
+    return end;
+}
+
+
+/******************************************************************************/
+// DATA PARSING
+/******************************************************************************/
 
 function buf_to_eui (dv, offset) {
     var eui = '';
@@ -42,6 +118,11 @@ function encoded_mm_to_meters (dv, offset) {
     return mm / 1000.0;
 }
 
+
+/******************************************************************************/
+// HANDLE BUFFER FROM TRIPOINT/PHONE
+/******************************************************************************/
+
 function process_raw_buffer (buf) {
     var dv = new DataView(buf, 0);
 
@@ -62,17 +143,33 @@ function process_raw_buffer (buf) {
             var offset_start = 2;
             var instance_length = 12;
             var ranges = {};
+            var num_valid_ranges = 0;
             for (var i=0; i<num_ranges; i++) {
                 var start = offset_start + (i*instance_length);
                 var eui = buf_to_eui(dv, start);
                 var range = encoded_mm_to_meters(dv, start+8);
-                ranges[eui] = range;
+
+                // Strip out ranges that are error codes
+                if (range > -1000) {
+                    ranges[eui] = range;
+                    num_valid_ranges++;
+                }
 
                 app.log('  ' + eui + ': ' + range);
             }
 
             // Got ranges
             // app.log(JSON.stringify(ranges));
+
+            // Calculate a location
+            if (num_valid_ranges >= 3) {
+                app.log('Calculating location');
+                var loc = calculate_location(ranges, _anchor_locations);
+                var update =  'X: ' + loc[0].toFixed(2) + ';';
+                    update += ' Y: ' + loc[1].toFixed(2) + ';';
+                    update += ' Z: ' + loc[2].toFixed(2);
+                app.update_location(update);
+            }
         }
     } else {
         app.log('Got different reason byte: ' + reason_byte);
