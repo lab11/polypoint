@@ -1,0 +1,81 @@
+\documentclass{article}
+
+\usepackage[top=.75in, bottom=.75in]{geometry}
+
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{xcolor}
+
+\begin{document}
+
+\newcommand{\tda}[1]{\textcolor{red}{#1}}
+\newcommand{\tdb}[1]{\textcolor{orange}{#1}}
+\newcommand{\tdc}[1]{\textcolor{blue}{#1}}
+\newcommand{\unk}[1]{\textcolor{red}{#1}}
+\newcommand{\der}[1]{\textcolor{orange}{#1}}
+\newcommand{\off}[2]{\textnormal{\emph{Off}}_{#1\rightarrow#2}}
+
+\noindent
+Consider a polypoint tag $T$, anchor $A$, and eavesdropper $E$. The goal is to
+derive the difference between tag/eavesdropper distance and
+anchor/eavesdropper distance.
+
+\medskip\noindent
+For simplicity, we consider only the two-way time of flight exchange between
+$T$ and $A$, but the concept generalizes.
+
+\bigskip
+
+\noindent
+\begin{enumerate}
+  \item $T$ sends a packet
+  \item $T$ sends a duplicate packet
+  \item $A$ sends a reply after $\epsilon$ (two-way tof)
+  \item $T$ sends a packet after $\epsilon$
+\end{enumerate}
+
+\noindent
+The beginning is unchanged from interactive polypoint:
+
+\begin{align}
+  \intertext{Send packet 1}
+  ARX1 &= TTX1 + \lambda_{TA} \\
+  %
+  \intertext{Send packet 2}
+  ARX2 &= TTX2 + \lambda_{TA} \\
+  %
+  \intertext{Send packet 3}
+  TRX3 &= ATX3 + \lambda_{TA} = TTX2 + \epsilon_A + 2\lambda_{TA} \\
+  %
+  \intertext{Compute crystal correction between T and A}
+  k_{A\rightarrow T} &= \frac{TTX2-TTX1}{ARX2-ARX1} \\
+  %
+  \intertext{Compute time of flight between T and A}
+  \lambda_{TA} &= \frac{TRX3-TTX2-k_{A\rightarrow T}\times(ATX3-ARX2)}{2} \\
+%
+  \intertext{Now introduce the imaginary timestamp TTX3, where TTX3 is the
+  time of ATX3 but in T's clock domain. This timestamp will allow the TDoA
+  calculation to ignore the offset between E and T's clock domains since they
+  will cancel.}
+  \intertext{Compute TTX3}
+  \lambda_{TA} &= TRX3 - TTX3~~\text{(definition of time of flight)} \\
+  TTX3 &= TRX3 - \lambda_{TA} \\
+  %
+  \intertext{Send packet 4, including TTX3, TTX4, \textbf{and the tag's solved position} in the payload}
+  \lambda_{TE} - \lambda_{AE} &= [ERX4 - TTX4] - [ERX3 - TTX3] \\
+  \text{and possibly}~%
+  \lambda_{TE} - \lambda_{AE} &= ERX4 - ERX3 + k_{T\rightarrow E}\times(TTX3 - TTX4)
+\end{align}
+
+\noindent
+If an eavesdropping tag can hear \textbf{four} anchors, it will have enough
+information to localize itself.
+
+\medskip\noindent
+In implementation, it probably makes more sense for packet 4 to include a
+unique identifier (i.e. \texttt{(tag\_id, round\_id)}) instead of the solved
+position. Once the tag phone has solved the position, it can broadcast the
+unique identifier and the final position via bluetooth and any eavesdropping
+phones can solve from there.
+
+\end{document}
