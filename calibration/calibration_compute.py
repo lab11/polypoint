@@ -45,7 +45,7 @@ def nodeid_to_tripoint_id(nodeid):
 	return out
 
 # Distance in dwtime between tags
-l = dist_to_dwtime(0.15)
+l = dist_to_dwtime(1.00)
 
 def sub_dw_ts(a,b):
 	if b > a:
