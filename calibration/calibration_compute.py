@@ -103,7 +103,8 @@ for node in ('A', 'B', 'C'):
 			calibration[node][conf] = -1
 		else:
 			print(len(rej))
-			calibration[node][conf] = int(round(np.mean(rej)))
+			#calibration[node][conf] = int(round(np.mean(rej)))
+			calibration[node][conf] = int(round(np.percentile(rej, 12)))
 
 pprint.pprint(calibration)
 
