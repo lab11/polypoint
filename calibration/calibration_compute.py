@@ -102,6 +102,7 @@ for node in ('A', 'B', 'C'):
 			print(rej)
 			calibration[node][conf] = -1
 		else:
+			print(len(rej))
 			calibration[node][conf] = int(round(np.mean(rej)))
 
 pprint.pprint(calibration)
