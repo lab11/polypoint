@@ -163,7 +163,6 @@ function process_raw_buffer (buf) {
 
             // Calculate a location
             if (num_valid_ranges >= 3) {
-                app.log('Calculating location');
                 var loc = calculate_location(ranges, _anchor_locations);
                 var update =  'X: ' + loc[0].toFixed(2) + ';';
                     update += ' Y: ' + loc[1].toFixed(2) + ';';

@@ -9,7 +9,6 @@
 
         <link rel="stylesheet" type="text/css" href="css/index.css">
         <link rel="stylesheet" href="css/jquery.mobile-1.4.5.min.css">
-
         <script src="js/jquery-1.11.3.min.js"></script>
         <script src="js/jquery.mobile-1.4.5.min.js"></script>
 
@@ -17,10 +16,13 @@
 
         <title>TriTag | PolyPoint</title>
     </head>
-    <body id="main_view" data-role="main" class="frame" style="text-align:center; font-family:sans-serif-thin; color:#888">
+    <!-- <body id="main_view" data-role="main" class="frame"> -->
+    <body id="main_view" class="frame">
 
-        <div data-role="header" data-theme="b">
-            <h1 id="title">PolyPoint Indoor Localization</h1>
+        <div id="header-title">
+       <!--  <div id="header-title" data-role="header" data-theme="b"> -->
+            <h1 id="title">PolyPoint</h1>
+            <h3>[ Indoor Localization ]</h3>
         </div>
 
         <div id="device-id">
@@ -28,7 +30,7 @@
         </div>
 
         <div id="result">
-            <div>Current Location</div>
+            <h3>Current Location</h3>
             <div id="location">unknown</div>
         </div>
 
@@ -36,6 +38,14 @@
             <h3>Log</h3>
             <p id="console"></p>
        </div>
+
+       <script type='text/javascript'>
+        $(document).on('pageinit',function(){
+            $("#main_view").on("swipeleft",function(){
+                $("#logPanel").panel("open");
+            });
+        });
+        </script>
 
         <script type="text/javascript" src="cordova.js"></script>
         <script type="text/javascript" src="js/numeric-1.2.6.min.js"></script>
