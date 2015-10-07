@@ -67,10 +67,12 @@ function process_raw_buffer (buf) {
                 var eui = buf_to_eui(dv, start);
                 var range = encoded_mm_to_meters(dv, start+8);
                 ranges[eui] = range;
+
+                app.log('  ' + eui + ': ' + range);
             }
 
             // Got ranges
-            app.log(JSON.stringify(ranges));
+            // app.log(JSON.stringify(ranges));
         }
     } else {
         app.log('Got different reason byte: ' + reason_byte);
@@ -143,7 +145,7 @@ var app = {
     },
 
     bleRawBufferNotify: function (data) {
-        app.log('got notify data');
+        // app.log('got notify data');
 
         // Read to get the rest of the buffer
         ble.read(device_id, uuid_service_tritag, uuid_tritag_char_raw,
