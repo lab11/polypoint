@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 16.0.4, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 width="647.85px" height="551.406px" viewBox="0 0 647.85 551.406" enable-background="new 0 0 647.85 551.406"
+	 xml:space="preserve">
+<g id="Layer_1">
+	<defs>
+		<filter id="Adobe_OpacityMaskFilter" filterUnits="userSpaceOnUse" x="0" y="0" width="647.85" height="551.406">
+			<feColorMatrix  type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1 0"/>
+		</filter>
+	</defs>
+	<mask maskUnits="userSpaceOnUse" x="0" y="0" width="647.85" height="551.406" id="SVGID_1_">
+		<g filter="url(#Adobe_OpacityMaskFilter)">
+			<linearGradient id="SVGID_2_" gradientUnits="userSpaceOnUse" x1="-6.6074" y1="-46.668" x2="635.8923" y2="595.8317">
+				<stop  offset="0" style="stop-color:#FFFFFF"/>
+				<stop  offset="1" style="stop-color:#D1D3D4"/>
+			</linearGradient>
+			<rect x="-35.858" y="-17.418" fill="url(#SVGID_2_)" width="701" height="584"/>
+		</g>
+	</mask>
+	<g mask="url(#SVGID_1_)">
+		<polygon fill="#478AC9" stroke="#115CAA" stroke-width="11" stroke-miterlimit="10" points="474.791,349.832 419.221,253.582 
+			474.791,157.332 585.931,157.332 641.5,253.582 585.931,349.832 		"/>
+		<polygon fill="#478AC9" stroke="#115CAA" stroke-width="11" stroke-miterlimit="10" points="260.353,545.906 215.675,408.404 
+			332.642,323.424 449.609,408.404 404.931,545.906 		"/>
+		
+			<rect x="42.739" y="169.179" transform="matrix(0.7071 0.7071 -0.7071 0.7071 216.5481 -15.6308)" fill="#478AC9" stroke="#115CAA" stroke-width="11" stroke-miterlimit="10" width="168.806" height="168.806"/>
+		<polygon fill="#478AC9" stroke="#115CAA" stroke-width="11" stroke-miterlimit="10" points="332.635,191.835 225.064,5.5 
+			440.22,5.507 		"/>
+		<circle fill="#115CAA" stroke="#1E7FC3" stroke-width="11" stroke-miterlimit="10" cx="332.642" cy="253.582" r="32.5"/>
+	</g>
+</g>
+<g id="Layer_2">
+</g>
+</svg>
