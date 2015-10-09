@@ -210,7 +210,8 @@ var app = {
     },
     // App Paused Event Handler
     onAppPause: function () {
-        ble.disconnect(device_id);
+        console.log('DISCONNNNENECCCT');
+        ble.disconnect(device_id, app.bleDisconnect, app.bleDisconnectError);
     },
 
     // Callbacks to make sure that the phone has BLE ENABLED.
@@ -276,6 +277,17 @@ var app = {
     },
     bleRawBufferReadError: function (err) {
         app.log('Read raw buf error');
+    },
+
+    // Callbacks for DISCONNECT
+    bleDisconnect: function () {
+        console.log('Successfully disconnected');
+        app.log('Disconnected from TriTag.');
+    },
+    bleDisconnectError: function (err) {
+        console.log('Error disconnecting.');
+        console.log(err);
+        app.log('Error disconnecting from TriTag');
     },
 
     update_location: function (str) {
