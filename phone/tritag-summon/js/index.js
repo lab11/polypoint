@@ -213,46 +213,64 @@ var app = {
         ble.disconnect(device_id);
     },
 
-    // Callbacks to make sure that the phone has BLE enabled.
+    // Callbacks to make sure that the phone has BLE ENABLED.
     bleEnabled: function () {
         app.log('BLE is enabled.');
 
-        app.log('Trying to connect to the proper TriTag.');
-        ble.connect(device_id, app.bleDeviceConnected, app.bleDeviceConnectionError);
+        // Need to scan in order to ensure that megster BLE library
+        // has the peripheral in its cache
+        ble.startScan([], app.bleDeviceFound, app.bleScanError);
     },
     bleDisabled: function () {
         app.log('BLE disabled. Boo.');
     },
 
+    // Callbacks for SCANNING
+    bleDeviceFound: function (dev) {
+        // Scan found a device, check if its the one we are looking for
+        if (dev.id == device_id) {
+            // Found our device, stop the scan, and try to connect
+            ble.stopScan();
+
+            app.log('Trying to connect to the proper TriTag.');
+            ble.connect(device_id, app.bleDeviceConnected, app.bleDeviceConnectionError);
+        }
+    },
+    bleScanError: function (err) {
+        app.log('Scanning error.');
+    },
+
+    // Callbacks for CONNECT
     bleDeviceConnected: function (device) {
         app.log('Successfully connected to TriTag');
-
-        console.log(JSON.stringify(device));
-
         ble.startNotification(device_id, uuid_service_tritag, uuid_tritag_char_raw,
           app.bleRawBufferNotify, app.bleRawBufferNotifyError);
     },
-
     bleDeviceConnectionError: function (err) {
-        app.log('Error connecting to TriTag');
-        app.log('TriTag reconnecting try');
+        app.log('Error connecting to TriTag: ' + err);
 
-        ble.connect(device_id, app.bleDeviceConnected, app.bleDeviceConnectionError);
+        // Check the error to determine if we should try to connect again,
+        // or we need to re-scan for the device.
+        if (err == "Peripheral " + device_id + " not found.") {
+            // Cannot just reconnect, must rescan
+            app.bleEnabled();
+        } else {
+            app.log('TriTag reconnecting try');
+            ble.connect(device_id, app.bleDeviceConnected, app.bleDeviceConnectionError);
+        }
     },
 
+    // Callbacks for NOTIFY
     bleRawBufferNotify: function (data) {
-        // app.log('got notify data');
-
         // Read to get the rest of the buffer
         ble.read(device_id, uuid_service_tritag, uuid_tritag_char_raw,
           app.bleRawBufferRead, app.bleRawBufferReadError);
-        // process_raw_buffer(data);
     },
-
     bleRawBufferNotifyError: function (err) {
         app.log('Notify raw buffer error.');
     },
 
+    // Callbacks for READ
     bleRawBufferRead: function (data) {
         process_raw_buffer(data);
     },
@@ -261,7 +279,6 @@ var app = {
     },
 
     update_location: function (str) {
-      // $('#location').text(str);
         document.querySelector("#location").innerHTML = str;
 
     },

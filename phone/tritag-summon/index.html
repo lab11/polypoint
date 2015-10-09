@@ -14,6 +14,8 @@
 
         <link rel="stylesheet" href="css/font-awesome-4.4.0/css/font-awesome.min.css">
 
+        <link rel="shortcut icon" type="image/x-icon" href="img/polypoint.ico" />
+
         <title>TriTag | PolyPoint</title>
     </head>
     <!-- <body id="main_view" data-role="main" class="frame"> -->
@@ -41,6 +43,7 @@
 
        <script type='text/javascript'>
         $(document).on('pageinit',function(){
+            console.log('got to page init');
             $("#main_view").on("swipeleft",function(){
                 $("#logPanel").panel("open");
             });
