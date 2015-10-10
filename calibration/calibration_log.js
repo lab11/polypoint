@@ -65,12 +65,20 @@ function receive (peripheral, index, filename) {
 		// 	fs.writeSync(fd, 'Round\tARX2\tBRX2\tCRX2\tDTX2\n');
 		// }
 
-		peripheral.connect(function (connect_err) {
+		peripheral.on('connect', function (connect_err) {
 
 			if (connect_err) {
 				console.log('Error connecting to ' + peripheral.uuid);
 				console.log(connect_err);
 			} else {
+
+				// This might not actually work because omg noble.
+				// So, maybe try again in a bit
+				// var retry_st = setTimeout(function () {
+				// 	peripheral.connect();
+				// }, 5000);
+
+
 
 				console.log('Connected to TriTag ' + peripheral.uuid);
 
@@ -79,6 +87,11 @@ function receive (peripheral, index, filename) {
 						console.log('Error finding services on ' + peripheral.uuid);
 						console.log(service_err);
 					} else {
+
+						// OK it seems it did work. Great.
+						// clearTimeout(retry_st);
+
+
 						if (services.length == 1) {
 							console.log('Found the TriTag service on ' + peripheral.uuid);
 
@@ -133,6 +146,11 @@ function receive (peripheral, index, filename) {
 				});
 
 			}
+		});
+
+		peripheral.connect(function (connect_err) {
+
+
 
 
 		});
@@ -153,18 +171,18 @@ noble.on('discover', function (peripheral) {
 	if (peripheral.advertisement.localName == 'tritag' && assignment_index >= 0) {
 		console.log('Found TriTag: ' + peripheral.uuid);
 
-		// if (peripheral.uuid == 'c098e5450002') {
-		// 	receive(peripheral, 2);
-		// }
+		if (peripheral.uuid == 'c098e5450017') {
+			receive(peripheral, 2);
+		}
 
-		// if (peripheral.uuid == 'c098e5450005') {
-		// 	receive(peripheral, 1);
-		// }
+		if (peripheral.uuid == 'c098e5450019') {
+			receive(peripheral, 1);
+		}
 
-		// if (peripheral.uuid == 'c098e5450004') {
-		// 	receive(peripheral, 0);
-		// }
+		if (peripheral.uuid == 'c098e545001d') {
+			receive(peripheral, 0);
+		}
 
-		receive(peripheral, assignment_index--);
+		// receive(peripheral, assignment_index--);
 	}
 });
