@@ -324,7 +324,7 @@ static void calibration_txcallback (const dwt_callback_data_t *txd) {
 
 	} else if (CALIBRATION_ROUND_FOR_ME(_round_num, _config.index) &&
 	           pp_calibration_pkt.num == 1) {
-		// We send the first response, now send another
+		// We sent the first response, now send another
 		mDelay(2);
 		// Send on the next ranging cycle in this round
 		send_calibration_pkt(MSG_TYPE_PP_CALIBRATION_MSG, 2);
@@ -392,7 +392,12 @@ static void calibration_rxcallback (const dwt_callback_data_t *rxd) {
 			uint8_t packet_num = rx_start_pkt->num;
 
 			// store timestamps.
-			_calibration_timing[packet_num] = dw_rx_timestamp;
+			if (packet_num <= 3) {
+				_calibration_timing[packet_num] = dw_rx_timestamp;
+			} else {
+				// Uhh, this is bad
+				_got_init = FALSE;
+			}
 
 			if (packet_num == 0 && CALIBRATION_ROUND_FOR_ME(_round_num, _config.index)) {
 				// After the first packet, based on the round number the node to
