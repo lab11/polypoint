@@ -14,9 +14,13 @@ to the `0x3159` characteristic.
 
 In practice, do this:
 
+1. Install node dependencies:
+    
+	    npm install
+
 1. Make noble run without sudo:
 
-        sudo setcap cap_net_raw+eip node_modules/noble/build/Release/hci-ble
+        sudo setcap cap_net_raw+eip $(eval readlink -f `which node`)
 
 2. Collect the data from each node:
 
