@@ -28,4 +28,12 @@ In practice, do this:
 
         ./calibration_condense.py YYYY-MM-DD_HH-MM-SS
 
+4. Compute the calibration values for each node involved and add the
+results to the main calibration file.
+
+        ./calibration_compute.py tripoint_calibration_YYYY-MM-DD_HH-MM-SS.condensed
+
+5. When flashing the TriPoint firmware, the build system will check
+`tripoint_calibration.data` for calibration constants and use those
+if they exist.
 
