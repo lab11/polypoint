@@ -1,7 +1,7 @@
 PolyPoint
 =========
 
-<img src="https://raw.githubusercontent.com/lab11/polypoint/master/media/polypoint_logo_a.png" alt="PolyPoint" width="15%" align="left">
+<img src="https://raw.githubusercontent.com/lab11/polypoint/master/media/polypoint_logo_a.png" alt="PolyPoint" width="20%" align="left">
 
 PolyPoint is a system for using ultra-wideband RF time-of-flight ranging to perform indoor localization.
 It incorporates the DecaWave DW1000 for UWB packet transmission and timestamping
