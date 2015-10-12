@@ -1,13 +1,13 @@
 PolyPoint
 =========
 
+<img src="https://raw.githubusercontent.com/lab11/polypoint/master/media/polypoint_logo_a.png" alt="PolyPoint" width="15%" align="left">
+
 PolyPoint is a system for using ultra-wideband RF time-of-flight ranging to perform indoor localization.
 It incorporates the DecaWave DW1000 for UWB packet transmission and timestamping
 into a solder-on module that provides node-to-node ranges over an I2C interface.
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/lab11/polypoint/master/media/tritag_blue_1000x889.jpg" alt="TriTag" width="50%;">
-</p>
+
 
 Name
 ----
@@ -51,6 +51,10 @@ The MCU contains all the necessary code to run the DW1000 and the ranging
 protocol.
 
 ### TriTag
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/lab11/polypoint/master/media/tritag_blue_1000x889.jpg" alt="TriTag" width="50%;">
+</p>
 
 TriTag includes:
 
