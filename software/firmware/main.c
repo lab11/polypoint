@@ -317,16 +317,16 @@ int main () {
 	// of the settings on the DW1000.
 	start_dw1000();
 
-	//// MAIN LOOP -- TAG
-	//dw1000_wakeup();
-	//init();
-	//timer_start(_app_timer, 4000, calib_start_round);
-
-	// MAIN LOOP -- ANCHOR
+	// MAIN LOOP -- TAG
 	dw1000_wakeup();
 	init();
-	setup_round_antenna_channel(0);
-	dwt_rxenable(0);
+	timer_start(_app_timer, 4000, calib_start_round);
+
+	//// MAIN LOOP -- ANCHOR
+	//dw1000_wakeup();
+	//init();
+	//setup_round_antenna_channel(0);
+	//dwt_rxenable(0);
 
 	while(1)
 	{
@@ -362,23 +362,23 @@ int main () {
 				dw1000_interrupt_fired();
 			}
 
-			if (interrupts_triggered[INTERRUPT_I2C_RX] == TRUE) {
-				interrupts_triggered[INTERRUPT_I2C_RX] = FALSE;
-				interrupt_triggered = TRUE;
-				host_interface_rx_fired();
-			}
+			//if (interrupts_triggered[INTERRUPT_I2C_RX] == TRUE) {
+			//	interrupts_triggered[INTERRUPT_I2C_RX] = FALSE;
+			//	interrupt_triggered = TRUE;
+			//	host_interface_rx_fired();
+			//}
 
-			if (interrupts_triggered[INTERRUPT_I2C_TX] == TRUE) {
-				interrupts_triggered[INTERRUPT_I2C_TX] = FALSE;
-				interrupt_triggered = TRUE;
-				host_interface_tx_fired();
-			}
+			//if (interrupts_triggered[INTERRUPT_I2C_TX] == TRUE) {
+			//	interrupts_triggered[INTERRUPT_I2C_TX] = FALSE;
+			//	interrupt_triggered = TRUE;
+			//	host_interface_tx_fired();
+			//}
 
-			if (interrupts_triggered[INTERRUPT_I2C_TIMEOUT] == TRUE) {
-				interrupts_triggered[INTERRUPT_I2C_TIMEOUT] = FALSE;
-				interrupt_triggered = TRUE;
-				host_interface_timeout_fired();
-			}
+			//if (interrupts_triggered[INTERRUPT_I2C_TIMEOUT] == TRUE) {
+			//	interrupts_triggered[INTERRUPT_I2C_TIMEOUT] = FALSE;
+			//	interrupt_triggered = TRUE;
+			//	host_interface_timeout_fired();
+			//}
 		} while (interrupt_triggered == TRUE);
 	}
 

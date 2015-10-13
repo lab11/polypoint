@@ -182,6 +182,15 @@ void setup_round_antenna_channel (uint32_t round_num) {
 	dw1000_update_channel(channel_index_to_channel_rf_number[channel]);
 }
 
+char code_sequence[63] = {
+	0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1,
+	0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1,
+	0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0,
+	0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1,
+	0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1,
+	1, 1, 1
+};
+
 // Timer callback that marks the start of each round
 void calib_start_round () {
 
@@ -192,7 +201,7 @@ void calib_start_round () {
 		_round_num++;
 	}
 
-	if(_round_num & 1){
+	if(code_sequence[_round_num % 63]){
 		GPIO_WriteBit(STM_GPIO0_PORT, STM_GPIO0_PIN, Bit_SET);
                 GPIO_WriteBit(STM_GPIO1_PORT, STM_GPIO1_PIN, Bit_RESET);
 	} else {
@@ -200,11 +209,11 @@ void calib_start_round () {
                 GPIO_WriteBit(STM_GPIO1_PORT, STM_GPIO1_PIN, Bit_SET);
 	}
 
-	// Before the INIT packet, use the default settings
-	setup_round_antenna_channel(0);
+	//// Before the INIT packet, use the default settings
+	//setup_round_antenna_channel(0);
 
 	// Send a packet to announce the start of the a calibration round.
-	send_calibration_pkt(MSG_TYPE_PP_CALIBRATION_INIT, 0);
+	//send_calibration_pkt(MSG_TYPE_PP_CALIBRATION_INIT, 0);
 }
 
 // Send a packet
@@ -310,14 +319,14 @@ static void calibration_txcallback (const dwt_callback_data_t *txd) {
 		mDelay(2);
 		// Send on the next ranging cycle in this round
 		//setup_round_antenna_channel(_round_num);
-		send_calibration_pkt(MSG_TYPE_PP_CALIBRATION_MSG, 0);
+		//send_calibration_pkt(MSG_TYPE_PP_CALIBRATION_MSG, 0);
 
 	} else if (CALIBRATION_ROUND_FOR_ME(_round_num, _config.index) &&
 	           pp_calibration_pkt.num == 1) {
 		// We send the first response, now send another
 		mDelay(2);
 		// Send on the next ranging cycle in this round
-		send_calibration_pkt(MSG_TYPE_PP_CALIBRATION_MSG, 2);
+		//send_calibration_pkt(MSG_TYPE_PP_CALIBRATION_MSG, 2);
 
 	} else if (pp_calibration_pkt.num == 2) {
 		// We have sent enough packets, call this a day.
