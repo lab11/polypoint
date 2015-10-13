@@ -213,7 +213,7 @@ void services_init (void) {
     simple_ble_add_characteristic(1, 0, 1,  // read, write, notify
                                   tritag_uuid.type,
                                   TRITAG_CHAR_LOCATION_SHORT_UUID,
-                                  72, app.app_raw_response_buffer,
+                                  128, app.app_raw_response_buffer,
                                   app.service_handle,
                                   &app.char_range_handle);
 
