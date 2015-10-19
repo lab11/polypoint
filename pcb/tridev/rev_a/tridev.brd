@@ -155,7 +155,7 @@
 <wire x1="-43.09785625" y1="26.2206" x2="-43.09785625" y2="24.4426" width="0.127" layer="21"/>
 <wire x1="-43.09785625" y1="24.4426" x2="-44.367859375" y2="24.4426" width="0.127" layer="21"/>
 <wire x1="-44.367859375" y1="24.4426" x2="-44.367859375" y2="26.220603125" width="0.127" layer="21"/>
-<text x="-13.462" y="16.002" size="1.016" layer="21" font="vector" ratio="12">2015/10/04</text>
+<text x="-13.462" y="16.002" size="1.016" layer="21" font="vector" ratio="12">2015/10/19</text>
 <text x="3.302" y="16.002" size="1.016" layer="21" font="vector" ratio="12">Brad Campbell</text>
 <text x="-43.688" y="25.273" size="1.016" layer="21" font="vector" ratio="12" align="center">A</text>
 <wire x1="-4.445" y1="-44.45" x2="-12.7508" y2="-44.45" width="0" layer="20"/>
