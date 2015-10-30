@@ -479,6 +479,13 @@ static void calculate_ranges () {
 		// channel between the anchor response and the correct tag poll.
 		uint8_t ss_index_matching = oneway_get_ss_index_from_settings(aresp->anchor_final_antenna_index,
 		                                                              aresp->window_packet_recv);
+
+		// Exit early if the corresponding broadcast wasn't received
+		if(aresp->tag_poll_TOAs[ss_index_matching] == 0){
+			_ranges_millimeters[anchor_index] = ONEWAY_TAG_RANGE_ERROR_NO_OFFSET;
+			continue;
+		}
+
 		uint64_t matching_broadcast_send_time = _ranging_broadcast_ss_send_times[ss_index_matching];
 		uint64_t matching_broadcast_recv_time = aresp->tag_poll_TOAs[ss_index_matching];
 		uint64_t response_send_time  = aresp->anc_final_tx_timestamp;
