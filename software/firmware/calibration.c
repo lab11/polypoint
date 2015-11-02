@@ -213,7 +213,7 @@ void calib_start_round () {
 	//setup_round_antenna_channel(0);
 
 	// Send a packet to announce the start of the a calibration round.
-	//send_calibration_pkt(MSG_TYPE_PP_CALIBRATION_INIT, 0);
+	send_calibration_pkt(MSG_TYPE_PP_CALIBRATION_INIT, 0);
 }
 
 // Send a packet
