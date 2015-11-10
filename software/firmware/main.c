@@ -317,16 +317,16 @@ int main () {
 	// of the settings on the DW1000.
 	start_dw1000();
 
-	// MAIN LOOP -- TAG
-	dw1000_wakeup();
-	init();
-	timer_start(_app_timer, 5000, calib_start_round);
-
-	//// MAIN LOOP -- ANCHOR
+	//// MAIN LOOP -- TAG
 	//dw1000_wakeup();
 	//init();
-	//setup_round_antenna_channel(0);
-	//dwt_rxenable(0);
+	//timer_start(_app_timer, 5000, calib_start_round);
+
+	// MAIN LOOP -- ANCHOR
+	dw1000_wakeup();
+	init();
+	setup_round_antenna_channel(0);
+	dwt_rxenable(0);
 
 	while(1)
 	{

@@ -16,10 +16,13 @@ fclose(fid);
 %start_time = 4.96607581;
 %end_time = 5.28113439;
 %%backscatter_trace_with_tag.csv
-%start_time = 1.7165836;
+%start_time = 1.7165836; %first time
 %end_time = 2.03164221;
-start_time = 2.03164221;
+start_time = 2.03164221; %second time
 end_time = 2.34670082;
+%%backscatter_trace_with_tag_bigger_separation.csv
+%start_time = 5.11321996;
+%end_time = 5.42827871;
 
 IMP_THRESH = 0.2;
 CIR_LEN = 1016;
@@ -86,3 +89,5 @@ seq_nums_mod = mod(seq_nums, length(pn_sequence));
 pn_idxs = seq_nums_mod+1;
 pn_zeros = cir_data_interp(:,find(pn_sequence(pn_idxs) == 0));
 pn_ones = cir_data_interp(:,find(pn_sequence(pn_idxs) == 1));
+ones_mean = mean(abs(pn_ones),2);
+zeros_mean = mean(abs(pn_zeros),2);%
