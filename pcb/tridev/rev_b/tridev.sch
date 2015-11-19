@@ -4522,6 +4522,12 @@ Basic 0.1" spaced jumper. Use with breakaway headers.</description>
 <part name="J4" library="SparkFun-Passives" deviceset="JUMPER-2" device="PTH"/>
 <part name="J3" library="SparkFun-Passives" deviceset="JUMPER-2" device="PTH"/>
 <part name="P+8" library="supply1" deviceset="VCC" device=""/>
+<part name="J7" library="SparkFun-Passives" deviceset="JUMPER-2" device="PTH"/>
+<part name="J8" library="SparkFun-Passives" deviceset="JUMPER-2" device="PTH"/>
+<part name="J9" library="SparkFun-Passives" deviceset="JUMPER-2" device="PTH"/>
+<part name="J11" library="SparkFun-Passives" deviceset="JUMPER-2" device="PTH"/>
+<part name="J12" library="SparkFun-Passives" deviceset="JUMPER-2" device="PTH"/>
+<part name="J13" library="SparkFun-Passives" deviceset="JUMPER-2" device="PTH"/>
 </parts>
 <sheets>
 <sheet>
@@ -4561,14 +4567,14 @@ Basic 0.1" spaced jumper. Use with breakaway headers.</description>
 <instance part="GND3" gate="1" x="38.1" y="25.4"/>
 <instance part="R7" gate="G$1" x="38.1" y="43.18" rot="R90"/>
 <instance part="GND5" gate="1" x="5.08" y="35.56"/>
-<instance part="R6" gate="G$1" x="116.84" y="144.78" rot="R90"/>
-<instance part="R5" gate="G$1" x="124.46" y="144.78" rot="R90"/>
-<instance part="P+2" gate="VCC" x="119.38" y="157.48"/>
+<instance part="R6" gate="G$1" x="116.84" y="149.86" rot="R90"/>
+<instance part="R5" gate="G$1" x="124.46" y="149.86" rot="R90"/>
+<instance part="P+2" gate="VCC" x="119.38" y="162.56"/>
 <instance part="R1" gate="G$1" x="96.52" y="121.92" rot="R90"/>
 <instance part="D2" gate="G$1" x="96.52" y="111.76"/>
 <instance part="P+6" gate="VCC" x="241.3" y="119.38"/>
 <instance part="GND1" gate="1" x="241.3" y="96.52"/>
-<instance part="P+7" gate="VCC" x="134.62" y="147.32"/>
+<instance part="P+7" gate="VCC" x="134.62" y="157.48"/>
 <instance part="GND2" gate="1" x="142.24" y="93.98"/>
 <instance part="LOGO1" gate="G$1" x="231.14" y="172.72"/>
 <instance part="A1" gate="G$1" x="195.58" y="149.86" smashed="yes">
@@ -4594,9 +4600,12 @@ Basic 0.1" spaced jumper. Use with breakaway headers.</description>
 <instance part="U1" gate="G$1" x="167.64" y="121.92"/>
 <instance part="GND8" gate="1" x="208.28" y="48.26"/>
 <instance part="GND9" gate="1" x="231.14" y="48.26"/>
-<instance part="J4" gate="A" x="139.7" y="147.32"/>
+<instance part="J4" gate="A" x="139.7" y="154.94"/>
 <instance part="J3" gate="A" x="27.94" y="172.72"/>
 <instance part="P+8" gate="VCC" x="20.32" y="175.26"/>
+<instance part="J7" gate="A" x="106.68" y="134.62"/>
+<instance part="J8" gate="A" x="114.3" y="127" rot="R180"/>
+<instance part="J9" gate="A" x="119.38" y="119.38" rot="R180"/>
 </instances>
 <busses>
 </busses>
@@ -4794,14 +4803,14 @@ Basic 0.1" spaced jumper. Use with breakaway headers.</description>
 <net name="VCC" class="0">
 <segment>
 <pinref part="R6" gate="G$1" pin="2"/>
-<wire x1="116.84" y1="149.86" x2="116.84" y2="152.4" width="0.1524" layer="91"/>
+<wire x1="116.84" y1="154.94" x2="116.84" y2="157.48" width="0.1524" layer="91"/>
 <pinref part="R5" gate="G$1" pin="2"/>
-<wire x1="116.84" y1="152.4" x2="119.38" y2="152.4" width="0.1524" layer="91"/>
-<wire x1="119.38" y1="152.4" x2="124.46" y2="152.4" width="0.1524" layer="91"/>
-<wire x1="124.46" y1="152.4" x2="124.46" y2="149.86" width="0.1524" layer="91"/>
+<wire x1="116.84" y1="157.48" x2="119.38" y2="157.48" width="0.1524" layer="91"/>
+<wire x1="119.38" y1="157.48" x2="124.46" y2="157.48" width="0.1524" layer="91"/>
+<wire x1="124.46" y1="157.48" x2="124.46" y2="154.94" width="0.1524" layer="91"/>
 <pinref part="P+2" gate="VCC" pin="VCC"/>
-<wire x1="119.38" y1="152.4" x2="119.38" y2="154.94" width="0.1524" layer="91"/>
-<junction x="119.38" y="152.4"/>
+<wire x1="119.38" y1="157.48" x2="119.38" y2="160.02" width="0.1524" layer="91"/>
+<junction x="119.38" y="157.48"/>
 </segment>
 <segment>
 <pinref part="P+6" gate="VCC" pin="VCC"/>
@@ -4816,10 +4825,10 @@ Basic 0.1" spaced jumper. Use with breakaway headers.</description>
 </segment>
 <segment>
 <pinref part="P+7" gate="VCC" pin="VCC"/>
-<wire x1="134.62" y1="144.78" x2="134.62" y2="142.24" width="0.1524" layer="91"/>
-<wire x1="134.62" y1="142.24" x2="139.7" y2="142.24" width="0.1524" layer="91"/>
+<wire x1="134.62" y1="154.94" x2="134.62" y2="149.86" width="0.1524" layer="91"/>
+<wire x1="134.62" y1="149.86" x2="139.7" y2="149.86" width="0.1524" layer="91"/>
 <pinref part="J4" gate="A" pin="1"/>
-<wire x1="139.7" y1="142.24" x2="139.7" y2="144.78" width="0.1524" layer="91"/>
+<wire x1="139.7" y1="149.86" x2="139.7" y2="152.4" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="P+8" gate="VCC" pin="VCC"/>
@@ -4858,65 +4867,55 @@ Basic 0.1" spaced jumper. Use with breakaway headers.</description>
 </net>
 <net name="TP_INT" class="0">
 <segment>
-<wire x1="144.78" y1="124.46" x2="111.76" y2="124.46" width="0.1524" layer="91"/>
-<wire x1="111.76" y1="124.46" x2="111.76" y2="93.98" width="0.1524" layer="91"/>
-<label x="93.98" y="81.28" size="1.27" layer="95" xref="yes"/>
-<pinref part="U2" gate="G$1" pin="P25"/>
-<wire x1="86.36" y1="81.28" x2="91.44" y2="81.28" width="0.1524" layer="91"/>
-<wire x1="91.44" y1="81.28" x2="93.98" y2="81.28" width="0.1524" layer="91"/>
-<wire x1="111.76" y1="93.98" x2="91.44" y2="93.98" width="0.1524" layer="91"/>
-<wire x1="91.44" y1="93.98" x2="91.44" y2="81.28" width="0.1524" layer="91"/>
-<junction x="91.44" y="81.28"/>
-<pinref part="U1" gate="G$1" pin="INTERRUPT"/>
-</segment>
-<segment>
 <pinref part="J2" gate="A" pin="14"/>
 <wire x1="223.52" y1="60.96" x2="228.6" y2="60.96" width="0.1524" layer="91"/>
 <label x="228.6" y="60.96" size="1.27" layer="95" xref="yes"/>
 </segment>
+<segment>
+<pinref part="J9" gate="A" pin="1"/>
+<wire x1="119.38" y1="121.92" x2="119.38" y2="124.46" width="0.1524" layer="91"/>
+<wire x1="144.78" y1="124.46" x2="119.38" y2="124.46" width="0.1524" layer="91"/>
+<pinref part="U1" gate="G$1" pin="INTERRUPT"/>
+</segment>
 </net>
 <net name="I2C_SDA" class="0">
-<segment>
-<pinref part="R6" gate="G$1" pin="1"/>
-<wire x1="116.84" y1="139.7" x2="116.84" y2="137.16" width="0.1524" layer="91"/>
-<wire x1="116.84" y1="137.16" x2="114.3" y2="137.16" width="0.1524" layer="91"/>
-<label x="114.3" y="137.16" size="1.27" layer="95" rot="R180" xref="yes"/>
-<pinref part="U2" gate="G$1" pin="P29"/>
-<wire x1="86.36" y1="71.12" x2="109.22" y2="71.12" width="0.1524" layer="91"/>
-<wire x1="109.22" y1="71.12" x2="109.22" y2="129.54" width="0.1524" layer="91"/>
-<wire x1="109.22" y1="129.54" x2="116.84" y2="129.54" width="0.1524" layer="91"/>
-<wire x1="116.84" y1="129.54" x2="144.78" y2="129.54" width="0.1524" layer="91"/>
-<wire x1="116.84" y1="137.16" x2="116.84" y2="129.54" width="0.1524" layer="91"/>
-<junction x="116.84" y="137.16"/>
-<junction x="116.84" y="129.54"/>
-<pinref part="U1" gate="G$1" pin="SDA"/>
-</segment>
 <segment>
 <pinref part="J2" gate="A" pin="12"/>
 <wire x1="228.6" y1="63.5" x2="223.52" y2="63.5" width="0.1524" layer="91"/>
 <label x="228.6" y="63.5" size="1.27" layer="95" xref="yes"/>
 </segment>
+<segment>
+<pinref part="U1" gate="G$1" pin="SDA"/>
+<pinref part="J8" gate="A" pin="1"/>
+<wire x1="114.3" y1="129.54" x2="116.84" y2="129.54" width="0.1524" layer="91"/>
+<wire x1="116.84" y1="129.54" x2="144.78" y2="129.54" width="0.1524" layer="91"/>
+<junction x="116.84" y="129.54"/>
+<pinref part="R6" gate="G$1" pin="1"/>
+<wire x1="116.84" y1="144.78" x2="116.84" y2="142.24" width="0.1524" layer="91"/>
+<wire x1="116.84" y1="142.24" x2="116.84" y2="129.54" width="0.1524" layer="91"/>
+<junction x="116.84" y="142.24"/>
+<wire x1="116.84" y1="142.24" x2="114.3" y2="142.24" width="0.1524" layer="91"/>
+<label x="114.3" y="142.24" size="1.27" layer="95" rot="R180" xref="yes"/>
+</segment>
 </net>
 <net name="I2C_SCL" class="0">
-<segment>
-<pinref part="R5" gate="G$1" pin="1"/>
-<wire x1="124.46" y1="139.7" x2="124.46" y2="137.16" width="0.1524" layer="91"/>
-<wire x1="124.46" y1="137.16" x2="127" y2="137.16" width="0.1524" layer="91"/>
-<label x="127" y="137.16" size="1.27" layer="95" xref="yes"/>
-<wire x1="144.78" y1="132.08" x2="124.46" y2="132.08" width="0.1524" layer="91"/>
-<wire x1="124.46" y1="132.08" x2="106.68" y2="132.08" width="0.1524" layer="91"/>
-<wire x1="106.68" y1="132.08" x2="106.68" y2="73.66" width="0.1524" layer="91"/>
-<pinref part="U2" gate="G$1" pin="P28"/>
-<wire x1="106.68" y1="73.66" x2="86.36" y2="73.66" width="0.1524" layer="91"/>
-<wire x1="124.46" y1="137.16" x2="124.46" y2="132.08" width="0.1524" layer="91"/>
-<junction x="124.46" y="137.16"/>
-<junction x="124.46" y="132.08"/>
-<pinref part="U1" gate="G$1" pin="SCL"/>
-</segment>
 <segment>
 <pinref part="J2" gate="A" pin="13"/>
 <wire x1="210.82" y1="60.96" x2="215.9" y2="60.96" width="0.1524" layer="91"/>
 <label x="210.82" y="60.96" size="1.27" layer="95" rot="R180" xref="yes"/>
+</segment>
+<segment>
+<pinref part="J7" gate="A" pin="2"/>
+<pinref part="U1" gate="G$1" pin="SCL"/>
+<wire x1="144.78" y1="132.08" x2="124.46" y2="132.08" width="0.1524" layer="91"/>
+<wire x1="124.46" y1="132.08" x2="109.22" y2="132.08" width="0.1524" layer="91"/>
+<pinref part="R5" gate="G$1" pin="1"/>
+<wire x1="124.46" y1="144.78" x2="124.46" y2="142.24" width="0.1524" layer="91"/>
+<wire x1="124.46" y1="142.24" x2="127" y2="142.24" width="0.1524" layer="91"/>
+<junction x="124.46" y="142.24"/>
+<wire x1="124.46" y1="142.24" x2="124.46" y2="132.08" width="0.1524" layer="91"/>
+<junction x="124.46" y="132.08"/>
+<label x="127" y="142.24" size="1.27" layer="95" xref="yes"/>
 </segment>
 </net>
 <net name="N$17" class="0">
@@ -5219,7 +5218,7 @@ Basic 0.1" spaced jumper. Use with breakaway headers.</description>
 <pinref part="U1" gate="G$1" pin="VCC"/>
 <wire x1="144.78" y1="137.16" x2="142.24" y2="137.16" width="0.1524" layer="91"/>
 <pinref part="J4" gate="A" pin="2"/>
-<wire x1="142.24" y1="137.16" x2="142.24" y2="144.78" width="0.1524" layer="91"/>
+<wire x1="142.24" y1="137.16" x2="142.24" y2="152.4" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="NRF_VCC" class="0">
@@ -5253,6 +5252,37 @@ Basic 0.1" spaced jumper. Use with breakaway headers.</description>
 <pinref part="R1" gate="G$1" pin="2"/>
 <wire x1="96.52" y1="127" x2="96.52" y2="129.54" width="0.1524" layer="91"/>
 <label x="96.52" y="129.54" size="1.27" layer="95" rot="R90" xref="yes"/>
+</segment>
+</net>
+<net name="I2C_SCL_NRF" class="0">
+<segment>
+<wire x1="106.68" y1="132.08" x2="106.68" y2="73.66" width="0.1524" layer="91"/>
+<pinref part="U2" gate="G$1" pin="P28"/>
+<wire x1="106.68" y1="73.66" x2="86.36" y2="73.66" width="0.1524" layer="91"/>
+<pinref part="J7" gate="A" pin="1"/>
+</segment>
+</net>
+<net name="I2C_SDA_NRF" class="0">
+<segment>
+<pinref part="U2" gate="G$1" pin="P29"/>
+<wire x1="86.36" y1="71.12" x2="109.22" y2="71.12" width="0.1524" layer="91"/>
+<wire x1="109.22" y1="71.12" x2="109.22" y2="129.54" width="0.1524" layer="91"/>
+<wire x1="109.22" y1="129.54" x2="111.76" y2="129.54" width="0.1524" layer="91"/>
+<pinref part="J8" gate="A" pin="2"/>
+</segment>
+</net>
+<net name="TP_INT_NRF" class="0">
+<segment>
+<label x="93.98" y="81.28" size="1.27" layer="95" xref="yes"/>
+<pinref part="U2" gate="G$1" pin="P25"/>
+<wire x1="111.76" y1="121.92" x2="111.76" y2="93.98" width="0.1524" layer="91"/>
+<wire x1="86.36" y1="81.28" x2="91.44" y2="81.28" width="0.1524" layer="91"/>
+<wire x1="91.44" y1="81.28" x2="93.98" y2="81.28" width="0.1524" layer="91"/>
+<wire x1="111.76" y1="93.98" x2="91.44" y2="93.98" width="0.1524" layer="91"/>
+<wire x1="91.44" y1="93.98" x2="91.44" y2="81.28" width="0.1524" layer="91"/>
+<junction x="91.44" y="81.28"/>
+<pinref part="J9" gate="A" pin="2"/>
+<wire x1="116.84" y1="121.92" x2="111.76" y2="121.92" width="0.1524" layer="91"/>
 </segment>
 </net>
 </nets>
@@ -5336,8 +5366,11 @@ for the DW1000.</text>
 <instance part="SUPPLY21" gate="1" x="93.98" y="71.12"/>
 <instance part="D4" gate="G$1" x="233.68" y="137.16"/>
 <instance part="R3" gate="G$1" x="233.68" y="154.94" rot="R90"/>
-<instance part="R4" gate="G$1" x="243.84" y="154.94" rot="R90"/>
+<instance part="R4" gate="G$1" x="241.3" y="154.94" rot="R90"/>
 <instance part="D3" gate="G$1" x="241.3" y="144.78"/>
+<instance part="J11" gate="A" x="215.9" y="132.08"/>
+<instance part="J12" gate="A" x="220.98" y="124.46" rot="R180"/>
+<instance part="J13" gate="A" x="220.98" y="109.22" rot="R180"/>
 </instances>
 <busses>
 </busses>
@@ -5592,15 +5625,15 @@ for the DW1000.</text>
 <junction x="154.94" y="127"/>
 <wire x1="165.1" y1="127" x2="165.1" y2="175.26" width="0.1524" layer="91"/>
 <junction x="165.1" y="127"/>
-<wire x1="195.58" y1="175.26" x2="243.84" y2="175.26" width="0.1524" layer="91"/>
-<wire x1="243.84" y1="175.26" x2="243.84" y2="167.64" width="0.1524" layer="91"/>
+<wire x1="195.58" y1="175.26" x2="241.3" y2="175.26" width="0.1524" layer="91"/>
+<wire x1="241.3" y1="175.26" x2="241.3" y2="167.64" width="0.1524" layer="91"/>
 <junction x="195.58" y="175.26"/>
 <pinref part="R4" gate="G$1" pin="2"/>
 <pinref part="R3" gate="G$1" pin="2"/>
-<wire x1="243.84" y1="167.64" x2="243.84" y2="160.02" width="0.1524" layer="91"/>
+<wire x1="241.3" y1="167.64" x2="241.3" y2="160.02" width="0.1524" layer="91"/>
 <wire x1="233.68" y1="160.02" x2="233.68" y2="167.64" width="0.1524" layer="91"/>
-<wire x1="233.68" y1="167.64" x2="243.84" y2="167.64" width="0.1524" layer="91"/>
-<junction x="243.84" y="167.64"/>
+<wire x1="233.68" y1="167.64" x2="241.3" y2="167.64" width="0.1524" layer="91"/>
+<junction x="241.3" y="167.64"/>
 </segment>
 </net>
 <net name="N$12" class="0">
@@ -5691,25 +5724,6 @@ for the DW1000.</text>
 <wire x1="132.08" y1="121.92" x2="172.72" y2="121.92" width="0.1524" layer="91"/>
 </segment>
 </net>
-<net name="I2C_SDA" class="0">
-<segment>
-<pinref part="U4" gate="G$1" pin="ADBUS1"/>
-<wire x1="213.36" y1="127" x2="215.9" y2="127" width="0.1524" layer="91"/>
-<wire x1="215.9" y1="127" x2="215.9" y2="124.46" width="0.1524" layer="91"/>
-<pinref part="U4" gate="G$1" pin="ADBUS2"/>
-<wire x1="215.9" y1="124.46" x2="213.36" y2="124.46" width="0.1524" layer="91"/>
-<wire x1="215.9" y1="127" x2="218.44" y2="127" width="0.1524" layer="91"/>
-<junction x="215.9" y="127"/>
-<label x="218.44" y="127" size="1.27" layer="95" xref="yes"/>
-</segment>
-</net>
-<net name="I2C_SCL" class="0">
-<segment>
-<pinref part="U4" gate="G$1" pin="ADBUS0"/>
-<wire x1="213.36" y1="129.54" x2="218.44" y2="129.54" width="0.1524" layer="91"/>
-<label x="218.44" y="129.54" size="1.27" layer="95" xref="yes"/>
-</segment>
-</net>
 <net name="N$24" class="0">
 <segment>
 <pinref part="D4" gate="G$1" pin="A"/>
@@ -5721,7 +5735,7 @@ for the DW1000.</text>
 <segment>
 <pinref part="D3" gate="G$1" pin="A"/>
 <pinref part="R4" gate="G$1" pin="1"/>
-<wire x1="241.3" y1="147.32" x2="243.84" y2="149.86" width="0.1524" layer="91"/>
+<wire x1="241.3" y1="147.32" x2="241.3" y2="149.86" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$26" class="0">
@@ -5734,9 +5748,9 @@ for the DW1000.</text>
 </net>
 <net name="TP_INT" class="0">
 <segment>
-<pinref part="U4" gate="G$1" pin="ADBUS7"/>
-<wire x1="213.36" y1="111.76" x2="215.9" y2="111.76" width="0.1524" layer="91"/>
-<label x="215.9" y="111.76" size="1.27" layer="95" xref="yes"/>
+<label x="226.06" y="111.76" size="1.27" layer="95" xref="yes"/>
+<pinref part="J13" gate="A" pin="1"/>
+<wire x1="220.98" y1="111.76" x2="226.06" y2="111.76" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$5" class="0">
@@ -5745,6 +5759,48 @@ for the DW1000.</text>
 <wire x1="213.36" y1="119.38" x2="233.68" y2="119.38" width="0.1524" layer="91"/>
 <pinref part="D4" gate="G$1" pin="C"/>
 <wire x1="233.68" y1="119.38" x2="233.68" y2="132.08" width="0.1524" layer="91"/>
+</segment>
+</net>
+<net name="I2C_SCL" class="0">
+<segment>
+<pinref part="J11" gate="A" pin="2"/>
+<wire x1="218.44" y1="129.54" x2="223.52" y2="129.54" width="0.1524" layer="91"/>
+<wire x1="223.52" y1="129.54" x2="223.52" y2="132.08" width="0.1524" layer="91"/>
+<label x="223.52" y="132.08" size="1.27" layer="95" rot="R90" xref="yes"/>
+</segment>
+</net>
+<net name="I2C_SCL_FTDI" class="0">
+<segment>
+<pinref part="U4" gate="G$1" pin="ADBUS0"/>
+<wire x1="213.36" y1="129.54" x2="215.9" y2="129.54" width="0.1524" layer="91"/>
+<pinref part="J11" gate="A" pin="1"/>
+</segment>
+</net>
+<net name="I2C_SDA" class="0">
+<segment>
+<pinref part="J12" gate="A" pin="1"/>
+<wire x1="220.98" y1="127" x2="226.06" y2="127" width="0.1524" layer="91"/>
+<wire x1="226.06" y1="127" x2="226.06" y2="132.08" width="0.1524" layer="91"/>
+<label x="226.06" y="132.08" size="1.27" layer="95" rot="R90" xref="yes"/>
+</segment>
+</net>
+<net name="I2C_SDA_FTDI" class="0">
+<segment>
+<pinref part="U4" gate="G$1" pin="ADBUS1"/>
+<wire x1="213.36" y1="127" x2="215.9" y2="127" width="0.1524" layer="91"/>
+<wire x1="215.9" y1="127" x2="215.9" y2="124.46" width="0.1524" layer="91"/>
+<pinref part="U4" gate="G$1" pin="ADBUS2"/>
+<wire x1="215.9" y1="124.46" x2="213.36" y2="124.46" width="0.1524" layer="91"/>
+<pinref part="J12" gate="A" pin="2"/>
+<wire x1="215.9" y1="127" x2="218.44" y2="127" width="0.1524" layer="91"/>
+<junction x="215.9" y="127"/>
+</segment>
+</net>
+<net name="TP_INT_FTDI" class="0">
+<segment>
+<pinref part="J13" gate="A" pin="2"/>
+<pinref part="U4" gate="G$1" pin="ADBUS7"/>
+<wire x1="213.36" y1="111.76" x2="218.44" y2="111.76" width="0.1524" layer="91"/>
 </segment>
 </net>
 </nets>
