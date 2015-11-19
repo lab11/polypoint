@@ -1,4 +1,4 @@
-(kicad_pcb (version 4) (host pcbnew "(2015-07-14 BZR 5941, Git c6c8b11)-product")
+(kicad_pcb (version 4) (host pcbnew 0.201509030901+6151~29~ubuntu15.04.1-product)
 
   (general
     (links 170)
@@ -92,7 +92,7 @@
       (plotvalue false)
       (plotinvisibletext false)
       (padsonsilk false)
-      (subtractmaskfromsilk false)
+      (subtractmaskfromsilk true)
       (outputformat 1)
       (mirror false)
       (drillshape 0)
@@ -1926,7 +1926,7 @@
     )
   )
 
-  (gr_text v1.1 (at 43.815 28.448) (layer F.SilkS)
+  (gr_text v1.2 (at 43.815 28.448) (layer F.SilkS)
     (effects (font (size 1 1) (thickness 0.2)))
   )
   (gr_text "Ben K" (at 45.339 38.608) (layer F.SilkS)
@@ -2202,10 +2202,10 @@
   (segment (start 31.7666 29.855) (end 31.45 29.855) (width 0.1016) (layer F.Cu) (net 21))
   (segment (start 32.0564 29.977) (end 31.9344 29.855) (width 0.1016) (layer F.Cu) (net 21))
   (segment (start 31.9344 29.855) (end 31.7666 29.855) (width 0.1016) (layer F.Cu) (net 21))
-  (segment (start 35.55 37.15) (end 38.755026 37.15) (width 0.1778) (layer F.Cu) (net 22) (status 800000))
-  (segment (start 39.579007 37.479517) (end 39.599998 37.499999) (width 0.1778) (layer F.Cu) (net 22) (tstamp 562A6C5D) (status C00000))
-  (segment (start 39.55752 37.459556) (end 39.579007 37.479517) (width 0.1778) (layer F.Cu) (net 22) (tstamp 562A6C5B) (status C00000))
-  (segment (start 39.535549 37.440128) (end 39.55752 37.459556) (width 0.1778) (layer F.Cu) (net 22) (tstamp 562A6C59) (status 400000))
+  (segment (start 35.55 37.15) (end 38.755026 37.15) (width 0.1778) (layer F.Cu) (net 22))
+  (segment (start 39.579007 37.479517) (end 39.599998 37.499999) (width 0.1778) (layer F.Cu) (net 22) (tstamp 562A6C5D))
+  (segment (start 39.55752 37.459556) (end 39.579007 37.479517) (width 0.1778) (layer F.Cu) (net 22) (tstamp 562A6C5B))
+  (segment (start 39.535549 37.440128) (end 39.55752 37.459556) (width 0.1778) (layer F.Cu) (net 22) (tstamp 562A6C59))
   (segment (start 39.513108 37.421246) (end 39.535549 37.440128) (width 0.1778) (layer F.Cu) (net 22) (tstamp 562A6C57))
   (segment (start 39.49021 37.40292) (end 39.513108 37.421246) (width 0.1778) (layer F.Cu) (net 22) (tstamp 562A6C55))
   (segment (start 39.466869 37.385161) (end 39.49021 37.40292) (width 0.1778) (layer F.Cu) (net 22) (tstamp 562A6C53))
