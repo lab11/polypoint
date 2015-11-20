@@ -8,9 +8,16 @@ delays with DW1000 radios.
 Process
 -------
 
+Calibration requires three TriPoint nodes. The nodes need to placed at
+well-known distances from each other. The calibration scripts currently
+assume that nodes are placed in a triangle each 1 m apart.
+
 The TriPoint software includes the code needed to run calibration. Putting
 the node in calibration mode requires writing the calibration node index
-to the `0x3159` characteristic.
+to the `0x3159` characteristic. There are three "roles" (0,1,2) that nodes
+can be assigned during calibration. Calibration roles are set by writing
+one of 0, 1, or 2 to the `0x3159` characteristic. Role 0 must be written
+last, as calibration will start once this role is assigned.
 
 In practice, do this:
 
