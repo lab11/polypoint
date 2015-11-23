@@ -52,9 +52,9 @@ protocol.
 
 ### TriTag
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/lab11/polypoint/master/media/tritag_blue_1000x889.jpg" alt="TriTag" width="50%;">
-</p>
+
+  <img src="https://raw.githubusercontent.com/lab11/polypoint/master/media/tritag_blue_1000x889.jpg" alt="TriTag" width="20%;" align="right">
+
 
 TriTag includes:
 
@@ -66,6 +66,14 @@ TriTag includes:
 
 TriTag is designed to be the tag to be localized in the system and connected
 to a smartphone.
+
+
+### TriDev
+
+TriDev is a breakout and testing board for the TriPoint module.
+It contains the same BLE hardware as TriTag, but also adds an FTDI
+chip for issuing I2C commands over USB.
+
 
 Software
 --------
