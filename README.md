@@ -78,7 +78,28 @@ chip for issuing I2C commands over USB.
 Software
 --------
 
-The TriPoint software is located in `/tripoint/firmware`. The TriTag code is
-in `/nrf51822/apps/tritag`. Instructions for building each are located in
-their respective folders.
+PolyPoint contains many software layers that run at various levels of
+the system.
+
+#### TriPoint
+
+The core firmware that makes the drop-in TriPoint module work
+includes all of the logic to implement two way ToF ranging
+on top of the DecaWave DW1000 UWB radio. The firmware architecture
+supports multiple "applications", or ranging algorithms, that can
+be selected at runtime.
+
+#### TriTag
+
+The TriTag code implements a BLE application
+that uses the TriPoint module as an I2C device and provides
+a BLE service. It puts the TriTag hardware into TAG mode
+and provides ranges over a BLE characteristic. 
+
+#### Phone and BLE
+
+The tools in the `/phone` directory interact with TriTag and read data
+across the BLE interface.
+
+
 
