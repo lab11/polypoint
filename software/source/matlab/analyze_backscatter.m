@@ -26,7 +26,7 @@ end_time = 2.34670082;
 
 IMP_THRESH = 0.2;
 CIR_LEN = 1016;
-INTERP_MULT = 10;
+INTERP_MULT = 100;
 
 %Get rid of all data that doesn't fit inside the window
 spi_data = spi_data(:,((spi_data(1,:) > start_time) & (spi_data(1,:) < end_time)));
@@ -69,7 +69,7 @@ end
 
 %Rotate CIRs back to place ToA at zero
 for ii=1:num_cirs
-	cir_data_interp(:,ii) = circshift(cir_data_interp(:,ii),-toas(ii))./max(abs(cir_data_interp(:,ii)));
+	cir_data_interp(:,ii) = circshift(cir_data_interp(:,ii),-toas(ii))./sqrt(sum(abs(cir_data_interp(:,ii).^2)));
 end
 
 %Figure out what the sequence numbers for each CIR are
@@ -85,9 +85,14 @@ pn_sequence = [ ...
         0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, ... 
         0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, ... 
         1, 1, 1];
-seq_nums_mod = mod(seq_nums, length(pn_sequence));
+
+ones_mean = zeros(length(pn_sequence),size(cir_data_interp,1));
+zeros_mean = zeros(length(pn_sequence),size(cir_data_interp,1));
+for ii=1:length(pn_sequence)
+seq_nums_mod = mod(seq_nums+ii, length(pn_sequence));
 pn_idxs = seq_nums_mod+1;
 pn_zeros = cir_data_interp(:,find(pn_sequence(pn_idxs) == 0));
 pn_ones = cir_data_interp(:,find(pn_sequence(pn_idxs) == 1));
-ones_mean = mean(abs(pn_ones),2);
-zeros_mean = mean(abs(pn_zeros),2);%
+ones_mean(ii,:) = median(abs(pn_ones),2);
+zeros_mean(ii,:) = median(abs(pn_zeros),2);%
+end
