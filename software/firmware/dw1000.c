@@ -241,7 +241,7 @@ static void setup () {
 	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-	GPIO_Init(ANT_SEL1_PORT, &GPIO_InitStructure);
+	GPIO_Init(ANT_SEL2_PORT, &GPIO_InitStructure);
 
 	// Initialize the RF Switch
 	GPIO_WriteBit(ANT_SEL0_PORT, ANT_SEL0_PIN, Bit_SET);
