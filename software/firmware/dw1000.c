@@ -238,7 +238,7 @@ static void setup () {
 	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-	GPIO_Init(ANT_SEL1_PORT, &GPIO_InitStructure);
+	GPIO_Init(ANT_SEL2_PORT, &GPIO_InitStructure);
 
 	// Initialize the RF Switch
 	GPIO_WriteBit(ANT_SEL0_PORT, ANT_SEL0_PIN, Bit_SET);
@@ -546,6 +546,7 @@ void dw1000_reset () {
 
 // Choose which antenna to connect to the radio
 void dw1000_choose_antenna (uint8_t antenna_number) {
+	antenna_number = 2;
 	// Antenna selection comes from the STM32 chip instead of the DW1000 now
 
 	// Set all of them low
@@ -653,17 +654,17 @@ dw1000_err_e dw1000_configure_settings () {
 	                 DWT_INT_ARFE, 1);
 
 	// Set the parameters of ranging and channel and whatnot
-	_dw1000_config.chan           = 2;
+	_dw1000_config.chan           = 4;
 	_dw1000_config.prf            = DWT_PRF_64M;
-	_dw1000_config.txPreambLength = DWT_PLEN_64;
-	_dw1000_config.rxPAC          = DWT_PAC8;
-	_dw1000_config.txCode         = 9;  // preamble code
-	_dw1000_config.rxCode         = 9;  // preamble code
-	_dw1000_config.nsSFD          = 0;
-	_dw1000_config.dataRate       = DWT_BR_6M8;
+	_dw1000_config.txPreambLength = DWT_PLEN_4096;
+	_dw1000_config.rxPAC          = DWT_PAC64;
+	_dw1000_config.txCode         = 17;  // preamble code
+	_dw1000_config.rxCode         = 17;  // preamble code
+	_dw1000_config.nsSFD          = 1;
+	_dw1000_config.dataRate       = DWT_BR_110K;
 	_dw1000_config.phrMode        = DWT_PHRMODE_EXT; //Enable extended PHR mode (up to 1024-byte packets)
-	_dw1000_config.smartPowerEn   = 1;
-	_dw1000_config.sfdTO          = 64+8+1;//(1025 + 64 - 32);
+	_dw1000_config.smartPowerEn   = 0;
+	_dw1000_config.sfdTO          = 4096+64+1;//(1025 + 64 - 32);
 #if DW1000_USE_OTP
 	dwt_configure(&_dw1000_config, (DWT_LOADANTDLY | DWT_LOADXTALTRIM));
 #else
@@ -788,7 +789,7 @@ dw1000_err_e dw1000_wakeup () {
 // Call to change the DW1000 channel and force set all of the configs
 // that are needed when changing channels.
 void dw1000_update_channel (uint8_t chan) {
-	_dw1000_config.chan = chan;
+	_dw1000_config.chan = 4;//chan;
 	dw1000_reset_configuration();
 }
 

@@ -350,13 +350,13 @@ static void calibration_rxcallback (const dwt_callback_data_t *rxd) {
 		// Update antenna selection based on next packet number sequence
 		memcpy(&_round_num, &buf[16], 4);
 		_round_num++;
-		if(_round_num & 1){//code_sequence[_round_num % 63]){
-			GPIO_WriteBit(STM_GPIO0_PORT, STM_GPIO0_PIN, Bit_SET);
-        	        GPIO_WriteBit(STM_GPIO1_PORT, STM_GPIO1_PIN, Bit_RESET);
-		} else {
-			GPIO_WriteBit(STM_GPIO0_PORT, STM_GPIO0_PIN, Bit_RESET);
-        	        GPIO_WriteBit(STM_GPIO1_PORT, STM_GPIO1_PIN, Bit_SET);
-		}
+		//if(_round_num & 1){//code_sequence[_round_num % 63]){
+		//	GPIO_WriteBit(STM_GPIO0_PORT, STM_GPIO0_PIN, Bit_SET);
+        	//        GPIO_WriteBit(STM_GPIO1_PORT, STM_GPIO1_PIN, Bit_RESET);
+		//} else {
+		//	GPIO_WriteBit(STM_GPIO0_PORT, STM_GPIO0_PIN, Bit_RESET);
+        	//        GPIO_WriteBit(STM_GPIO1_PORT, STM_GPIO1_PIN, Bit_SET);
+		//}
 
 		
 
