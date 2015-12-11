@@ -22,8 +22,9 @@ last, as calibration will start once this role is assigned.
 In practice, do this:
 
 1. Install node dependencies:
-    
-	    npm install
+
+        sudo apt-get install npm node   $ Ubuntu packages
+        npm install
 
 1. Make noble run without sudo:
 
