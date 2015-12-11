@@ -345,6 +345,7 @@ static void calibration_rxcallback (const dwt_callback_data_t *rxd) {
 		dwt_readrxdata(buf, MIN(CALIBRATION_MAX_RX_PKT_LEN, rxd->datalength), 0);
 		for(int ii = 0; ii < 4096; ii += 512){
 			dwt_readaccdata(acc_data, 513, ii);
+			USART_SendData(USART1, 0x55);
 		}
 
 		// Update antenna selection based on next packet number sequence
