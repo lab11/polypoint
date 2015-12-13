@@ -12,7 +12,9 @@ Calibration requires three TriPoint nodes. The nodes need to placed at
 well-known distances from each other. The calibration scripts currently
 assume that nodes are placed in a triangle each 1 m apart.
 
-The TriPoint software includes the code needed to run calibration. Putting
+The TriPoint software includes the code needed to run calibration. To do
+calibration with TriTag or TriTag compatible hardware, flash the `tritag`
+nRF51822 BLE application on the TriTag. Then, putting
 the node in calibration mode requires writing the calibration node index
 to the `0x3159` characteristic. There are three "roles" (0,1,2) that nodes
 can be assigned during calibration. Calibration roles are set by writing
@@ -21,9 +23,10 @@ last, as calibration will start once this role is assigned.
 
 In practice, do this:
 
-1. Install node dependencies:
+1. Install [node](https://nodejs.org/en/download/) first. Version 2.0+ should work.
+Then install the dependencies:
 
-        sudo apt-get install npm node   $ Ubuntu packages
+        # In the calibration folder
         npm install
 
 1. Make noble run without sudo:
