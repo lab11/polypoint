@@ -10,58 +10,6 @@
 #include "oneway_tag.h"
 #include "firmware.h"
 
-// Our timer object that we use for timing packet transmissions
-stm_timer_t* _tag_timer = NULL;
-
-tag_state_e _state = TSTATE_IDLE;
-
-// Which subsequence slot we are on when transmitting broadcast packets
-// for ranging.
-static uint8_t _ranging_broadcast_ss_num = 0;
-
-// Which slot we are in when receiving packets from the anchor.
-static uint8_t _ranging_listening_window_num = 0;
-
-// Array of when we sent each of the broadcast ranging packets
-static uint64_t _ranging_broadcast_ss_send_times[NUM_RANGING_BROADCASTS] = {0};
-
-// How many anchor responses we have gotten
-static uint8_t _anchor_response_count = 0;
-
-// Array of when we received ANC_FINAL packets and from whom
-static anchor_responses_t _anchor_responses[MAX_NUM_ANCHOR_RESPONSES];
-
-// These are the ranges we have calculated to a series of anchors.
-// They use the same index as the _anchor_responses array.
-// Invalid ranges are marked with INT32_MAX.
-int32_t _ranges_millimeters[MAX_NUM_ANCHOR_RESPONSES] = {0};
-
-// Prepopulated struct of the outgoing broadcast poll packet.
-static struct pp_tag_poll pp_tag_poll_pkt = {
-	{ // 802.15.4 HEADER
-		{
-			0x41, // FCF[0]: data frame, panid compression
-			0xC8  // FCF[1]: ext source address, compressed destination
-		},
-		0,        // Sequence number
-		{
-			POLYPOINT_PANID & 0xFF, // PAN ID
-			POLYPOINT_PANID >> 8
-		},
-		{
-			0xFF, // Destination address: broadcast
-			0xFF
-		},
-		{ 0 }     // Source (blank for now)
-	},
-	// PACKET BODY
-	MSG_TYPE_PP_NOSLOTS_TAG_POLL,  // Message type
-	0,                             // Sub Sequence number
-	NUM_RANGING_BROADCASTS-1,
-	RANGING_LISTENING_WINDOW_US,
-	RANGING_LISTENING_SLOT_US
-};
-
 // Functions
 static void send_poll ();
 static void ranging_broadcast_subsequence_task ();
@@ -73,7 +21,46 @@ static void tag_rxcallback (const dwt_callback_data_t *rxd);
 
 // Do the TAG-specific init calls.
 // We trust that the DW1000 is not in SLEEP mode when this is called.
-void oneway_tag_init () {
+void oneway_tag_init (void *app_scratchspace) {
+	int ii;
+
+	ot_scratch = (oneway_tag_scratchspace_struct*) app_scratchspace;
+
+	// Initialize variables inside scratchspace
+	ot_scratch->tag_timer = NULL;
+	ot_scratch->state = TSTATE_IDLE;
+	ot_scratch->ranging_broadcast_ss_num = 0;
+	ot_scratch->ranging_listening_window_num = 0;
+	for(ii=0; ii < NUM_RANGING_BROADCASTS; ii++)
+		ot_scratch->ranging_broadcast_ss_send_times[ii] = 0;
+	ot_scratch->anchor_response_count = 0;
+	for(ii=0; ii < MAX_NUM_ANCHOR_RESPONSES; ii++)
+		ot_scratch->ranges_millimeters[ii] = 0;
+	ot_scratch->pp_tag_poll_pkt = {
+		{ // 802.15.4 HEADER
+			{
+				0x41, // FCF[0]: data frame, panid compression
+				0xC8  // FCF[1]: ext source address, compressed destination
+			},
+			0,        // Sequence number
+			{
+				POLYPOINT_PANID & 0xFF, // PAN ID
+				POLYPOINT_PANID >> 8
+			},
+			{
+				0xFF, // Destination address: broadcast
+				0xFF
+			},
+			{ 0 }     // Source (blank for now)
+		},
+		// PACKET BODY
+		MSG_TYPE_PP_NOSLOTS_TAG_POLL,  // Message type
+		0,                             // Sub Sequence number
+		NUM_RANGING_BROADCASTS-1,
+		RANGING_LISTENING_WINDOW_US,
+		RANGING_LISTENING_SLOT_US
+	};
+
 	// Make sure the SPI speed is slow for this function
 	dw1000_spi_slow();
 
@@ -89,18 +76,18 @@ void oneway_tag_init () {
 	dwt_enableautoack(DW1000_ACK_RESPONSE_TIME);
 
 	// Put source EUI in the pp_tag_poll packet
-	dw1000_read_eui(pp_tag_poll_pkt.header.sourceAddr);
+	dw1000_read_eui(ot_scratch->pp_tag_poll_pkt.header.sourceAddr);
 
 	// Create a timer for use when sending ranging broadcast packets
-	if (_tag_timer == NULL) {
-		_tag_timer = timer_init();
+	if (ot_scratch->tag_timer == NULL) {
+		ot_scratch->tag_timer = timer_init();
 	}
 
 	// Make SPI fast now that everything has been setup
 	dw1000_spi_fast();
 
 	// Reset our state because nothing should be in progress if we call init()
-	_state = TSTATE_IDLE;
+	ot_scratch->state = TSTATE_IDLE;
 }
 
 // This starts a ranging event by causing the tag to send a series of
@@ -108,7 +95,7 @@ void oneway_tag_init () {
 dw1000_err_e oneway_tag_start_ranging_event () {
 	dw1000_err_e err;
 
-	if (_state != TSTATE_IDLE) {
+	if (ot_scratch->state != TSTATE_IDLE) {
 		// Cannot start a ranging event if we are currently busy with one.
 		return DW1000_BUSY;
 	}
@@ -133,14 +120,14 @@ dw1000_err_e oneway_tag_start_ranging_event () {
 	}
 
 	// Move to the broadcast state
-	_state = TSTATE_BROADCASTS;
+	ot_scratch->state = TSTATE_BROADCASTS;
 
 	// Clear state that we keep for each ranging event
-	memset(_ranging_broadcast_ss_send_times, 0, sizeof(_ranging_broadcast_ss_send_times));
-	_ranging_broadcast_ss_num = 0;
+	memset(ot_scratch->ranging_broadcast_ss_send_times, 0, sizeof(ot_scratch->ranging_broadcast_ss_send_times));
+	ot_scratch->ranging_broadcast_ss_num = 0;
 
 	// Start a timer that will kick off the broadcast ranging events
-	timer_start(_tag_timer, RANGING_BROADCASTS_PERIOD_US, ranging_broadcast_subsequence_task);
+	timer_start(ot_scratch->tag_timer, RANGING_BROADCASTS_PERIOD_US, ranging_broadcast_subsequence_task);
 
 	return DW1000_NO_ERR;
 }
@@ -149,10 +136,10 @@ dw1000_err_e oneway_tag_start_ranging_event () {
 void oneway_tag_stop () {
 	// Put the tag in the idle mode. It will eventually go to sleep as well,
 	// but we just need to know it's idle
-	_state = TSTATE_IDLE;
+	ot_scratch->state = TSTATE_IDLE;
 
 	// Stop the timer in case it was in use
-	timer_stop(_tag_timer);
+	timer_stop(ot_scratch->tag_timer);
 
 	// Use the DW1000 library to put the chip to sleep
 	//dw1000_sleep();
@@ -168,17 +155,17 @@ static void tag_txcallback (const dwt_callback_data_t *data) {
 		// We use TX_callback because it will get called after we have sent
 		// all of the broadcast packets. (Now of course we will get this
 		// callback multiple times, but that is ok.)
-		if (_state == TSTATE_TRANSITION_TO_ANC_FINAL) {
+		if (ot_scratch->state == TSTATE_TRANSITION_TO_ANC_FINAL) {
 			// At this point we have sent all of our ranging broadcasts.
 			// Now we move to listening for responses from anchors.
-			_state = TSTATE_LISTENING;
+			ot_scratch->state = TSTATE_LISTENING;
 
 			// Init some state
-			_ranging_listening_window_num = 0;
-			_anchor_response_count = 0;
+			ot_scratch->ranging_listening_window_num = 0;
+			ot_scratch->anchor_response_count = 0;
 
 			// Start a timer to switch between the windows
-			timer_start(_tag_timer, RANGING_LISTENING_WINDOW_US + RANGING_LISTENING_WINDOW_PADDING_US*2, ranging_listening_window_task);
+			timer_start(ot_scratch->tag_timer, RANGING_LISTENING_WINDOW_US + RANGING_LISTENING_WINDOW_PADDING_US*2, ranging_listening_window_task);
 
 		} else {
 			// We don't need to do anything on TX done for any other states
@@ -187,7 +174,7 @@ static void tag_txcallback (const dwt_callback_data_t *data) {
 
 	} else {
 		// Some error occurred, don't just keep trying to send packets.
-		timer_stop(_tag_timer);
+		timer_stop(ot_scratch->tag_timer);
 	}
 
 }
@@ -215,7 +202,7 @@ static void tag_rxcallback (const dwt_callback_data_t* rxd) {
 			// This is what we were looking for, an ANC_FINAL packet
 			struct pp_anc_final* anc_final;
 
-			if (_anchor_response_count >= MAX_NUM_ANCHOR_RESPONSES) {
+			if (ot_scratch->anchor_response_count >= MAX_NUM_ANCHOR_RESPONSES) {
 				// Nowhere to store this, so we have to ignore this
 				return;
 			}
@@ -227,8 +214,8 @@ static void tag_rxcallback (const dwt_callback_data_t* rxd) {
 			// The anchors should check for an ACK and not retransmit, but that
 			// could still fail.
 			bool anc_already_found = FALSE;
-			for (uint8_t i=0; i<_anchor_response_count; i++) {
-				if (memcmp(_anchor_responses[i].anchor_addr, anc_final->ieee154_header_unicast.sourceAddr, EUI_LEN) == 0) {
+			for (uint8_t i=0; i<ot_scratch->anchor_response_count; i++) {
+				if (memcmp(ot_scratch->anchor_responses[i].anchor_addr, anc_final->ieee154_header_unicast.sourceAddr, EUI_LEN) == 0) {
 					anc_already_found = TRUE;
 					break;
 				}
@@ -238,29 +225,29 @@ static void tag_rxcallback (const dwt_callback_data_t* rxd) {
 			if (!anc_already_found) {
 
 				// Save the anchor address
-				memcpy(_anchor_responses[_anchor_response_count].anchor_addr, anc_final->ieee154_header_unicast.sourceAddr, EUI_LEN);
+				memcpy(ot_scratch->anchor_responses[ot_scratch->anchor_response_count].anchor_addr, anc_final->ieee154_header_unicast.sourceAddr, EUI_LEN);
 
 				// Save the anchor's list of when it received the tag broadcasts
-				memcpy(_anchor_responses[_anchor_response_count].tag_poll_TOAs, anc_final->TOAs, sizeof(anc_final->TOAs));
+				memcpy(ot_scratch->anchor_responses[ot_scratch->anchor_response_count].tag_poll_TOAs, anc_final->TOAs, sizeof(anc_final->TOAs));
 
 				// Save the antenna the anchor chose to use when responding to us
-				_anchor_responses[_anchor_response_count].anchor_final_antenna_index = anc_final->final_antenna;
+				ot_scratch->anchor_responses[ot_scratch->anchor_response_count].anchor_final_antenna_index = anc_final->final_antenna;
 
 				// Save when the anchor sent the packet we just received
-				_anchor_responses[_anchor_response_count].anc_final_tx_timestamp = anc_final->dw_time_sent;
+				ot_scratch->anchor_responses[ot_scratch->anchor_response_count].anc_final_tx_timestamp = anc_final->dw_time_sent;
 
 				// Save when we received the packet.
 				// We have already handled the calibration values so
 				// we don't need to here.
-				_anchor_responses[_anchor_response_count].anc_final_rx_timestamp = dw_rx_timestamp - oneway_get_rxdelay_from_ranging_listening_window(_ranging_listening_window_num - 1);
+				ot_scratch->anchor_responses[ot_scratch->anchor_response_count].anc_final_rx_timestamp = dw_rx_timestamp - oneway_get_rxdelay_from_ranging_listening_window(ot_scratch->ranging_listening_window_num - 1);
 
 				// Also need to save what window we are in when we received
 				// this packet. This is used so we know all of the settings
 				// that were used when this packet was sent to us.
-				_anchor_responses[_anchor_response_count].window_packet_recv = _ranging_listening_window_num - 1;
+				ot_scratch->anchor_responses[ot_scratch->anchor_response_count].window_packet_recv = ot_scratch->ranging_listening_window_num - 1;
 
 				// Increment the number of anchors heard from
-				_anchor_response_count++;
+				ot_scratch->anchor_response_count++;
 			}
 
 		} else {
@@ -276,7 +263,7 @@ static void tag_rxcallback (const dwt_callback_data_t* rxd) {
 		    rxd->event == DWT_SIG_RX_SYNCLOSS ||
 		    rxd->event == DWT_SIG_RX_SFDTIMEOUT ||
 		    rxd->event == DWT_SIG_RX_PTOTIMEOUT) {
-			oneway_set_ranging_listening_window_settings(TAG, _ranging_listening_window_num, 0);
+			oneway_set_ranging_listening_window_settings(TAG, ot_scratch->ranging_listening_window_num, 0);
 		}
 	}
 
@@ -292,8 +279,8 @@ static void send_poll () {
 	uint16_t tx_len = sizeof(struct pp_tag_poll);
 
 	// Setup what needs to change in the outgoing packet
-	pp_tag_poll_pkt.header.seqNum++;
-	pp_tag_poll_pkt.subsequence = _ranging_broadcast_ss_num;
+	ot_scratch->pp_tag_poll_pkt.header.seqNum++;
+	ot_scratch->pp_tag_poll_pkt.subsequence = ot_scratch->ranging_broadcast_ss_num;
 
 	// Make sure we're out of RX mode before attempting to transmit
 	dwt_forcetrxoff();
@@ -308,14 +295,14 @@ static void send_poll () {
 
 	// Take the TX+RX delay into account here by adding it to the time stamp
 	// of each outgoing packet.
-	_ranging_broadcast_ss_send_times[_ranging_broadcast_ss_num] =
-		(((uint64_t) delay_time) << 8) + oneway_get_txdelay_from_subsequence(TAG, _ranging_broadcast_ss_num);
+	ot_scratch->ranging_broadcast_ss_send_times[ot_scratch->ranging_broadcast_ss_num] =
+		(((uint64_t) delay_time) << 8) + oneway_get_txdelay_from_subsequence(TAG, ot_scratch->ranging_broadcast_ss_num);
 
 	// Write the data
-	dwt_writetxdata(tx_len, (uint8_t*) &pp_tag_poll_pkt, 0);
+	dwt_writetxdata(tx_len, (uint8_t*) &(ot_scratch->pp_tag_poll_pkt), 0);
 
 	// Start the transmission
-	if (_ranging_broadcast_ss_num == NUM_RANGING_BROADCASTS-1) {
+	if (ot_scratch->ranging_broadcast_ss_num == NUM_RANGING_BROADCASTS-1) {
 		// This is the last broadcast ranging packet, so we want to transition
 		// to RX mode after this packet to receive the responses from the anchors.
 		dwt_setrxaftertxdelay(1); // us
@@ -337,22 +324,22 @@ static void send_poll () {
 // the tag sends broadcast packets.
 static void ranging_broadcast_subsequence_task () {
 
-	if (_ranging_broadcast_ss_num == NUM_RANGING_BROADCASTS-1) {
+	if (ot_scratch->ranging_broadcast_ss_num == NUM_RANGING_BROADCASTS-1) {
 		// This is our last packet to send. Stop the timer so we don't generate
 		// more packets.
-		timer_stop(_tag_timer);
+		timer_stop(ot_scratch->tag_timer);
 
 		// Also update the state to say that we are moving to RX mode
 		// to listen for responses from the anchor
-		_state = TSTATE_TRANSITION_TO_ANC_FINAL;
+		ot_scratch->state = TSTATE_TRANSITION_TO_ANC_FINAL;
 	}
 
 	// Go ahead and setup and send a ranging broadcast
-	oneway_set_ranging_broadcast_subsequence_settings(TAG, _ranging_broadcast_ss_num);
+	oneway_set_ranging_broadcast_subsequence_settings(TAG, ot_scratch->ranging_broadcast_ss_num);
 
 	// Actually send the packet
 	send_poll();
-	_ranging_broadcast_ss_num += 1;
+	ot_scratch->ranging_broadcast_ss_num += 1;
 }
 
 // This is called after the broadcasts have been sent in order to receive
@@ -360,8 +347,8 @@ static void ranging_broadcast_subsequence_task () {
 static void ranging_listening_window_task () {
 
 	// Stop after the last of the receive windows
-	if (_ranging_listening_window_num == NUM_RANGING_LISTENING_WINDOWS) {
-		timer_stop(_tag_timer);
+	if (ot_scratch->ranging_listening_window_num == NUM_RANGING_LISTENING_WINDOWS) {
+		timer_stop(ot_scratch->tag_timer);
 
 		// Stop the radio
 		dwt_forcetrxoff();
@@ -372,10 +359,10 @@ static void ranging_listening_window_task () {
 	} else {
 
 		// Set the correct listening settings
-		oneway_set_ranging_listening_window_settings(TAG, _ranging_listening_window_num, 0);
+		oneway_set_ranging_listening_window_settings(TAG, ot_scratch->ranging_listening_window_num, 0);
 
 		// Increment and wait
-		_ranging_listening_window_num++;
+		ot_scratch->ranging_listening_window_num++;
 
 	}
 }
@@ -383,7 +370,7 @@ static void ranging_listening_window_task () {
 // Once we have heard from all of the anchors, calculate range.
 static void report_range () {
 	// New state
-	_state = TSTATE_CALCULATE_RANGE;
+	ot_scratch->state = TSTATE_CALCULATE_RANGE;
 
 	// Calculate ranges
 	calculate_ranges();
@@ -394,13 +381,13 @@ static void report_range () {
 	oneway_report_mode_e report_mode = oneway_get_config()->report_mode;
 	if (report_mode == ONEWAY_REPORT_MODE_RANGES) {
 		// We're done, so go to idle.
-		_state = TSTATE_IDLE;
+		ot_scratch->state = TSTATE_IDLE;
 
 		// Just need to send the ranges back to the host. Send the array
 		// of ranges to the main application and let it deal with it.
 		// This also returns control to the main application and signals
 		// the end of the ranging event.
-		oneway_set_ranges(_ranges_millimeters, _anchor_responses);
+		oneway_set_ranges(ot_scratch->ranges_millimeters, ot_scratch->anchor_responses);
 
 		// Check if we should try to sleep after the ranging event.
 		if (oneway_get_config()->sleep_mode) {
@@ -416,17 +403,17 @@ static void report_range () {
 
 
 // After getting responses from anchors calculate the range to each anchor.
-// These values are stored in _ranges_millimeters.
+// These values are stored in ot_scratch->ranges_millimeters.
 static void calculate_ranges () {
 	// Clear array, don't use memset
 	for (uint8_t i=0; i<MAX_NUM_ANCHOR_RESPONSES; i++) {
-		_ranges_millimeters[i] = INT32_MAX;
+		ot_scratch->ranges_millimeters[i] = INT32_MAX;
 	}
 
 	// Iterate through all anchors to calculate the range from the tag
 	// to each anchor
-	for (uint8_t anchor_index=0; anchor_index<_anchor_response_count; anchor_index++) {
-		anchor_responses_t* aresp = &_anchor_responses[anchor_index];
+	for (uint8_t anchor_index=0; anchor_index<ot_scratch->anchor_response_count; anchor_index++) {
+		anchor_responses_t* aresp = &(ot_scratch->anchor_responses[anchor_index]);
 
 		// First need to calculate the crystal offset between the anchor and tag.
 		// To do this, we need to get the timestamps at the anchor and tag
@@ -438,9 +425,9 @@ static void calculate_ranges () {
 		for (uint8_t j=0; j<NUM_RANGING_CHANNELS; j++) {
 			uint8_t first_broadcast_index = j;
 			uint8_t last_broadcast_index = NUM_RANGING_BROADCASTS - NUM_RANGING_CHANNELS + j;
-			uint64_t first_broadcast_send_time = _ranging_broadcast_ss_send_times[first_broadcast_index];
+			uint64_t first_broadcast_send_time = ot_scratch->ranging_broadcast_ss_send_times[first_broadcast_index];
 			uint64_t first_broadcast_recv_time = aresp->tag_poll_TOAs[first_broadcast_index];
-			uint64_t last_broadcast_send_time  = _ranging_broadcast_ss_send_times[last_broadcast_index];
+			uint64_t last_broadcast_send_time  = ot_scratch->ranging_broadcast_ss_send_times[last_broadcast_index];
 			uint64_t last_broadcast_recv_time  = aresp->tag_poll_TOAs[last_broadcast_index];
 
 			// Now lets check that the anchor actually received both of these
@@ -465,7 +452,7 @@ static void calculate_ranges () {
 		// If we didn't get any matching pairs in the first and last rounds
 		// then we have to skip this anchor.
 		if (valid_offset_calculations == 0) {
-			_ranges_millimeters[anchor_index] = ONEWAY_TAG_RANGE_ERROR_NO_OFFSET;
+			ot_scratch->ranges_millimeters[anchor_index] = ONEWAY_TAG_RANGE_ERROR_NO_OFFSET;
 			continue;
 		}
 
@@ -484,11 +471,11 @@ static void calculate_ranges () {
 
 		// Exit early if the corresponding broadcast wasn't received
 		if(aresp->tag_poll_TOAs[ss_index_matching] == 0){
-			_ranges_millimeters[anchor_index] = ONEWAY_TAG_RANGE_ERROR_NO_OFFSET;
+			ot_scratch->ranges_millimeters[anchor_index] = ONEWAY_TAG_RANGE_ERROR_NO_OFFSET;
 			continue;
 		}
 
-		uint64_t matching_broadcast_send_time = _ranging_broadcast_ss_send_times[ss_index_matching];
+		uint64_t matching_broadcast_send_time = ot_scratch->ranging_broadcast_ss_send_times[ss_index_matching];
 		uint64_t matching_broadcast_recv_time = aresp->tag_poll_TOAs[ss_index_matching];
 		uint64_t response_send_time  = aresp->anc_final_tx_timestamp;
 		uint64_t response_recv_time  = aresp->anc_final_rx_timestamp;
@@ -504,7 +491,7 @@ static void calculate_ranges () {
 
 		// Next we calculate the TOFs for each of the poll messages the tag sent.
 		for (uint8_t broadcast_index=0; broadcast_index<NUM_RANGING_BROADCASTS; broadcast_index++) {
-			uint64_t broadcast_send_time = _ranging_broadcast_ss_send_times[broadcast_index];
+			uint64_t broadcast_send_time = ot_scratch->ranging_broadcast_ss_send_times[broadcast_index];
 			uint64_t broadcast_recv_time = aresp->tag_poll_TOAs[broadcast_index];
 
 			// Check that the anchor actually received the tag broadcast.
@@ -532,7 +519,7 @@ static void calculate_ranges () {
 		// Check to make sure that we got enough ranges from this anchor.
 		// If not, we just skip it.
 		if (num_valid_distances < MIN_VALID_RANGES_PER_ANCHOR) {
-			_ranges_millimeters[anchor_index] = ONEWAY_TAG_RANGE_ERROR_TOO_FEW_RANGES;
+			ot_scratch->ranges_millimeters[anchor_index] = ONEWAY_TAG_RANGE_ERROR_TOO_FEW_RANGES;
 			continue;
 		}
 
@@ -552,15 +539,15 @@ static void calculate_ranges () {
 			 - (bot*RANGE_PERCENTILE_DENOMENATOR))) / RANGE_PERCENTILE_DENOMENATOR);
 
 		// Save the result
-		_ranges_millimeters[anchor_index] = result;
-		// _ranges_millimeters[anchor_index] = (int32_t) one_way_TOF;
-		// _ranges_millimeters[anchor_index] = dm;
-		// _ranges_millimeters[anchor_index] = distances_millimeters[bot];
-		// _ranges_millimeters[anchor_index] = _ranging_broadcast_ss_send_times[0];
-		// _ranges_millimeters[anchor_index] = ss_index_matching;
-		// _ranges_millimeters[anchor_index] = num_valid_distances;
-		if (_ranges_millimeters[anchor_index] == INT32_MAX) {
-			_ranges_millimeters[anchor_index] = ONEWAY_TAG_RANGE_ERROR_MISC;
+		ot_scratch->ranges_millimeters[anchor_index] = result;
+		// ot_scratch->ranges_millimeters[anchor_index] = (int32_t) one_way_TOF;
+		// ot_scratch->ranges_millimeters[anchor_index] = dm;
+		// ot_scratch->ranges_millimeters[anchor_index] = distances_millimeters[bot];
+		// ot_scratch->ranges_millimeters[anchor_index] = ot_scratch->ranging_broadcast_ss_send_times[0];
+		// ot_scratch->ranges_millimeters[anchor_index] = ss_index_matching;
+		// ot_scratch->ranges_millimeters[anchor_index] = num_valid_distances;
+		if (ot_scratch->ranges_millimeters[anchor_index] == INT32_MAX) {
+			ot_scratch->ranges_millimeters[anchor_index] = ONEWAY_TAG_RANGE_ERROR_MISC;
 		}
 	}
 }

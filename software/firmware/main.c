@@ -55,6 +55,11 @@ static void error () {
 	GPIO_WriteBit(STM_GPIO3_PORT, STM_GPIO3_PIN, Bit_RESET);
 }
 
+union app_scratchspace {
+	oneway_tag_scratchspace_struct ot_scratch;
+	oneway_anchor_scratchspace_struct oa_scratch;
+	calibration_scratchspace_struct cal_scratch;
+} _app_scratchspace;
 
 /******************************************************************************/
 // Main operation functions called by the host interface
@@ -79,11 +84,11 @@ void polypoint_configure_app (polypoint_application_e app, void* app_config) {
 	_current_app = app;
 	switch (_current_app) {
 		case APP_ONEWAY:
-			oneway_configure((oneway_config_t*) app_config, _app_timer);
+			oneway_configure((oneway_config_t*) app_config, _app_timer, (void*)&_app_scratchspace);
 			break;
 
 		case APP_CALIBRATION:
-			calibration_configure((calibration_config_t*) app_config, _app_timer);
+			calibration_configure((calibration_config_t*) app_config, _app_timer, (void*)&_app_scratchspace);
 			break;
 
 		default:

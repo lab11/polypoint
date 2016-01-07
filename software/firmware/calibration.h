@@ -49,8 +49,49 @@ struct pp_calibration_msg  {
 	struct ieee154_footer footer;
 } __attribute__ ((__packed__));
 
+typedef struct calibration_scratchspace_struct {
+	/******************************************************************************/
+	// Configuration and settings
+	/******************************************************************************/
+	
+	// All of the configuration passed to us by the host for how this application
+	// should operate.
+	calibration_config_t config;
+	// Our local reference to the timer for all of the high-level application
+	// code.
+	stm_timer_t* app_timer;
+	
+	/******************************************************************************/
+	// Calibration state
+	/******************************************************************************/
+	// Which calibration round we are currently in
+	uint32_t round_num;
+	
+	// Timing of packet transmissions and receptions.
+	// What these are vary based on which node this is.
+	uint64_t calibration_timing[3];
+	
+	// Buffer to send back to the host
+	uint8_t calibration_response_buf[64];
+	
+	// Counter for the weird timers
+	uint8_t timeout_firing;
+	
+	// Keep track of if we got the init() packet from node 0. If not, then we didn't
+	// set the antenna and channel correctly, so we shouldn't report these values.
+	bool got_init;
+	
+	// Use this in case we get transmission delay errors to extend how long we delay
+	// the packet.
+	uint32_t dw_slack_delay_multiplier;
+	
+	// Prepopulated struct of the outgoing broadcast poll packet.
+	struct pp_calibration_msg pp_calibration_pkt;
+};
 
-void calibration_configure (calibration_config_t* config, stm_timer_t* app_timer);
+calibration_scratchspace_struct *cal_scratch;
+
+void calibration_configure (calibration_config_t* config, stm_timer_t* app_timer, void *app_scratchspace);
 void calibration_start ();
 void calibration_stop ();
 void calibration_reset ();

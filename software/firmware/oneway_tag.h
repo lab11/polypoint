@@ -33,8 +33,40 @@ typedef enum {
 // Size buffers for reading in packets
 #define ONEWAY_TAG_MAX_RX_PKT_LEN 296
 
+typedef struct oneway_tag_scratchspace_struct {
+	// Our timer object that we use for timing packet transmissions
+	stm_timer_t* tag_timer;
+	
+	tag_state_e state;
+	
+	// Which subsequence slot we are on when transmitting broadcast packets
+	// for ranging.
+	uint8_t ranging_broadcast_ss_num;
+	
+	// Which slot we are in when receiving packets from the anchor.
+	uint8_t ranging_listening_window_num;
+	
+	// Array of when we sent each of the broadcast ranging packets
+	uint64_t ranging_broadcast_ss_send_times[NUM_RANGING_BROADCASTS];
+	
+	// How many anchor responses we have gotten
+	uint8_t anchor_response_count;
+	
+	// Array of when we received ANC_FINAL packets and from whom
+	anchor_responses_t anchor_responses[MAX_NUM_ANCHOR_RESPONSES];
+	
+	// These are the ranges we have calculated to a series of anchors.
+	// They use the same index as the _anchor_responses array.
+	// Invalid ranges are marked with INT32_MAX.
+	int32_t ranges_millimeters[MAX_NUM_ANCHOR_RESPONSES];
+	
+	// Prepopulated struct of the outgoing broadcast poll packet.
+	struct pp_tag_poll pp_tag_poll_pkt;
+};
 
-void oneway_tag_init ();
+oneway_tag_scratchspace_struct *ot_scratch;
+
+void oneway_tag_init (void *app_scratchspace);
 dw1000_err_e oneway_tag_start_ranging_event ();
 void oneway_tag_stop ();
 

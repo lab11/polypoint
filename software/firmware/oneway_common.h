@@ -4,6 +4,8 @@
 #include "system.h"
 #include "dw1000.h"
 #include "timer.h"
+#include "oneway_tag.h"
+#include "oneway_anchor.h"
 
 /******************************************************************************/
 // Parameters for the localization and ranging protocol
@@ -130,7 +132,7 @@ typedef struct {
 } anchor_responses_t;
 
 
-void oneway_configure (oneway_config_t* config, stm_timer_t* app_timer);
+void oneway_configure (oneway_config_t* config, stm_timer_t* app_timer, void *app_scratchspace);
 void oneway_start ();
 void oneway_stop ();
 void oneway_reset ();

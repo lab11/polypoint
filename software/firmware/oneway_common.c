@@ -45,7 +45,7 @@ static void tag_execute_range_callback () {
 }
 
 // This sets the settings for this node and initializes the node.
-void oneway_configure (oneway_config_t* config, stm_timer_t* app_timer) {
+void oneway_configure (oneway_config_t* config, stm_timer_t* app_timer, void *app_scratchspace) {
 	// Save the settings
 	memcpy(&_config, config, sizeof(oneway_config_t));
 
@@ -57,9 +57,9 @@ void oneway_configure (oneway_config_t* config, stm_timer_t* app_timer) {
 
 	// Now init based on role
 	if (_config.my_role == TAG) {
-		oneway_tag_init();
+		oneway_tag_init(app_scratchspace);
 	} else if (_config.my_role == ANCHOR) {
-		oneway_anchor_init();
+		oneway_anchor_init(app_scratchspace);
 	}
 }
 
