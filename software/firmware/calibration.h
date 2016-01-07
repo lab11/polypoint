@@ -49,7 +49,7 @@ struct pp_calibration_msg  {
 	struct ieee154_footer footer;
 } __attribute__ ((__packed__));
 
-typedef struct calibration_scratchspace_struct {
+typedef struct {
 	/******************************************************************************/
 	// Configuration and settings
 	/******************************************************************************/
@@ -87,7 +87,7 @@ typedef struct calibration_scratchspace_struct {
 	
 	// Prepopulated struct of the outgoing broadcast poll packet.
 	struct pp_calibration_msg pp_calibration_pkt;
-};
+} calibration_scratchspace_struct;
 
 calibration_scratchspace_struct *cal_scratch;
 

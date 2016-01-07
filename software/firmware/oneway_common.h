@@ -4,8 +4,6 @@
 #include "system.h"
 #include "dw1000.h"
 #include "timer.h"
-#include "oneway_tag.h"
-#include "oneway_anchor.h"
 
 /******************************************************************************/
 // Parameters for the localization and ranging protocol

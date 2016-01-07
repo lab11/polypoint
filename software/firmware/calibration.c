@@ -72,7 +72,7 @@ void calibration_configure (calibration_config_t* config, stm_timer_t* app_timer
 	cal_scratch->timeout_firing = 0;
 	cal_scratch->got_init = FALSE;
 	cal_scratch->dw_slack_delay_multiplier = 1;
-	cal_scratch->pp_calibration_pkt = {
+	cal_scratch->pp_calibration_pkt = (struct pp_calibration_msg) {
 		.header = {
 			.frameCtrl = {
 				0x41, // FCF[0]: data frame, panid compression

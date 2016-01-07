@@ -1,6 +1,7 @@
 #ifndef __ONEWAY_TAG_H
 #define __ONEWAY_TAG_H
 
+#include "oneway_common.h"
 #include "deca_device_api.h"
 #include "deca_regs.h"
 
@@ -33,7 +34,7 @@ typedef enum {
 // Size buffers for reading in packets
 #define ONEWAY_TAG_MAX_RX_PKT_LEN 296
 
-typedef struct oneway_tag_scratchspace_struct {
+typedef struct {
 	// Our timer object that we use for timing packet transmissions
 	stm_timer_t* tag_timer;
 	
@@ -62,7 +63,7 @@ typedef struct oneway_tag_scratchspace_struct {
 	
 	// Prepopulated struct of the outgoing broadcast poll packet.
 	struct pp_tag_poll pp_tag_poll_pkt;
-};
+} oneway_tag_scratchspace_struct;
 
 oneway_tag_scratchspace_struct *ot_scratch;
 

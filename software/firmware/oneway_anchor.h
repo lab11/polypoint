@@ -5,6 +5,7 @@
 #include "deca_regs.h"
 
 #include "dw1000.h"
+#include "prng.h"
 
 // Set at some arbitrary length for what the longest packet we will receive
 // is.
@@ -23,7 +24,7 @@ typedef struct {
 	uint16_t anchor_reply_slot_time_in_us;
 } oneway_anchor_tag_config_t;
 
-typedef struct oneway_anchor_scratchspace_struct {
+typedef struct {
 	// Our timer object that we use for timing packet transmissions
 	stm_timer_t* anchor_timer;
 	
@@ -51,7 +52,7 @@ typedef struct oneway_anchor_scratchspace_struct {
 	
 	// Packet that the anchor unicasts to the tag
 	struct pp_anc_final pp_anc_final_pkt;
-};
+} oneway_anchor_scratchspace_struct;
 
 oneway_anchor_scratchspace_struct *oa_scratch;
 

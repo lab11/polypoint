@@ -28,6 +28,7 @@ static const uint8_t channel_index_to_channel_rf_number[NUM_RANGING_CHANNELS] = 
 // of ranges
 uint8_t _anchor_ids_ranges[(MAX_NUM_ANCHOR_RESPONSES*(EUI_LEN+sizeof(int32_t)))+1];
 
+static void *_scratchspace_ptr;
 
 // Called by periodic timer
 static void tag_execute_range_callback () {
@@ -46,6 +47,8 @@ static void tag_execute_range_callback () {
 
 // This sets the settings for this node and initializes the node.
 void oneway_configure (oneway_config_t* config, stm_timer_t* app_timer, void *app_scratchspace) {
+	_scratchspace_ptr = app_scratchspace;
+
 	// Save the settings
 	memcpy(&_config, config, sizeof(oneway_config_t));
 
@@ -57,9 +60,9 @@ void oneway_configure (oneway_config_t* config, stm_timer_t* app_timer, void *ap
 
 	// Now init based on role
 	if (_config.my_role == TAG) {
-		oneway_tag_init(app_scratchspace);
+		oneway_tag_init(_scratchspace_ptr);
 	} else if (_config.my_role == ANCHOR) {
-		oneway_anchor_init(app_scratchspace);
+		oneway_anchor_init(_scratchspace_ptr);
 	}
 }
 
@@ -117,9 +120,9 @@ void oneway_stop () {
 void oneway_reset () {
 	// Start by initing based on role
 	if (_config.my_role == TAG) {
-		oneway_tag_init();
+		oneway_tag_init(_scratchspace_ptr);
 	} else if (_config.my_role == ANCHOR) {
-		oneway_anchor_init();
+		oneway_anchor_init(_scratchspace_ptr);
 	}
 }
 

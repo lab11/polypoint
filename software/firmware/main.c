@@ -9,6 +9,8 @@
 #include "host_interface.h"
 #include "dw1000.h"
 #include "oneway_common.h"
+#include "oneway_tag.h"
+#include "oneway_anchor.h"
 #include "calibration.h"
 #include "timer.h"
 #include "delay.h"

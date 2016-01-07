@@ -9,7 +9,6 @@
 #include "dw1000.h"
 #include "timer.h"
 #include "delay.h"
-#include "prng.h"
 #include "firmware.h"
 
 static void ranging_listening_window_setup();
@@ -29,7 +28,7 @@ void oneway_anchor_init (void *app_scratchspace) {
 	oa_scratch->ranging_listening_window_num = 0;
 	for(ii=0; ii < NUM_ANTENNAS; ii++)
 		oa_scratch->anchor_antenna_recv_num[ii] = 0;
-	oa_scratch->pp_anc_final_pkt = {
+	oa_scratch->pp_anc_final_pkt = (struct pp_anc_final) {
 		.ieee154_header_unicast = {
 			.frameCtrl = {
 				0x41, // FCF[0]: data frame, panid compression
@@ -101,7 +100,7 @@ dw1000_err_e oneway_anchor_start () {
 	if (err == DW1000_WAKEUP_SUCCESS) {
 		// We did wake the chip, so reconfigure it properly
 		// Put back the ANCHOR settings.
-		oneway_anchor_init();
+		oneway_anchor_init((void*)oa_scratch);
 	} else if (err) {
 		// Chip did not seem to wakeup. This is not good, so we have
 		// to reset the application.

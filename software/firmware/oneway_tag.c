@@ -6,7 +6,6 @@
 #include "timer.h"
 #include "delay.h"
 #include "dw1000.h"
-#include "oneway_common.h"
 #include "oneway_tag.h"
 #include "firmware.h"
 
@@ -36,7 +35,7 @@ void oneway_tag_init (void *app_scratchspace) {
 	ot_scratch->anchor_response_count = 0;
 	for(ii=0; ii < MAX_NUM_ANCHOR_RESPONSES; ii++)
 		ot_scratch->ranges_millimeters[ii] = 0;
-	ot_scratch->pp_tag_poll_pkt = {
+	ot_scratch->pp_tag_poll_pkt = (struct pp_tag_poll) {
 		{ // 802.15.4 HEADER
 			{
 				0x41, // FCF[0]: data frame, panid compression
@@ -111,7 +110,7 @@ dw1000_err_e oneway_tag_start_ranging_event () {
 		dwt_rxreset();
 
 		// Put back the TAG settings.
-		oneway_tag_init();
+		oneway_tag_init((void*)ot_scratch);
 
 	} else if (err) {
 		// Chip did not seem to wakeup. This is not good, so we have
