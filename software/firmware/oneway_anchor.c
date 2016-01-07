@@ -22,12 +22,6 @@ void oneway_anchor_init (void *app_scratchspace) {
 	oa_scratch = (oneway_anchor_scratchspace_struct*) app_scratchspace;
 	
 	// Initialize this app's scratchspace
-	oa_scratch->anchor_timer = NULL;
-	oa_scratch->state = ASTATE_IDLE;
-	oa_scratch->ranging_broadcast_ss_num = 0;
-	oa_scratch->ranging_listening_window_num = 0;
-	for(ii=0; ii < NUM_ANTENNAS; ii++)
-		oa_scratch->anchor_antenna_recv_num[ii] = 0;
 	oa_scratch->pp_anc_final_pkt = (struct pp_anc_final) {
 		.ieee154_header_unicast = {
 			.frameCtrl = {

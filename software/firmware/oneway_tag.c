@@ -21,20 +21,10 @@ static void tag_rxcallback (const dwt_callback_data_t *rxd);
 // Do the TAG-specific init calls.
 // We trust that the DW1000 is not in SLEEP mode when this is called.
 void oneway_tag_init (void *app_scratchspace) {
-	int ii;
 
 	ot_scratch = (oneway_tag_scratchspace_struct*) app_scratchspace;
 
-	// Initialize variables inside scratchspace
-	ot_scratch->tag_timer = NULL;
-	ot_scratch->state = TSTATE_IDLE;
-	ot_scratch->ranging_broadcast_ss_num = 0;
-	ot_scratch->ranging_listening_window_num = 0;
-	for(ii=0; ii < NUM_RANGING_BROADCASTS; ii++)
-		ot_scratch->ranging_broadcast_ss_send_times[ii] = 0;
-	ot_scratch->anchor_response_count = 0;
-	for(ii=0; ii < MAX_NUM_ANCHOR_RESPONSES; ii++)
-		ot_scratch->ranges_millimeters[ii] = 0;
+	// Initialize important variables inside scratchspace
 	ot_scratch->pp_tag_poll_pkt = (struct pp_tag_poll) {
 		{ // 802.15.4 HEADER
 			{

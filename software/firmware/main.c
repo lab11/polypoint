@@ -82,6 +82,9 @@ void polypoint_configure_app (polypoint_application_e app, void* app_config) {
 		polypoint_stop();
 	}
 
+	// Set scratchspace to known zeros
+	memset(&_app_scratchspace, 0, sizeof(_app_scratchspace));
+
 	// Tell the correct application that it should init()
 	_current_app = app;
 	switch (_current_app) {
