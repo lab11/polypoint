@@ -1,6 +1,6 @@
 clear all
 
-fid = fopen('~/temp/polypoint/backscatter/backscatter_trace_exp8_110k_notag2_wiredclk.csv','r');
+fid = fopen('~/temp/polypoint/backscatter/backscatter_trace_exp8_110k_tag2_wiredclk.csv','r');
 
 %First line is useless.  Discard.
 fgetl(fid);
@@ -99,10 +99,10 @@ for cir_num = 1:CHUNK_LEN:num_cirs
 	end
 	toas(first_cir:last_cir) = cur_toas;
 	
-	%Rotate CIRs to place ToA at zero
-	for ii=1:cur_num_cirs
-		cir_data_interp(:,ii) = circshift(cir_data_interp(:,ii),-cur_toas(ii))./sqrt(sum(abs(cir_data_interp(:,ii).^2)));
-	end
+	%%Rotate CIRs to place ToA at zero
+	%for ii=1:cur_num_cirs
+	%	cir_data_interp(:,ii) = circshift(cir_data_interp(:,ii),-cur_toas(ii))./sqrt(sum(abs(cir_data_interp(:,ii).^2)));
+	%end
 	
 
 	%%Separate CIRs into two bins depending on where in the sequence they came from
@@ -125,16 +125,16 @@ for cir_num = 1:CHUNK_LEN:num_cirs
 	%pn_ones = shift_corr(pn_ones, INTERP_MULT, 10);
 	%pn_ones = shift_corr(pn_ones, INTERP_MULT, 0.1);
 	
-	for ii=1:size(pn_zeros,2)
-		%[~,max_peak] = max(abs(pn_zeros(:,ii)));
-		%pn_zeros(:,ii) = circshift(pn_zeros(:,ii),-max_peak);
-		pn_zeros(:,ii) = pn_zeros(:,ii).*exp(-1i*angle(pn_zeros(1,ii)));
-	end
-	for ii=1:size(pn_ones,2)
-		%[~,max_peak] = max(abs(pn_ones(:,ii)));
-		%pn_ones(:,ii) = circshift(pn_ones(:,ii),-max_peak);
-		pn_ones(:,ii) = pn_ones(:,ii).*exp(-1i*angle(pn_ones(1,ii)));
-	end
+	%for ii=1:size(pn_zeros,2)
+	%	%[~,max_peak] = max(abs(pn_zeros(:,ii)));
+	%	%pn_zeros(:,ii) = circshift(pn_zeros(:,ii),-max_peak);
+	%	pn_zeros(:,ii) = pn_zeros(:,ii).*exp(-1i*angle(pn_zeros(1,ii)));
+	%end
+	%for ii=1:size(pn_ones,2)
+	%	%[~,max_peak] = max(abs(pn_ones(:,ii)));
+	%	%pn_ones(:,ii) = circshift(pn_ones(:,ii),-max_peak);
+	%	pn_ones(:,ii) = pn_ones(:,ii).*exp(-1i*angle(pn_ones(1,ii)));
+	%end
 
 	num_cirs_ones = num_cirs_ones + size(pn_ones,2);
 	num_cirs_zeros = num_cirs_zeros + size(pn_zeros,2);
