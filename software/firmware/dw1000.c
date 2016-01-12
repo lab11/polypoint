@@ -654,12 +654,12 @@ dw1000_err_e dw1000_configure_settings () {
 	                 DWT_INT_ARFE, 1);
 
 	// Set the parameters of ranging and channel and whatnot
-	_dw1000_config.chan           = 4;
+	_dw1000_config.chan           = 1;
 	_dw1000_config.prf            = DWT_PRF_64M;
 	_dw1000_config.txPreambLength = DWT_PLEN_4096;
 	_dw1000_config.rxPAC          = DWT_PAC64;
-	_dw1000_config.txCode         = 17;  // preamble code
-	_dw1000_config.rxCode         = 17;  // preamble code
+	_dw1000_config.txCode         = 11;  // preamble code
+	_dw1000_config.rxCode         = 11;  // preamble code
 	_dw1000_config.nsSFD          = 1;
 	_dw1000_config.dataRate       = DWT_BR_110K;
 	_dw1000_config.phrMode        = DWT_PHRMODE_EXT; //Enable extended PHR mode (up to 1024-byte packets)
@@ -789,8 +789,9 @@ dw1000_err_e dw1000_wakeup () {
 // Call to change the DW1000 channel and force set all of the configs
 // that are needed when changing channels.
 void dw1000_update_channel (uint8_t chan) {
-	_dw1000_config.chan = 4;//chan;
-	dw1000_reset_configuration();
+	_dw1000_config.chan = chan;
+	dwt_setchannel(&_dw1000_config, 0);
+	//dw1000_reset_configuration();
 }
 
 // Called when dw1000 tx/rx config settings and constants should be re applied

@@ -320,7 +320,7 @@ int main () {
 	//// MAIN LOOP -- TAG
 	//dw1000_wakeup();
 	//init();
-	//timer_start(_app_timer, 9000, calib_start_round);
+	//timer_start(_app_timer, 15000, calib_start_round);
 
 	// MAIN LOOP -- ANCHOR
 	dw1000_wakeup();

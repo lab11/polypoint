@@ -13,7 +13,6 @@
 #include "firmware.h"
 #include "calibration.h"
 
-
 /******************************************************************************/
 // Configuration and settings
 /******************************************************************************/
@@ -193,6 +192,7 @@ char code_sequence[63] = {
 
 // Timer callback that marks the start of each round
 void calib_start_round () {
+	uint32_t chan_num;
 
 	// Increment the round number
 	if (_round_num == UINT32_MAX) {
@@ -203,6 +203,10 @@ void calib_start_round () {
 
 	//// Before the INIT packet, use the default settings
 	//setup_round_antenna_channel(0);
+	chan_num = (_round_num % 3) + 1;
+	//dwt_configcwmode(1);
+	//while(1);
+	dw1000_update_channel(chan_num);
 
 	// Send a packet to announce the start of the a calibration round.
 	send_calibration_pkt(MSG_TYPE_PP_CALIBRATION_INIT, 0);
@@ -347,9 +351,12 @@ static void calibration_rxcallback (const dwt_callback_data_t *rxd) {
 			dwt_readaccdata(acc_data, 513, ii);
 		}
 
-		// Update antenna selection based on next packet number sequence
+		// Update channel selection based on next packet number sequence
 		memcpy(&_round_num, &buf[16], 4);
 		_round_num++;
+		_round_num = (_round_num % 3) + 1;
+		dw1000_update_channel(_round_num);
+
 		//if(_round_num & 1){//code_sequence[_round_num % 63]){
 		//	GPIO_WriteBit(STM_GPIO0_PORT, STM_GPIO0_PIN, Bit_SET);
         	//        GPIO_WriteBit(STM_GPIO1_PORT, STM_GPIO1_PIN, Bit_RESET);
