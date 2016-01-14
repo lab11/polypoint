@@ -76,10 +76,12 @@ static void timer_handler (void* p_context) {
  *   INIT FUNCTIONS
  ******************************************************************************/
 
+void initialize_app_timers(void) {
+    APP_TIMER_INIT(APP_TIMER_PRESCALER, APP_TIMER_MAX_TIMERS, APP_TIMER_OP_QUEUE_SIZE, false);
+}
+
 static void timers_init(void) {
     uint32_t err_code;
-
-    APP_TIMER_INIT(APP_TIMER_PRESCALER, APP_TIMER_MAX_TIMERS, APP_TIMER_OP_QUEUE_SIZE, false);
 
     err_code = app_timer_create(&test_timer,
                                 APP_TIMER_MODE_REPEATED,

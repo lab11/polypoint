@@ -49,13 +49,14 @@
 #define TRITAG_CHAR_STATUS_SHORT_UUID         0x3155
 
 // Randomly generated UUID
-const ble_uuid128_t tritag_uuid128 = {
-    {0x2e, 0x5d, 0x5e, 0x39, 0x31, 0x52, 0x45, 0x0c,
-     0x90, 0xee, 0x3f, 0xa2, 0x9c, 0x86, 0x8c, 0xd6}
+simple_ble_service_t service_handle = {
+    .uuid128 = {{0x2e, 0x5d, 0x5e, 0x39, 0x31, 0x52, 0x45, 0x0c,
+                 0x90, 0xee, 0x3f, 0xa2, 0x31, 0x52, 0x8c, 0xd6}}
 };
-
-// UUID for the TriTag service
-ble_uuid_t tritag_uuid;
+simple_ble_char_t char_range_handle             = {.uuid16 = TRITAG_CHAR_LOCATION_SHORT_UUID};
+simple_ble_char_t char_calibration_index_handle = {.uuid16 = TRITAG_CHAR_CALIBRATION_SHORT_UUID};
+simple_ble_char_t char_ranging_enable_handle    = {.uuid16 = TRITAG_CHAR_RANGING_ENABLE_SHORT_UUID};
+simple_ble_char_t char_status_handle            = {.uuid16 = TRITAG_CHAR_STATUS_SHORT_UUID};
 
 
 // Intervals for advertising and connections
@@ -98,7 +99,7 @@ bool tripoint_inited = false;
 void ble_evt_write (ble_evt_t* p_ble_evt) {
     ble_gatts_evt_write_t* p_evt_write = &p_ble_evt->evt.gatts_evt.params.write;
 
-    if (p_evt_write->handle == app.char_ranging_enable_handles.value_handle) {
+    if (simple_ble_is_char_event(p_ble_evt, &char_ranging_enable_handle)) {
         // Handle a write to the characteristic that starts and stops
         // TriPoint ranging.
 
@@ -111,7 +112,7 @@ void ble_evt_write (ble_evt_t* p_ble_evt) {
             tripoint_sleep();
         }
 
-    } else if (p_evt_write->handle == app.char_calibration_index_handle.value_handle) {
+    } else if (simple_ble_is_char_event(p_ble_evt, &char_calibration_index_handle)) {
         // Handle a write to the characteristic that starts calibration
         app.calibration_index = p_evt_write->data[0];
 
@@ -152,7 +153,7 @@ void tripointDataUpdate () {
 
 		ble_gatts_hvx_params_t notify_params;
 		uint16_t len = blobLen;
-		notify_params.handle = app.char_range_handle.value_handle;
+        notify_params.handle = char_range_handle.char_handle.value_handle;
 		notify_params.type   = BLE_GATT_HVX_NOTIFICATION;
 		notify_params.offset = 0;
 		notify_params.p_len  = &len;
@@ -185,11 +186,12 @@ static void timer_handler (void* p_context) {
  *   INIT FUNCTIONS
  ******************************************************************************/
 
+void initialize_app_timer (void) {
+    APP_TIMER_INIT(APP_TIMER_PRESCALER, APP_TIMER_MAX_TIMERS, APP_TIMER_OP_QUEUE_SIZE, false);
+}
 
 static void timers_init (void) {
     uint32_t err_code;
-
-    APP_TIMER_INIT(APP_TIMER_PRESCALER, APP_TIMER_MAX_TIMERS, APP_TIMER_OP_QUEUE_SIZE, false);
 
     err_code = app_timer_create(&app_timer,
                                 APP_TIMER_MODE_REPEATED,
@@ -205,43 +207,33 @@ static void timers_init (void) {
 void services_init (void) {
 
     // Add main TriTag service
-    app.service_handle = simple_ble_add_service(&tritag_uuid128,
-                                                &tritag_uuid,
-                                                TRITAG_SHORT_UUID);
+    simple_ble_add_service(&service_handle);
 
     //add the characteristic that exposes a blob of interrupt response
-    simple_ble_add_characteristic(1, 0, 1,  // read, write, notify
-                                  tritag_uuid.type,
-                                  TRITAG_CHAR_LOCATION_SHORT_UUID,
+    simple_ble_add_characteristic(1, 0, 1, 0, // read, write, notify, vlen
                                   128, app.app_raw_response_buffer,
-                                  app.service_handle,
-                                  &app.char_range_handle);
+                                  &service_handle,
+                                  &char_range_handle);
 
     // Add the characteristic that enables/disables ranging
-    simple_ble_add_characteristic(1, 1, 0,  // read, write, notify
-                                  tritag_uuid.type,
-                                  TRITAG_CHAR_CALIBRATION_SHORT_UUID,
+    simple_ble_add_characteristic(1, 1, 0, 0, // read, write, notify, vlen
                                   1, &app.calibration_index,
-                                  app.service_handle,
-                                  &app.char_calibration_index_handle);
+                                  &service_handle,
+                                  &char_calibration_index_handle);
 
     // Add the characteristic that sets the index of a node during
     // calibration. Writing a 0 to this characteristic will start the
     // calibration.
-    simple_ble_add_characteristic(1, 1, 0,  // read, write, notify
-                                  tritag_uuid.type,
-                                  TRITAG_CHAR_RANGING_ENABLE_SHORT_UUID,
+    simple_ble_add_characteristic(1, 1, 0, 0, // read, write, notify, vlen
                                   1, &app.app_ranging,
-                                  app.service_handle,
-                                  &app.char_ranging_enable_handles);
+                                  &service_handle,
+                                  &char_ranging_enable_handle);
 
     // Status
-    simple_ble_add_characteristic(1, 0, 0,  // read, write, notify
-                                  tritag_uuid.type,
-                                  TRITAG_CHAR_STATUS_SHORT_UUID,
+    simple_ble_add_characteristic(1, 0, 0, 0, // read, write, notify, vlen
                                   1,(uint8_t*) &tripoint_inited,
-                                  app.service_handle,
-                                  &app.char_status_handle);
+                                  &service_handle,
+                                  &char_status_handle);
 }
 
 
