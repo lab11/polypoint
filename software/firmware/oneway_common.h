@@ -29,7 +29,7 @@
 #define NUM_RANGING_BROADCASTS ((NUM_RANGING_CHANNELS*NUM_ANTENNAS*NUM_ANTENNAS) + NUM_RANGING_CHANNELS)
 
 // How much time between each ranging broadcast in the subsequence from the tag.
-#define RANGING_BROADCASTS_PERIOD_US 1000
+#define RANGING_BROADCASTS_PERIOD_US 10000
 
 // Listen for responses from the anchors on different channels
 #define NUM_RANGING_LISTENING_WINDOWS 3

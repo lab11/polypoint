@@ -663,15 +663,15 @@ dw1000_err_e dw1000_configure_settings () {
 	// Set the parameters of ranging and channel and whatnot
 	_dw1000_config.chan           = 2;
 	_dw1000_config.prf            = DWT_PRF_64M;
-	_dw1000_config.txPreambLength = DWT_PLEN_64;
-	_dw1000_config.rxPAC          = DWT_PAC8;
+	_dw1000_config.txPreambLength = DWT_PLEN_4096;
+	_dw1000_config.rxPAC          = DWT_PAC64;
 	_dw1000_config.txCode         = 9;  // preamble code
 	_dw1000_config.rxCode         = 9;  // preamble code
 	_dw1000_config.nsSFD          = 0;
-	_dw1000_config.dataRate       = DWT_BR_6M8;
+	_dw1000_config.dataRate       = DWT_BR_110K;
 	_dw1000_config.phrMode        = DWT_PHRMODE_EXT; //Enable extended PHR mode (up to 1024-byte packets)
-	_dw1000_config.smartPowerEn   = 1;
-	_dw1000_config.sfdTO          = 64+8+1;//(1025 + 64 - 32);
+	_dw1000_config.smartPowerEn   = 0;
+	_dw1000_config.sfdTO          = 4096+64+1;//(1025 + 64 - 32);
 #if DW1000_USE_OTP
 	dwt_configure(&_dw1000_config, (DWT_LOADANTDLY | DWT_LOADXTALTRIM));
 #else
