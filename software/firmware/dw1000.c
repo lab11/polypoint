@@ -583,6 +583,7 @@ uint8_t* dw1000_get_txrx_delay_raw () {
 // First (generic) init of the DW1000
 dw1000_err_e dw1000_init () {
 	dw1000_err_e err;
+	uint8_t buffer;
 
 	// Do the STM setup that initializes pin and peripherals and whatnot.
 	if (!_stm_dw1000_interface_setup) {
@@ -593,9 +594,18 @@ dw1000_err_e dw1000_init () {
 	// edges.
 	dw1000_spi_slow();
 
-	// Reset the dw1000...for some reason
-	dw1000_reset();
-	uDelay(100);
+	//// Reset the dw1000...for some reason
+	//dw1000_reset();
+	uDelay(1000);
+	buffer = 1;
+	dwt_writetodevice(0x36, 0, 1, &buffer);
+	buffer = 0x00;
+	dwt_writetodevice(0x36, 3, 1, &buffer);
+	buffer = 0xF0;
+	dwt_writetodevice(0x36, 3, 1, &buffer);
+	buffer = 0;
+	dwt_writetodevice(0x36, 0, 1, &buffer);
+	uDelay(1000);
 
 	// Make sure we can talk to the DW1000
 	uint32_t devID;
@@ -617,6 +627,47 @@ dw1000_err_e dw1000_init () {
 	dw1000_spi_fast();
 
 	return DW1000_NO_ERR;
+}
+
+uint16_t dw1000_preamble_time_in_us(){
+	//value is X*0.99359 for 16 MHz PRF and X*1.01763 for 64 MHz PRF
+	uint16_t preamble_len;
+	float preamble_time;
+	switch(_dw1000_config.txPreambLength){
+		case DWT_PLEN_64:
+			preamble_len = 64; break;
+		case DWT_PLEN_128:
+			preamble_len = 128; break;
+		case DWT_PLEN_256:
+			preamble_len = 256; break;
+		case DWT_PLEN_512:
+			preamble_len = 512; break;
+		case DWT_PLEN_1024:
+			preamble_len = 1024; break;
+		case DWT_PLEN_2048:
+			preamble_len = 2048; break;
+		default:
+			preamble_len = 4096; break;
+	}
+	if(_dw1000_config.prf == DWT_PRF_16M)
+		preamble_time = (float)preamble_len * 0.99359 + 0.5;
+	else
+		preamble_time = (float)preamble_len * 1.01763 + 0.5;
+	return (uint16_t) preamble_time;
+}
+
+uint32_t dw1000_packet_data_time_in_us(uint16_t data_len){
+	float time_per_byte;
+	switch(_dw1000_config.dataRate){
+		case DWT_BR_110K:
+			time_per_byte = 8.0/110e3; break;
+		case DWT_BR_850K:
+			time_per_byte = 8.0/850e3; break;
+		default: 
+			time_per_byte = 8.0/6.8e6; break;
+	}
+
+	return (uint32_t) (time_per_byte * data_len + 0.5);
 }
 
 // Apply a suite of baseline settings that we care about.

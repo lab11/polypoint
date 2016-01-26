@@ -22,6 +22,7 @@ typedef struct {
 	uint8_t  reply_after_subsequence;
 	uint16_t anchor_reply_window_in_us;
 	uint16_t anchor_reply_slot_time_in_us;
+	uint16_t anchor_reply_num_slots;
 } oneway_anchor_tag_config_t;
 
 typedef struct {

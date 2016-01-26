@@ -168,6 +168,8 @@ typedef struct {
 // Utility
 int  dwtime_to_millimeters (double dwtime);
 void insert_sorted (int arr[], int new, unsigned end);
+uint16_t dw1000_preamble_time_in_us();
+uint32_t dw1000_packet_data_time_in_us(uint16_t data_len);
 
 // Main API
 dw1000_err_e  dw1000_init ();
