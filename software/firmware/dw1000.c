@@ -667,7 +667,7 @@ uint32_t dw1000_packet_data_time_in_us(uint16_t data_len){
 			time_per_byte = 8.0/6.8e6; break;
 	}
 
-	return (uint32_t) (time_per_byte * data_len + 0.5);
+	return (uint32_t) (time_per_byte * data_len * 1e6 + 0.5);
 }
 
 // Apply a suite of baseline settings that we care about.

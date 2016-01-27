@@ -20,7 +20,7 @@ typedef enum {
 // Configuration data for the ANCHOR provided by the TAG
 typedef struct {
 	uint8_t  reply_after_subsequence;
-	uint16_t anchor_reply_window_in_us;
+	uint32_t anchor_reply_window_in_us;
 	uint16_t anchor_reply_slot_time_in_us;
 	uint16_t anchor_reply_num_slots;
 } oneway_anchor_tag_config_t;
