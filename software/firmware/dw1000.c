@@ -21,9 +21,9 @@
 
 const uint8_t pgDelay[DW1000_NUM_CHANNELS] = {
 	0x0,
-	0xc9,
-	0xc2,
-	0xc5,
+	0x95,
+	0x95,
+	0x95,
 	0x95,
 	0xc0,
 	0x0,
@@ -35,7 +35,7 @@ const uint32_t txPower[DW1000_NUM_CHANNELS] = {
 	0x0,
 	0x07274767UL,
 	0x07274767UL,
-	0x2B4B6B8BUL,
+	0x07274767UL,
 	0x3A5A7A9AUL,
 	0x25456585UL,
 	0x0,
@@ -654,7 +654,7 @@ dw1000_err_e dw1000_configure_settings () {
 	                 DWT_INT_ARFE, 1);
 
 	// Set the parameters of ranging and channel and whatnot
-	_dw1000_config.chan           = 1;
+	_dw1000_config.chan           = 2;
 	_dw1000_config.prf            = DWT_PRF_64M;
 	_dw1000_config.txPreambLength = DWT_PLEN_4096;
 	_dw1000_config.rxPAC          = DWT_PAC64;
@@ -789,6 +789,7 @@ dw1000_err_e dw1000_wakeup () {
 // Call to change the DW1000 channel and force set all of the configs
 // that are needed when changing channels.
 void dw1000_update_channel (uint8_t chan) {
+	//chan = 2;
 	_dw1000_config.chan = chan;
 	dwt_setchannel(&_dw1000_config, 0);
 	//dw1000_reset_configuration();

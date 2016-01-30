@@ -206,6 +206,7 @@ void calib_start_round () {
 	chan_num = (_round_num % 3) + 1;
 	//dwt_configcwmode(1);
 	//while(1);
+	//chan_num = 3;
 	dw1000_update_channel(chan_num);
 
 	// Send a packet to announce the start of the a calibration round.
@@ -234,6 +235,7 @@ void send_calibration_pkt (uint8_t message_type, uint8_t packet_num) {
 	delay_time &= 0xFFFFFFFE; // Make sure last bit is zero
 	dwt_setdelayedtrxtime(delay_time);
 	_calibration_timing[packet_num] = ((uint64_t) delay_time) << 8;
+	pp_calibration_pkt.tx_time = delay_time;
 
 	// Write the data
 	dwt_writetxdata(tx_len, (uint8_t*) &pp_calibration_pkt, 0);
@@ -339,7 +341,9 @@ static void calibration_rxcallback (const dwt_callback_data_t *rxd) {
 		// Read in parameters of this packet reception
 		uint64_t dw_rx_timestamp;
 		uint8_t  buf[CALIBRATION_MAX_RX_PKT_LEN];
+		uint8_t  fp_idx[2];
 		uint8_t  message_type;
+		uint8_t  dummy_byte;
 
 		// Get the received time of this packet first
 		dwt_readrxtimestamp(buf);
@@ -347,15 +351,25 @@ static void calibration_rxcallback (const dwt_callback_data_t *rxd) {
 
 		// Get the actual packet bytes
 		dwt_readrxdata(buf, MIN(CALIBRATION_MAX_RX_PKT_LEN, rxd->datalength), 0);
+		dwt_readfromdevice(RX_TIME_ID, RX_TIME_FP_INDEX_OFFSET, 2, fp_idx);
+#ifdef ENCLOSED_CAL
+		while(1){
+#endif
 		for(int ii = 0; ii < 4096; ii += 512){
 			dwt_readaccdata(acc_data, 513, ii);
 		}
+#ifdef ENCLOSED_CAL
+		}
+#endif
 
 		// Update channel selection based on next packet number sequence
 		memcpy(&_round_num, &buf[16], 4);
 		_round_num++;
 		_round_num = (_round_num % 3) + 1;
 		dw1000_update_channel(_round_num);
+		//Tweak random parameters to see what works best
+		//dummy_byte = (_round_num & 0xFF);
+		//dwt_writetodevice(RF_CONF_ID, RF_RXCTRLH_OFFSET, 1, &dummy_byte);//FS_CTRL_ID, FS_PLLCFG_OFFSET, 1, &dummy_byte);
 
 		//if(_round_num & 1){//code_sequence[_round_num % 63]){
 		//	GPIO_WriteBit(STM_GPIO0_PORT, STM_GPIO0_PIN, Bit_SET);

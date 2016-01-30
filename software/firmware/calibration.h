@@ -46,6 +46,7 @@ struct pp_calibration_msg  {
 	uint8_t message_type; // Packet type identifier so the anchor knows what it is receiving.
 	uint32_t round_num;   // Index of which which round we are currently in. This sets antenna/channel.
 	uint8_t num;          // Index of this packet in the ranging round.
+	uint32_t tx_time;
 	struct ieee154_footer footer;
 } __attribute__ ((__packed__));
 
