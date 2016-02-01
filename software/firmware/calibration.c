@@ -30,6 +30,9 @@ static const uint8_t channel_index_to_channel_rf_number[CALIB_NUM_CHANNELS] = {
 	1, 4, 3
 };
 
+static const uint8_t new_arrangement_tx_channel[5] = {1, 1, 2, 3, 3};
+static const uint8_t new_arrangement_rx_channel[5] = {1, 2, 2, 2, 3};
+
 /******************************************************************************/
 // Calibration state
 /******************************************************************************/
@@ -203,7 +206,7 @@ void calib_start_round () {
 
 	//// Before the INIT packet, use the default settings
 	//setup_round_antenna_channel(0);
-	chan_num = (_round_num % 3) + 1;
+	chan_num = new_arrangement_tx_channel[_round_num % 5];//(_round_num % 5) / 2 + 1;
 	//dwt_configcwmode(1);
 	//while(1);
 	//chan_num = 3;
@@ -365,7 +368,7 @@ static void calibration_rxcallback (const dwt_callback_data_t *rxd) {
 		// Update channel selection based on next packet number sequence
 		memcpy(&_round_num, &buf[16], 4);
 		_round_num++;
-		_round_num = (_round_num % 3) + 1;
+		_round_num = new_arrangement_rx_channel[_round_num % 5];//((_round_num % 5) + 1) / 2;
 		dw1000_update_channel(_round_num);
 		//Tweak random parameters to see what works best
 		//dummy_byte = (_round_num & 0xFF);

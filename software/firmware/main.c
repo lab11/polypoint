@@ -317,8 +317,8 @@ int main () {
 	// of the settings on the DW1000.
 	start_dw1000();
 
-//#define TAG
-#define ANCHOR
+#define TAG
+//#define ANCHOR
 
 #ifdef TAG
 	// MAIN LOOP -- TAG
