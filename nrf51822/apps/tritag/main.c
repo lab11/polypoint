@@ -187,7 +187,7 @@ static void timer_handler (void* p_context) {
  ******************************************************************************/
 
 void initialize_app_timer (void) {
-    APP_TIMER_INIT(APP_TIMER_PRESCALER, APP_TIMER_MAX_TIMERS, APP_TIMER_OP_QUEUE_SIZE, false);
+    APP_TIMER_INIT(TRITAG_TIMER_PRESCALER, TRITAG_MAX_TIMERS, TRITAG_OP_QUEUE_SIZE, false);
 }
 
 static void timers_init (void) {

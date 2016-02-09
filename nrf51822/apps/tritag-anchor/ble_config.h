@@ -19,13 +19,9 @@
 
 #define UPDATE_RATE     APP_TIMER_TICKS(1000, 0)
 
-//RTC1_Prescale
-#define APP_TIMER_PRESCALER             0
-
-#define APP_TIMER_MAX_TIMERS            6
-
-//size of op queues
-#define APP_TIMER_OP_QUEUE_SIZE         5
+#define TRITAG_TIMER_PRESCALER  0
+#define TRITAG_MAX_TIMERS       6
+#define TRITAG_OP_QUEUE_SIZE    5
 
 
 //500ms
