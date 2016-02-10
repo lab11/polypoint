@@ -7,6 +7,9 @@ UWB Localization Tag used as an Anchor
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+
+#define DEVICE_NAME "tritaganc"
+
 #include "nordic_common.h"
 #include "nrf.h"
 #include "nrf_sdm.h"
@@ -36,8 +39,6 @@ UWB Localization Tag used as an Anchor
 
 #include "ble_config.h"
 #include "tripoint_interface.h"
-
-#define DEVICE_NAME "tritaganc"
 
 static app_timer_id_t  test_timer;
 
