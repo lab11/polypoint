@@ -2,7 +2,21 @@ var noble = require('noble');
 var loc = require('./localization');
 var buf = require('buffer');
 
-var TRITAG_SERVICE_UUID = 'd68c3152a23fee900c455231395e5d2e';
+var SUMMON_SERVICE_UUIDS                  = ['feaa','fed8'];
+var TRITAG_DEVICE_NAME                    = 'tritag';
+var TRITAG_SERVICE_UUID                   = 'd68c3152a23fee900c455231395e5d2e';
+var TRITAG_CHAR_LOCATION_SHORT_UUID       = 'd68c3153a23fee900c455231395e5d2e';
+var TRITAG_CHAR_RANGING_ENABLE_SHORT_UUID = 'd68c3154a23fee900c455231395e5d2e';
+var TRITAG_CHAR_CALIBRATION_SHORT_UUID    = 'd68c3159a23fee900c455231395e5d2e';
+var TRITAG_CHAR_STATUS_SHORT_UUID         = 'd68c3155a23fee900c455231395e5d2e';
+
+
+/*
+var uuid_service_tritag =             'd68c3152a23fee900c455231395e5d2e';
+var uuid_tritag_char_raw =            'd68c3153a23fee900c455231395e5d2e';
+var uuid_tritag_char_startstop =      'd68c3154a23fee900c455231395e5d2e';
+var uuid_tritag_char_calibration =    'd68c3159a23fee900c455231395e5d2e';
+*/
 
 var TRIPOINT_READ_INT_RANGES = 1
 
@@ -47,7 +61,10 @@ function encoded_mm_to_meters (b, offset) {
 
 noble.on('stateChange', function (state) {
 	if (state === 'poweredOn') {
-		noble.startScanning([TRITAG_SERVICE_UUID], false);
+		// Note, tritag *does not* advertise it's service uuid, only eddystone/summon
+		noble.startScanning(SUMMON_SERVICE_UUIDS, true);
+
+		console.log('Started scanning.');
 	}
 });
 
@@ -57,86 +74,86 @@ var then = 0;
 noble.on('discover', function (peripheral) {
 	noble.stopScanning();
 
-	then = Date.now();
+	if (peripheral.advertisement.localName == 'tritag') {
+		then = Date.now();
+		console.log('Found TriTag: ' + peripheral.uuid);
+		peripheral.connect(function (err) {
+			console.log('Connected to TriTag');
 
-	console.log('Found TriTag: ' + peripheral.uuid);
+			peripheral.discoverServices([TRITAG_SERVICE_UUID], function (err, services) {
+				if (services.length == 1) {
+					console.log('Found the TriTag service.');
 
-	peripheral.connect(function (err) {
-		console.log('Connected to TriTag');
+					services[0].discoverCharacteristics([], function (err, characteristics) {
+						console.log('Found ' + characteristics.length + ' characteristics');
 
-		peripheral.discoverServices([TRITAG_SERVICE_UUID], function (err, services) {
-			if (services.length == 1) {
-				console.log('Found the TriTag service.');
+						characteristics.forEach(function (el, idx, arr) {
+							var characteristic = el;
 
-				services[0].discoverCharacteristics([], function (err, characteristics) {
-					console.log('Found ' + characteristics.length + ' characteristics');
+							if (characteristic.uuid == TRITAG_CHAR_LOCATION_SHORT_UUID) {
 
-					characteristics.forEach(function (el, idx, arr) {
-						var characteristic = el;
-
-						if (characteristic.uuid == 'd68c3153a23fee900c455231395e5d2e') {
-
-							// function get_range () {
-							characteristic.notify(true, function (err) {
-								console.log('error');
-							});
-
-
-							characteristic.on('data', function (dat) {
-								console.log('got notify response');
-
-								function process (data) {
-									var reason = data.readUInt8(0);
-									if (reason == TRIPOINT_READ_INT_RANGES) {
-										// Got ranges from the TAG.
-										var num_ranges = data.readUInt8(1);
-										if (num_ranges == 0) {
-											console.log('No anchors in range.');
-										} else {
-											// Iterate the array to get the
-											// anchor IDs and ranges.
-											var offset_start = 2;
-											var instance_length = 12;
-											for (var i=0; i<num_ranges; i++) {
-												var start = offset_start + (i*instance_length);
-												var eui = buf_to_eui(data, start);
-												var range = encoded_mm_to_meters(data, start+8);
-												console.log(eui);
-												console.log(range);
-											}
-										}
-									}
-									console.log('');
-								}
-
-
-								characteristic.read(function (err, data) {
-									console.log('got read: ' + data.length);
-									console.log(data);
-									console.log(Date.now()-then);
-									if (data.length != 20) {
-										process(data);
-									}
+								// function get_range () {
+								characteristic.notify(true, function (err) {
+									if (err) { console.log('error'); }
+									console.log('sent notify message');
 								});
 
-							});
+								characteristic.on('data', function (dat) {
+									console.log('got notify response');
+
+									function process (data) {
+										var reason = data.readUInt8(0);
+										if (reason == TRIPOINT_READ_INT_RANGES) {
+											// Got ranges from the TAG.
+											var num_ranges = data.readUInt8(1);
+											if (num_ranges == 0) {
+												console.log('No anchors in range.');
+											} else {
+												// Iterate the array to get the
+												// anchor IDs and ranges.
+												var offset_start = 2;
+												var instance_length = 12;
+												for (var i=0; i<num_ranges; i++) {
+													var start = offset_start + (i*instance_length);
+													var eui = buf_to_eui(data, start);
+													var range = encoded_mm_to_meters(data, start+8);
+													console.log(eui);
+													console.log(range);
+												}
+											}
+										}
+										console.log('');
+									}
 
 
+									characteristic.read(function (err, data) {
+										console.log('got read: ' + data.length);
+										console.log(data);
+										console.log(Date.now()-then);
+										if (data.length != 20) {
+											process(data);
+										}
+									});
 
-							// }
+								});
 
-							// get_range();
-							// setInterval(get_range, 1000);
-						}
+								// }
+
+								// get_range();
+								// setInterval(get_range, 1000);
+							}
+						});
+
 					});
 
-				});
+				}
+			});
 
-			}
+
 		});
-
-
-	});
+	} else {
+		console.log('Discovered non-tritag summon device: ' + peripheral.advertisement.localName);
+	}
 });
 
 
