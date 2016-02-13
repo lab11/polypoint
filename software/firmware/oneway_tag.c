@@ -121,6 +121,8 @@ dw1000_err_e oneway_tag_start_ranging_event () {
 		// In theory, this isn't necessary, but things seem to work
 		// better this way.
 
+		dwt_rxreset();
+
 		// Put back the TAG settings.
 		oneway_tag_init();
 
@@ -153,7 +155,7 @@ void oneway_tag_stop () {
 	timer_stop(_tag_timer);
 
 	// Use the DW1000 library to put the chip to sleep
-	dw1000_sleep();
+	//dw1000_sleep();
 }
 
 // Called after the TAG has transmitted a packet.
@@ -176,7 +178,7 @@ static void tag_txcallback (const dwt_callback_data_t *data) {
 			_anchor_response_count = 0;
 
 			// Start a timer to switch between the windows
-			timer_start(_tag_timer, RANGING_LISTENING_WINDOW_US, ranging_listening_window_task);
+			timer_start(_tag_timer, RANGING_LISTENING_WINDOW_US + RANGING_LISTENING_WINDOW_PADDING_US*2, ranging_listening_window_task);
 
 		} else {
 			// We don't need to do anything on TX done for any other states

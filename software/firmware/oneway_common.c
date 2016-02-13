@@ -201,9 +201,9 @@ uint8_t oneway_subsequence_number_to_antenna (dw1000_role_e role, uint8_t subseq
 	// channel sequence. This math is a little weird but somehow works out,
 	// even if NUM_RANGING_CHANNELS != NUM_ANTENNAS.
 	if (role == TAG) {
-		return (subseq_num / NUM_RANGING_CHANNELS) % NUM_ANTENNAS;
+		return 	((subseq_num / NUM_RANGING_CHANNELS) / NUM_RANGING_CHANNELS) % NUM_ANTENNAS;
 	} else if (role == ANCHOR) {
-		return ((subseq_num / NUM_RANGING_CHANNELS) / NUM_RANGING_CHANNELS) % NUM_ANTENNAS;
+		return (subseq_num / NUM_RANGING_CHANNELS) % NUM_ANTENNAS;
 	} else {
 		return 0;
 	}
@@ -214,20 +214,11 @@ uint8_t oneway_subsequence_number_to_antenna (dw1000_role_e role, uint8_t subseq
 static uint8_t antenna_and_channel_to_subsequence_number (uint8_t tag_antenna_index,
                                                           uint8_t anchor_antenna_index,
                                                           uint8_t channel_index) {
-	uint8_t anc_offset = anchor_antenna_index * NUM_RANGING_CHANNELS * NUM_RANGING_CHANNELS;
-	uint8_t tag_offset = tag_antenna_index * NUM_RANGING_CHANNELS;
+	uint8_t anc_offset = anchor_antenna_index * NUM_RANGING_CHANNELS;
+	uint8_t tag_offset = tag_antenna_index * NUM_RANGING_CHANNELS * NUM_RANGING_CHANNELS;
 	uint8_t base_offset = anc_offset + tag_offset + channel_index;
 
-	// Now find the last one that matches this index.
-	// We do this by finding the last possible breaking point between
-	// repeated rounds and determining if we should go just pass that point
-	// or before it.
-	uint8_t a = (uint8_t) ((NUM_RANGING_BROADCASTS / NUM_UNIQUE_PACKET_CONFIGURATIONS) * NUM_UNIQUE_PACKET_CONFIGURATIONS);
-	if ((base_offset + a) < NUM_RANGING_BROADCASTS) {
-		return base_offset + a;
-	} else {
-		return a - (NUM_UNIQUE_PACKET_CONFIGURATIONS - base_offset);
-	}
+	return base_offset;
 }
 
 // Return the RF channel to use when the anchors respond to the tag

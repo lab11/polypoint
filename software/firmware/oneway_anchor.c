@@ -209,8 +209,8 @@ static void ranging_listening_window_task () {
 
 		// Come up with the time to send this packet back to the
 		// tag based on the slot we picked.
-		uint32_t delay_time = dwt_readsystimestamphi32() +
-			DW_DELAY_FROM_US(ANC_FINAL_INITIAL_DELAY_HACK_VALUE +
+		uint32_t delay_time = dwt_readsystimestamphi32() + 
+			DW_DELAY_FROM_US(RANGING_LISTENING_WINDOW_PADDING_US + 
 				(slot_num*_ranging_operation_config.anchor_reply_slot_time_in_us));
 
 		delay_time &= 0xFFFFFFFE;
@@ -264,7 +264,7 @@ static void ranging_listening_window_setup () {
 	// the response windows so we can send a packet
 	// back to the tag
 	timer_start(_anchor_timer,
-	            _ranging_operation_config.anchor_reply_window_in_us,
+	            _ranging_operation_config.anchor_reply_window_in_us + RANGING_LISTENING_WINDOW_PADDING_US*2,
 	            ranging_listening_window_task);
 }
 
