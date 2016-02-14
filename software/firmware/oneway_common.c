@@ -223,7 +223,7 @@ static uint8_t antenna_and_channel_to_subsequence_number (uint8_t tag_antenna_in
 
 // Return the RF channel to use when the anchors respond to the tag
 static uint8_t listening_window_number_to_channel (uint8_t window_num) {
-	return window_num % NUM_RANGING_CHANNELS;
+	return channel_index_to_channel_rf_number[window_num % NUM_RANGING_CHANNELS];
 }
 
 
