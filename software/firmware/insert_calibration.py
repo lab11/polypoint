@@ -10,7 +10,7 @@ FLASH_LOCATION = '0x08007F80'
 
 MAGIC_VALUE = 0x77AA38F9
 
-DEFAULT_CALIB = 33000
+DEFAULT_CALIB = 0#33000
 
 if len(sys.argv) != 2:
 	print('Must pass ID to {}'.format(sys.argv[0]), file=sys.stderr)
