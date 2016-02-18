@@ -119,7 +119,6 @@ static void setup () {
 	GPIO_PinAFConfig(SPI1_SCK_GPIO_PORT,  SPI1_SCK_SOURCE,  SPI1_SCK_AF);
 	GPIO_PinAFConfig(SPI1_MOSI_GPIO_PORT, SPI1_MOSI_SOURCE, SPI1_MOSI_AF);
 	GPIO_PinAFConfig(SPI1_MISO_GPIO_PORT, SPI1_MISO_SOURCE, SPI1_MISO_AF);
-	GPIO_PinAFConfig(SPI1_NSS_GPIO_PORT,  SPI1_NSS_SOURCE,  SPI1_NSS_AF);
 
 	// Configure SPI pins
 	GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_AF;
@@ -140,10 +139,10 @@ static void setup () {
 	GPIO_Init(SPI1_MISO_GPIO_PORT, &GPIO_InitStructure);
 
 	// SPI NSS pin configuration
-	// Need a pull up here
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
 	GPIO_InitStructure.GPIO_Pin  = SPI1_NSS_PIN;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
 	GPIO_Init(SPI1_NSS_GPIO_PORT, &GPIO_InitStructure);
+	GPIO_WriteBit(SPI1_NSS_GPIO_PORT, SPI1_NSS_PIN, Bit_SET);
 
 	// SPI configuration
 	SPI_I2S_DeInit(SPI1);
@@ -151,7 +150,7 @@ static void setup () {
 	SPI_InitStructure.SPI_DataSize          = SPI_DataSize_8b;
 	SPI_InitStructure.SPI_CPOL              = SPI_CPOL_Low;
 	SPI_InitStructure.SPI_CPHA              = SPI_CPHA_1Edge;
-	SPI_InitStructure.SPI_NSS               = SPI_NSS_Hard;
+	SPI_InitStructure.SPI_NSS               = SPI_NSS_Soft;
 	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_64;
 	SPI_InitStructure.SPI_FirstBit          = SPI_FirstBit_MSB;
 	SPI_InitStructure.SPI_CRCPolynomial     = 7;
@@ -451,6 +450,7 @@ int readfromspi (uint16_t headerLength,
 	int ret;
 
 	SPI_Cmd(SPI1, ENABLE);
+	GPIO_WriteBit(SPI1_NSS_GPIO_PORT, SPI1_NSS_PIN, Bit_RESET);
 	setup_dma_write(headerLength, headerBuffer);
 	ret = spi_transfer();
 	if (ret) goto error;
@@ -459,10 +459,12 @@ int readfromspi (uint16_t headerLength,
 	ret = spi_transfer();
 	if (ret) goto error;
 
+	GPIO_WriteBit(SPI1_NSS_GPIO_PORT, SPI1_NSS_PIN, Bit_SET);
 	SPI_Cmd(SPI1, DISABLE);
 	return 0;
 
 error:
+	GPIO_WriteBit(SPI1_NSS_GPIO_PORT, SPI1_NSS_PIN, Bit_SET);
 	SPI_Cmd(SPI1, DISABLE);
 	polypoint_reset();
 	return -1;
@@ -476,6 +478,7 @@ int writetospi (uint16_t headerLength,
 	int ret;
 
 	SPI_Cmd(SPI1, ENABLE);
+	GPIO_WriteBit(SPI1_NSS_GPIO_PORT, SPI1_NSS_PIN, Bit_RESET);
 	setup_dma_write(headerLength, headerBuffer);
 	ret = spi_transfer();
 	if (ret) goto error;
@@ -484,10 +487,12 @@ int writetospi (uint16_t headerLength,
 	ret = spi_transfer();
 	if (ret) goto error;
 
+	GPIO_WriteBit(SPI1_NSS_GPIO_PORT, SPI1_NSS_PIN, Bit_SET);
 	SPI_Cmd(SPI1, DISABLE);
 	return 0;
 
 error:
+	GPIO_WriteBit(SPI1_NSS_GPIO_PORT, SPI1_NSS_PIN, Bit_SET);
 	SPI_Cmd(SPI1, DISABLE);
 	polypoint_reset();
 	return -1;
