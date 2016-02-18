@@ -358,6 +358,7 @@ static void calibration_rxcallback (const dwt_callback_data_t *rxd) {
 #endif
 		for(int ii = 0; ii < 4096; ii += 512){
 			dwt_readaccdata(acc_data, 513, ii);
+			USART_SendData(USART1, 0x55);
 		}
 #ifdef ENCLOSED_CAL
 		}

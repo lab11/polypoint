@@ -2,6 +2,7 @@
 
 #include "stm32f0xx_tim.h"
 #include "stm32f0xx_pwr.h"
+#include "stm32f0xx_usart.h"
 
 #include "tripoint.h"
 #include "led.h"
@@ -290,6 +291,43 @@ int main () {
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
 	GPIO_Init(STM_GPIO0_PORT, &GPIO_InitStructure);
 
+	//Initialize UART1 on GPIO1 and GPIO4
+	{
+		USART_InitTypeDef usartConfig;
+		GPIO_InitTypeDef gpioConfig;
+
+		RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOB, ENABLE);
+		RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
+
+		GPIO_PinAFConfig(GPIOB, GPIO_PinSource6, GPIO_AF_0);
+		GPIO_PinAFConfig(GPIOB, GPIO_PinSource7, GPIO_AF_0);
+
+		gpioConfig.GPIO_Pin = GPIO_Pin_6 | GPIO_Pin_7;
+		gpioConfig.GPIO_Speed = GPIO_Speed_50MHz;
+		gpioConfig.GPIO_Mode = GPIO_Mode_AF;
+		gpioConfig.GPIO_OType = GPIO_OType_PP;
+		gpioConfig.GPIO_PuPd = GPIO_PuPd_UP;
+		GPIO_Init(GPIOB, &gpioConfig);
+
+		usartConfig.USART_BaudRate = 460800;
+		usartConfig.USART_WordLength = USART_WordLength_8b;
+		usartConfig.USART_StopBits = USART_StopBits_1;
+		usartConfig.USART_Parity = USART_Parity_No;
+		usartConfig.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
+		usartConfig.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
+		USART_Init(USART1, &usartConfig);
+
+		USART_Cmd(USART1, ENABLE);
+	}
+
+	RCC_AHBPeriphClockCmd(STM_GPIO0_CLK, ENABLE);
+	GPIO_InitStructure.GPIO_Pin = STM_GPIO0_PIN;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+	GPIO_Init(STM_GPIO0_PORT, &GPIO_InitStructure);
+
 	RCC_AHBPeriphClockCmd(STM_GPIO1_CLK, ENABLE);
 	GPIO_InitStructure.GPIO_Pin = STM_GPIO1_PIN;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
@@ -317,8 +355,8 @@ int main () {
 	// of the settings on the DW1000.
 	start_dw1000();
 
-#define TAG
-//#define ANCHOR
+//#define TAG
+#define ANCHOR
 
 #ifdef TAG
 	// MAIN LOOP -- TAG
