@@ -309,7 +309,7 @@ int main () {
 		gpioConfig.GPIO_PuPd = GPIO_PuPd_UP;
 		GPIO_Init(GPIOB, &gpioConfig);
 
-		usartConfig.USART_BaudRate = 460800;
+		usartConfig.USART_BaudRate = 3e6; //Maximum baudrate attainable
 		usartConfig.USART_WordLength = USART_WordLength_8b;
 		usartConfig.USART_StopBits = USART_StopBits_1;
 		usartConfig.USART_Parity = USART_Parity_No;
