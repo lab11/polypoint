@@ -328,14 +328,6 @@ int main () {
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
 	GPIO_Init(STM_GPIO0_PORT, &GPIO_InitStructure);
 
-	RCC_AHBPeriphClockCmd(STM_GPIO1_CLK, ENABLE);
-	GPIO_InitStructure.GPIO_Pin = STM_GPIO1_PIN;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-	GPIO_Init(STM_GPIO1_PORT, &GPIO_InitStructure);
-
 	// In case we need a timer, get one. This is used for things like periodic
 	// ranging events.
 	_app_timer = timer_init();
