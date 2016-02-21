@@ -3,9 +3,9 @@
   (general
     (links 66)
     (no_connects 0)
-    (area 104.064999 46.914999 132.155001 97.865001)
+    (area 101.670067 43.7823 132.510601 99.1966)
     (thickness 1.6)
-    (drawings 12)
+    (drawings 13)
     (tracks 207)
     (zones 0)
     (modules 27)
@@ -39,7 +39,7 @@
   )
 
   (setup
-    (last_trace_width 1.27)
+    (last_trace_width 0.1016)
     (user_trace_width 0.1016)
     (user_trace_width 0.254)
     (user_trace_width 0.508)
@@ -1075,6 +1075,9 @@
     )
   )
 
+  (gr_text GND (at 109.601 67.31) (layer F.SilkS)
+    (effects (font (size 0.762 0.762) (thickness 0.1905)))
+  )
   (gr_text "PinPoint to\nTriDev Adapter\nv0.1\nBen Kempke" (at 104.775 81.407) (layer F.SilkS)
     (effects (font (size 0.762 0.762) (thickness 0.1905)) (justify left))
   )
