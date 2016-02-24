@@ -13,9 +13,14 @@ tw_ToFs = analyze_cal_data(filename);
 tw_ToFs = median(tw_ToFs);
 
 %Remove twice the cable length due to two-way ranging calculation
-tw_ToFs = tw_ToFs - cable_length_dw_time_units*2;
+A_cal = tw_ToFs - cable_length_dw_time_units*2;
 
-ret = round(tw_ToFs);
+A_rx_cal = round(mean(reshape(A_cal,[3,3]),1));
+A_tx_cal = round(mean(reshape(A_cal,[3,3])-repmat(A_rx_cal,[3,1]),2)).';
 
-disp(sprintf('%5d    %5d   %5d      %5d   %5d      %5d     %5d   %5d   %5d',[ret(1),ret(1),ret(1),ret(2),ret(2),ret(2),ret(3),ret(3),ret(3)]))
+% Make sure all the numbers are positive
+A_rx_cal = A_rx_cal - min(A_tx_cal);
+A_tx_cal = A_tx_cal - min(A_tx_cal);
 
+ret = [A_rx_cal(1), A_tx_cal(1), A_rx_cal(2), A_tx_cal(2), A_rx_cal(3), A_tx_cal(3)];
+disp(sprintf('  %5d    %5d      %5d    %5d      %5d    %5d',ret))

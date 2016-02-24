@@ -143,6 +143,9 @@ uint8_t oneway_subsequence_number_to_antenna (dw1000_role_e role, uint8_t subseq
 void oneway_set_ranging_broadcast_subsequence_settings (dw1000_role_e role, uint8_t subseq_num);
 void oneway_set_ranging_listening_window_settings (dw1000_role_e role, uint8_t slot_num, uint8_t antenna_num);
 uint8_t oneway_get_ss_index_from_settings (uint8_t anchor_antenna_index, uint8_t window_num);
-uint64_t oneway_get_txrxdelay_from_subsequence (dw1000_role_e role, uint8_t subseq_num);
+uint64_t oneway_get_txdelay_from_subsequence (dw1000_role_e role, uint8_t subseq_num);
+uint64_t oneway_get_rxdelay_from_subsequence (dw1000_role_e role, uint8_t subseq_num);
+uint64_t oneway_get_txdelay_from_ranging_listening_window (uint8_t window_num);
+uint64_t oneway_get_rxdelay_from_ranging_listening_window (uint8_t window_num);
 
 #endif

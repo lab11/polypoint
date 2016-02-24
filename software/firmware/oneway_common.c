@@ -277,11 +277,26 @@ uint8_t oneway_get_ss_index_from_settings (uint8_t anchor_antenna_index,
 	                                                 channel_index);
 }
 
-// Get the TX+RX delay for this node, given the antenna and channel value
-uint64_t oneway_get_txrxdelay_from_subsequence (dw1000_role_e role,
+// Get the TX delay for this node, given the channel value
+uint64_t oneway_get_txdelay_from_subsequence (dw1000_role_e role,
                                                 uint8_t subseq_num) {
 	// Need to get channel and antenna to call the dw1000 function
-	uint8_t antenna_index = oneway_subsequence_number_to_antenna(role, subseq_num);
 	uint8_t channel_index = subsequence_number_to_channel_index(subseq_num);
-	return dw1000_get_txrx_delay(antenna_index, channel_index);
+	return dw1000_get_tx_delay(channel_index);
+}
+
+// Get the RX delay for this node, given the channel value
+uint64_t oneway_get_rxdelay_from_subsequence (dw1000_role_e role,
+                                                uint8_t subseq_num) {
+	// Need to get channel and antenna to call the dw1000 function
+	uint8_t channel_index = subsequence_number_to_channel_index(subseq_num);
+	return dw1000_get_rx_delay(channel_index);
+}
+
+uint64_t oneway_get_txdelay_from_ranging_listening_window (uint8_t window_num){
+	return dw1000_get_tx_delay(listening_window_number_to_channel(window_num));
+}
+
+uint64_t oneway_get_rxdelay_from_ranging_listening_window (uint8_t window_num){
+	return dw1000_get_rx_delay(listening_window_number_to_channel(window_num));
 }

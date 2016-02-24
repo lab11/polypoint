@@ -252,7 +252,7 @@ static void tag_rxcallback (const dwt_callback_data_t* rxd) {
 				// Save when we received the packet.
 				// We have already handled the calibration values so
 				// we don't need to here.
-				_anchor_responses[_anchor_response_count].anc_final_rx_timestamp = dw_rx_timestamp;
+				_anchor_responses[_anchor_response_count].anc_final_rx_timestamp = dw_rx_timestamp - oneway_get_rxdelay_from_ranging_listening_window(_ranging_listening_window_num - 1);
 
 				// Also need to save what window we are in when we received
 				// this packet. This is used so we know all of the settings
@@ -309,7 +309,7 @@ static void send_poll () {
 	// Take the TX+RX delay into account here by adding it to the time stamp
 	// of each outgoing packet.
 	_ranging_broadcast_ss_send_times[_ranging_broadcast_ss_num] =
-		(((uint64_t) delay_time) << 8) + oneway_get_txrxdelay_from_subsequence(TAG, _ranging_broadcast_ss_num);
+		(((uint64_t) delay_time) << 8) + oneway_get_txdelay_from_subsequence(TAG, _ranging_broadcast_ss_num);
 
 	// Write the data
 	dwt_writetxdata(tx_len, (uint8_t*) &pp_tag_poll_pkt, 0);

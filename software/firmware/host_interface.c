@@ -364,8 +364,8 @@ void CPAL_I2C_RXTC_UserCallback(CPAL_InitTypeDef* pDevInitStruct) {
 		/**********************************************************************/
 		case HOST_CMD_READ_CALIBRATION: {
 			// Copy the raw values from the stored array
-			memcpy(txBuffer, dw1000_get_txrx_delay_raw(), 18);
-			host_interface_respond(18);
+			memcpy(txBuffer, dw1000_get_txrx_delay_raw(), 12);
+			host_interface_respond(12);
 			break;
 		}
 

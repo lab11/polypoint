@@ -260,8 +260,8 @@ static void setup () {
 	if (_prog_values.magic != PROGRAMMED_MAGIC) {
 		// Hmm this wasn't set on this chip. Not much we can do other
 		// than use default values.
-		for (uint8_t i=0; i<9; i++) {
-			_prog_values.calibration_values[i/3][i%3] = DW1000_DEFAULT_CALIBRATION;
+		for (uint8_t i=0; i<6; i++) {
+			_prog_values.calibration_values[i] = DW1000_DEFAULT_CALIBRATION;
 		}
 	}
 
@@ -562,12 +562,18 @@ void dw1000_read_eui (uint8_t *eui_buf) {
 
 // Return the TX+RX delay calibration value for this particular node
 // in DW1000 time format.
-uint64_t dw1000_get_txrx_delay (uint8_t antenna_index, uint8_t channel_index) {
+uint64_t dw1000_get_tx_delay (uint8_t channel_index) {
 	// Make sure that antenna and channel are 0<=index<3
-	antenna_index = antenna_index % 3;
 	channel_index = channel_index % 3;
 
-	return (uint64_t) _prog_values.calibration_values[channel_index][antenna_index];
+	return (uint64_t) _prog_values.calibration_values[channel_index*2+1];
+}
+
+uint64_t dw1000_get_rx_delay (uint8_t channel_index) {
+	// Make sure that antenna and channel are 0<=index<3
+	channel_index = channel_index % 3;
+
+	return (uint64_t) _prog_values.calibration_values[channel_index*2];
 }
 
 // Get access to the pointer of calibration values. Used for the host interface.

@@ -33,8 +33,8 @@ num_ranges = size(tx_timestamps,1);
 tx_antennas = zeros(num_ranges-1,1);
 ranges = zeros(num_ranges,30);
 distances_millimeters = zeros(num_ranges,1);
-two_way_TOFs = zeros(num_ranges,3);
-one_way_TOFs = zeros(num_ranges,3);
+two_way_TOFs = zeros(num_ranges,9);
+one_way_TOFs = zeros(num_ranges,9);
 
 for ii=1:num_ranges
 	if ii==num_ranges
@@ -60,11 +60,11 @@ for ii=1:num_ranges
 		twToF = (tag_rx_timestamps(1)-tx_timestamps(ii,1))*anchor_over_tag - (tx_resp_timestamp(1)-anchor_rx_timestamps(1));
 		ranges(ii,:) =  (anchor_rx_timestamps-anchor_rx_timestamps(1)) - (tx_timestamps(ii,:)-tx_timestamps(ii,1))*anchor_over_tag + twToF;
 
-		matching_broadcast_send_time = tx_timestamps(ii,1:3);
-		matching_broadcast_recv_time = anchor_rx_timestamps(1:3);
-		response_send_time = tx_resp_timestamp;
-		response_recv_time = tag_rx_timestamps;
 		try
+		matching_broadcast_send_time = tx_timestamps(ii,[1,2,3,1,2,3,1,2,3]);
+		matching_broadcast_recv_time = anchor_rx_timestamps([1,2,3,1,2,3,1,2,3]);
+		response_send_time = tx_resp_timestamp([1,1,1,2,2,2,3,3,3]);
+		response_recv_time = tag_rx_timestamps([1,1,1,2,2,2,3,3,3]);
 		two_way_TOF = ((response_recv_time - matching_broadcast_send_time)*anchor_over_tag) - (response_send_time - matching_broadcast_recv_time);
 		one_way_TOF = two_way_TOF/2;
 		two_way_TOFs(ii,:) = two_way_TOF;

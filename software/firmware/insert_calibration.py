@@ -35,14 +35,14 @@ with open(CALIBRATIONS_FNAME) as f:
 	else:
 		print('Did not find calibration values for {}'.format(ID), file=sys.stderr)
 		print('Using default value ({})'.format(DEFAULT_CALIB), file=sys.stderr)
-		calib_values = [DEFAULT_CALIB]*9
+		calib_values = [DEFAULT_CALIB]*6
 
 print(calib_values, file=sys.stderr)
 
 # Create a binary file that can be loaded into the flash
 with open(OUTPUT_FNAME, 'wb') as f:
 	# Create the buffer to write
-	b = struct.pack('<L9H', MAGIC_VALUE, *calib_values)
+	b = struct.pack('<L6H', MAGIC_VALUE, *calib_values)
 	f.write(b)
 
 print('loadbin {} {}'.format(OUTPUT_FNAME, FLASH_LOCATION))

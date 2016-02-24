@@ -27,3 +27,12 @@ M1 = A_to_C_ToFs - B_to_C_ToFs;
 M2 = A_to_B_ToFs + M1;
 
 A_cal = M2/2;
+
+A_rx_cal = round(mean(reshape(A_cal,[3,3]),1));
+A_tx_cal = round(mean(reshape(A_cal,[3,3])-repmat(A_rx_cal,[3,1]),2)).';
+
+% Make sure all the numbers are positive
+A_rx_cal = A_rx_cal - min(A_tx_cal);
+A_tx_cal = A_tx_cal - min(A_tx_cal);
+
+disp(sprintf('  %5d    %5d      %5d    %5d      %5d    %5d',[A_rx_cal(1), A_tx_cal(1), A_rx_cal(2), A_tx_cal(2), A_rx_cal(3), A_tx_cal(3)]))
