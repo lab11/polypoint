@@ -217,7 +217,7 @@ static void ranging_listening_window_task () {
 
 		// Record the outgoing time in the packet. Do not take calibration into
 		// account here, as that is done on all of the RX timestamps.
-		pp_anc_final_pkt.dw_time_sent = (((uint64_t) delay_time) << 8) + oneway_get_txdelay_from_ranging_listening_window(_ranging_broadcast_ss_num);
+		pp_anc_final_pkt.dw_time_sent = (((uint64_t) delay_time) << 8) + oneway_get_txdelay_from_ranging_listening_window(_ranging_listening_window_num);
 
 		// Set the packet to be transmitted later.
 		dwt_setdelayedtrxtime(delay_time);
