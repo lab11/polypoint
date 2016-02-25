@@ -294,9 +294,9 @@ uint64_t oneway_get_rxdelay_from_subsequence (dw1000_role_e role,
 }
 
 uint64_t oneway_get_txdelay_from_ranging_listening_window (uint8_t window_num){
-	return dw1000_get_tx_delay(listening_window_number_to_channel(window_num));
+	return dw1000_get_tx_delay(window_num % NUM_RANGING_CHANNELS);
 }
 
 uint64_t oneway_get_rxdelay_from_ranging_listening_window (uint8_t window_num){
-	return dw1000_get_rx_delay(listening_window_number_to_channel(window_num));
+	return dw1000_get_rx_delay(window_num % NUM_RANGING_CHANNELS);
 }
