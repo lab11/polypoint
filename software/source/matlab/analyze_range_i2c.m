@@ -1,6 +1,6 @@
 clear all
 
-fid = fopen('~/temp/polypoint/cal_test/ranges_2p34m_aftercal.csv','r');
+fid = fopen('~/temp/polypoint/cal_test/2p34m_overair.csv','r');
 
 %First line is useless.  Discard.
 fgetl(fid);

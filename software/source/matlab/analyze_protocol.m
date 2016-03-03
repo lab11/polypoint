@@ -1,6 +1,6 @@
 clear all
 
-fid = fopen('~/temp/polypoint/cal_test/anchor_20_tag_1e.csv','r');
+fid = fopen('~/temp/polypoint/cal_test/cal_data2/c0_98_e5_50_50_44_50_3a.csv','r');
 
 %First line is useless.  Discard.
 fgetl(fid);
@@ -25,7 +25,8 @@ tx_chunks = transaction_idxs(find(spi_mosi(transaction_idxs) == 137));
 rx_chunks = transaction_idxs(find(spi_mosi(transaction_idxs) == 17));
 
 diff_tx_chunks = diff(tx_chunks);
-start_tx_chunk_idxs = [1,find(diff_tx_chunks > 192) + 1];
+start_tx_chunk_idxs = [find(diff_tx_chunks > 192) + 1];
+start_tx_chunk_idxs = start_tx_chunk_idxs(1:end-1);
 start_tx_chunks = tx_chunks(start_tx_chunk_idxs);
 tx_chunks = tx_chunks(repmat(start_tx_chunk_idxs.',[1,30])+repmat(0:29,[length(start_tx_chunk_idxs),1]));
 tx_timestamps = spi_mosi(tx_chunks-4) * 256 + spi_mosi(tx_chunks-3) * 256 * 256 + spi_mosi(tx_chunks-2) * 256 * 256 * 256 + spi_mosi(tx_chunks-1) * 256 * 256 * 256 * 256 + 33000;
@@ -49,14 +50,14 @@ for ii=1:num_ranges
 		tag_rx_timestamps = spi_miso(tti) + spi_miso(tti+1) * 256 + spi_miso(tti+2) * 256 * 256 + spi_miso(tti+3) * 256 * 256 * 256 + spi_miso(tti+4) * 256 * 256 * 256 * 256;
 		resp_ti = anchor_responses + 24;
 		tx_resp_timestamp = spi_miso(resp_ti) + spi_miso(resp_ti+1) * 256 + spi_miso(resp_ti+2) * 256 * 256 + spi_miso(resp_ti+3) * 256 * 256 * 256 + spi_miso(resp_ti+4) * 256 * 256 * 256 * 256;
-		tx_antennas(ii) = spi_miso(anchor_responses(1)+24);
+		tx_antennas(ii) = spi_miso(anchor_responses(1)+23);
 
 		%TODO: Need to correlate receive antenna, transmit antenna, and channel correctly
 		anchor_over_tag = (anchor_rx_timestamps(1,28:30)-anchor_rx_timestamps(1,1:3))./(tx_timestamps(ii,28:30)-tx_timestamps(ii,1:3));
 		anchor_over_tag = anchor_over_tag((anchor_rx_timestamps(1,28:30) > 0) & (anchor_rx_timestamps(1,1:3) > 0));
 		anchor_over_tag = mean(anchor_over_tag);
 		twToF = (tag_rx_timestamps(1)-tx_timestamps(ii,1))*anchor_over_tag - (tx_resp_timestamp(1)-anchor_rx_timestamps(1));
-		ranges(ii,:) =  (anchor_rx_timestamps-anchor_rx_timestamps(1)) - (tx_timestamps(ii,:)-tx_timestamps(ii,1))*anchor_over_tag + twToF;
+		ranges(ii,:) =  (anchor_rx_timestamps-anchor_rx_timestamps(1)) - (tx_timestamps(ii,:)-tx_timestamps(ii,1))*anchor_over_tag;% + twToF;
 
 		matching_broadcast_send_time = tx_timestamps(ii,1);
 		matching_broadcast_recv_time = anchor_rx_timestamps(1);
@@ -78,7 +79,7 @@ for ii=1:num_ranges
 		%Nullify those ranges which use anchor rx timestamps at zero
 		ranges(ii,anchor_rx_timestamps == 0) = -10000;
 		%if ii==6
-			keyboard;
+		%	keyboard;
 		%end
 	end
 

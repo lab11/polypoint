@@ -18,6 +18,11 @@ A_cal = tw_ToFs - cable_length_dw_time_units*2;
 A_rx_cal = round(mean(reshape(A_cal,[3,3]),1));
 A_tx_cal = round(mean(reshape(A_cal,[3,3])-repmat(A_rx_cal,[3,1]),2)).';
 
+%Reference node: c0:98:e5:50:50:44:50:1e
+ref_node_cal = [32955, 32823, 32901];
+
+A_tx_cal = A_tx_cal - ref_node_cal;
+
 % Make sure all the numbers are positive
 A_rx_cal = A_rx_cal + min(A_tx_cal);
 A_tx_cal = A_tx_cal - min(A_tx_cal);

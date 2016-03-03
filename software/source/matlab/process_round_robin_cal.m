@@ -1,6 +1,6 @@
-A_to_B_fname = '~/temp/polypoint/cal_test/20_to_1e.csv';
-A_to_C_fname = '~/temp/polypoint/cal_test/20_to_21.csv';
-B_to_C_fname = '~/temp/polypoint/cal_test/1e_to_21.csv';
+A_to_B_fname = '~/temp/polypoint/cal_test/1e_to_3c.csv';
+A_to_C_fname = '~/temp/polypoint/cal_test/1e_to_3a.csv';
+B_to_C_fname = '~/temp/polypoint/cal_test/3c_to_3a.csv';
 
 DWT_TIME_UNITS = 1.0/499.2e6/128;
 
@@ -26,13 +26,6 @@ B_to_C_ToFs = B_to_C_ToFs - cable_length_dw_time_units*2;
 M1 = A_to_C_ToFs - B_to_C_ToFs;
 M2 = A_to_B_ToFs + M1;
 
-A_cal = M2/2;
+A_cal = round(M2/2);
 
-A_rx_cal = round(mean(reshape(A_cal,[3,3]),1));
-A_tx_cal = round(mean(reshape(A_cal,[3,3])-repmat(A_rx_cal,[3,1]),2)).';
-
-% Make sure all the numbers are positive
-A_rx_cal = A_rx_cal + min(A_tx_cal);
-A_tx_cal = A_tx_cal - min(A_tx_cal);
-
-disp(sprintf('  %5d    %5d      %5d    %5d      %5d    %5d',[A_rx_cal(1), A_tx_cal(1), A_rx_cal(2), A_tx_cal(2), A_rx_cal(3), A_tx_cal(3)]))
+disp(sprintf('  %5d    %5d      %5d',[A_cal(1), A_cal(5), A_cal(9)]))
