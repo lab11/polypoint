@@ -50,6 +50,11 @@
 #define SPI1_RX_DMA_FLAG_GL              DMA1_FLAG_GL2
 #define SPI1_DMA_IRQn                    DMA1_Channel2_3_IRQn
 
+#define USART1_DR_ADDRESS                0x40013828
+#define USART1_TX_DMA_CHANNEL            DMA1_Channel4
+#define USART1_TX_DMA_FLAG_TC            DMA1_FLAG_TC4
+#define USART1_TX_DMA_FLAG_GL            DMA1_FLAG_GL4
+#define USART1_DMA_IRQn                  DMA1_Channel4_IRQn
 
 #define DMA1_CLK                         RCC_AHBPeriph_DMA1
 
