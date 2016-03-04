@@ -378,6 +378,13 @@ static void calibration_rxcallback (const dwt_callback_data_t *rxd) {
 		_Static_assert(sizeof(_round_num) == 4, "_round_num size");
 		uart_write(4, (uint8_t*) &_round_num);
 
+		uint8_t fp_idx[2];
+		dwt_readfromdevice(RX_TIME_ID, RX_TIME_FP_INDEX_OFFSET, 2, fp_idx);
+		uart_write(2, fp_idx);
+
+		uint32_t finfo = dwt_read32bitreg(RX_FINFO_ID);
+		uart_write(4, (uint8_t*) &finfo);
+
 		// Finish things off with a packet footer
 		const uint8_t footer[] = {0x80, 0xfe};
 		uart_write(2, footer);
