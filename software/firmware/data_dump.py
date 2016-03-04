@@ -63,7 +63,7 @@ if args.matfile:
 	allts   = []
 	alldata = []
 if args.binfile:
-	binfile = open(args.outfile + '.bin', 'w')
+	binfile = open(args.outfile + '.bin', 'wb')
 
 good = 0
 bad = 0
@@ -93,7 +93,7 @@ try:
 					real,imag = struct.unpack("<hh", data[i:i+4])
 					tline += '{}, {}; '.format(real, imag)
 					inner.append(np.complex(real, imag))
-				bline.append(data)
+				bline += data
 
 			tline += ']'
 
