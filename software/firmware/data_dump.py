@@ -15,8 +15,20 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-s', '--serial',   default='/dev/tty.usbserial-AL00EZAS')
 parser.add_argument('-b', '--baudrate', default=3000000, type=int)
 parser.add_argument('-o', '--outfile',  default='out')
+parser.add_argument('-t', '--textfiles',action='store_true',
+		help="Generate ASCII text files with the data")
+parser.add_argument('-m', '--matfile',  action='store_true',
+		help="Generate Matlab-compatible .mat file of the data")
+parser.add_argument('-n', '--binfile',  action='store_true',
+		help="Generate binary file of the data")
 
 args = parser.parse_args()
+
+if not (args.textfiles or args.matfile or args.binfile):
+	print("Error: Must specify at least one of -t, -m, or -n")
+	print("")
+	parser.print_help()
+	sys.exit(1)
 
 dev = serial.Serial(args.serial, args.baudrate)
 if dev.isOpen():
@@ -44,11 +56,14 @@ def find_header():
 		b = b[1:len(HEADER)] + useful_read(1)
 
 
-tsfile  = open(args.outfile + '.timestamps', 'w')
-datfile = open(args.outfile + '.data', 'w')
-
-allts   = []
-alldata = []
+if args.textfiles:
+	tsfile  = open(args.outfile + '.timestamps', 'w')
+	datfile = open(args.outfile + '.data', 'w')
+if args.matfile:
+	allts   = []
+	alldata = []
+if args.binfile:
+	binfile = open(args.outfile + '.bin', 'w')
 
 good = 0
 bad = 0
@@ -56,16 +71,16 @@ try:
 	while True:
 		sys.stdout.write("\rGood {}    Bad {}\t\t".format(good, bad))
 
-		line = ''
-
 		try:
 			find_header()
 
 			timestamp, = struct.unpack("<Q", useful_read(8))
 
-			line += '['
+			tline = '['
 
 			inner = []
+
+			bline = struct.pack("<Q", timestamp)
 
 			# for(int ii = 0; ii < 4096; ii += 512)
 			# uart_write(512, acc_data+1);
@@ -76,18 +91,24 @@ try:
 				data = useful_read(512)
 				for i in range(0, 512, 4):
 					real,imag = struct.unpack("<hh", data[i:i+4])
-					line += '{}, {}; '.format(real, imag)
+					tline += '{}, {}; '.format(real, imag)
 					inner.append(np.complex(real, imag))
+				bline.append(data)
 
-			line += ']'
+			tline += ']'
 
 			good += 1
 
-			tsfile.write(str(timestamp) + '\n')
-			datfile.write(line + '\n')
+			if args.textfiles:
+				tsfile.write(str(timestamp) + '\n')
+				datfile.write(tline + '\n')
 
-			allts.append(timestamp)
-			alldata.append(inner)
+			if args.matfile:
+				allts.append(timestamp)
+				alldata.append(inner)
+
+			if args.binfile:
+				binfile.write(bline)
 
 		except AssertionError:
 			bad += 1
@@ -96,9 +117,18 @@ except KeyboardInterrupt:
 	pass
 
 print("\nGood {}\nBad  {}".format(good, bad))
-sio.savemat(args.outfile+'.mat', {
-	'timestamps': allts,
-	'data': alldata,
-	})
-print('Wrote Matlab-friendly file to ' + args.outfile + '.mat')
+if args.textfiles:
+	print("Wrote ASCII outputs to " + args.outfile + ".{timestamps,data}")
+if args.matfile:
+	sio.savemat(args.outfile+'.mat', {
+		'timestamps': allts,
+		'data': alldata,
+		})
+	print('Wrote Matlab-friendly file to ' + args.outfile + '.mat')
+if args.binfile:
+	print('Wrote binary output to ' + args.outfile + '.bin')
+	print('\tBinary data is formatted as:')
+	print('\t<uint64_t><int16_t><int16_t><int16_t><int16_t>... all little endian')
+	print('\ttimestmap real0    imag0    real1    imag1    ...')
+	print('\tFor 1024 total complex numbers')
 
