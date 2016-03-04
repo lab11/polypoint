@@ -337,6 +337,12 @@ void uart_write(uint32_t length, const uint8_t* tx);
 // Handle when we receive packets
 static void calibration_rxcallback (const dwt_callback_data_t *rxd) {
 	if (rxd->event == DWT_SIG_RX_OKAY) {
+		/*
+		const uint8_t clock_calibration[] = {
+			0xAA, 0xAA, 0xAA, 0xAA, 0xFF, 0xFF, 0x00, 0x00, 0xAA, 0xAA};
+		uart_write(10, clock_calibration);
+		*/
+
 		// Start things off with a packet header
 		const uint8_t header[] = {0x80, 0x01, 0x80, 0x01};
 		uart_write(4, header);

@@ -312,7 +312,8 @@ int main () {
 		gpioConfig.GPIO_PuPd = GPIO_PuPd_UP;
 		GPIO_Init(GPIOB, &gpioConfig);
 
-		usartConfig.USART_BaudRate = 460800*4;
+		// STM "baud" defn wrong; this results in 3 MBaud effective
+		usartConfig.USART_BaudRate = 1500000;
 		usartConfig.USART_WordLength = USART_WordLength_8b;
 		usartConfig.USART_StopBits = USART_StopBits_1;
 		usartConfig.USART_Parity = USART_Parity_No;
