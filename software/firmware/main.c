@@ -262,6 +262,9 @@ void start_dw1000 () {
 }
 
 
+// from calibration.c
+void init();
+
 int main () {
 	uint32_t err;
 	bool interrupt_triggered = FALSE;
