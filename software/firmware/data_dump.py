@@ -52,47 +52,48 @@ alldata = []
 
 good = 0
 bad = 0
-while True:
-	sys.stdout.write("\rGood {}    Bad {}\t\t".format(good, bad))
+try:
+	while True:
+		sys.stdout.write("\rGood {}    Bad {}\t\t".format(good, bad))
 
-	line = ''
+		line = ''
 
-	try:
-		find_header()
+		try:
+			find_header()
 
-		timestamp, = struct.unpack("<Q", useful_read(8))
+			timestamp, = struct.unpack("<Q", useful_read(8))
 
-		line += '['
+			line += '['
 
-		inner = []
+			inner = []
 
-		# for(int ii = 0; ii < 4096; ii += 512)
-		# uart_write(512, acc_data+1);
-		for x in range(8):
-			b = useful_read(len(DATA_HEADER))
-			if b != DATA_HEADER:
-				raise AssertionError
-			data = useful_read(512)
-			for i in range(0, 512, 4):
-				real,imag = struct.unpack("<hh", data[i:i+4])
-				line += '{}, {}; '.format(real, imag)
-				inner.append(np.complex(real, imag))
+			# for(int ii = 0; ii < 4096; ii += 512)
+			# uart_write(512, acc_data+1);
+			for x in range(8):
+				b = useful_read(len(DATA_HEADER))
+				if b != DATA_HEADER:
+					raise AssertionError
+				data = useful_read(512)
+				for i in range(0, 512, 4):
+					real,imag = struct.unpack("<hh", data[i:i+4])
+					line += '{}, {}; '.format(real, imag)
+					inner.append(np.complex(real, imag))
 
-		line += ']'
+			line += ']'
 
-		good += 1
+			good += 1
 
-		tsfile.write(str(timestamp) + '\n')
-		datfile.write(line + '\n')
+			tsfile.write(str(timestamp) + '\n')
+			datfile.write(line + '\n')
 
-		allts.append(timestamp)
-		alldata.append(inner)
+			allts.append(timestamp)
+			alldata.append(inner)
 
-	except AssertionError:
-		bad += 1
+		except AssertionError:
+			bad += 1
 
-	except KeyboardInterrupt:
-		break
+except KeyboardInterrupt:
+	pass
 
 print("\nGood {}\nBad  {}".format(good, bad))
 sio.savemat(args.outfile+'.mat', {
