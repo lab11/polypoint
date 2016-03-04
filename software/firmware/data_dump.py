@@ -97,6 +97,12 @@ try:
 
 			tline += ']'
 
+			round_num, = struct.unpack("<I", useful_read(4))
+
+			footer = useful_read(len(FOOTER))
+			if b != footer:
+				raise AssertionError
+
 			good += 1
 
 			if args.textfiles:

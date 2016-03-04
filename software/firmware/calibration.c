@@ -371,13 +371,21 @@ static void calibration_rxcallback (const dwt_callback_data_t *rxd) {
 			uart_write(512, acc_data+1);
 		}
 
+		// Update antenna selection based on next packet number sequence
+		memcpy(&_round_num, &buf[16], 4);
+
+		// Report the round number
+		_Static_assert(sizeof(_round_num) == 4, "_round_num size");
+		uart_write(4, (uint8_t*) &_round_num);
+
 		// Finish things off with a packet footer
 		const uint8_t footer[] = {0x80, 0xfe};
 		uart_write(2, footer);
 
-		// Update antenna selection based on next packet number sequence
-		memcpy(&_round_num, &buf[16], 4);
+		// Start prepping for next round
 		_round_num++;
+
+
 		//if(_round_num & 1){//code_sequence[_round_num % 63]){
 		//	GPIO_WriteBit(STM_GPIO0_PORT, STM_GPIO0_PIN, Bit_SET);
         	//        GPIO_WriteBit(STM_GPIO1_PORT, STM_GPIO1_PIN, Bit_RESET);
