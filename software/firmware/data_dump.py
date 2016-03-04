@@ -100,7 +100,7 @@ try:
 			round_num, = struct.unpack("<I", useful_read(4))
 
 			footer = useful_read(len(FOOTER))
-			if b != footer:
+			if footer != FOOTER:
 				raise AssertionError
 
 			good += 1
