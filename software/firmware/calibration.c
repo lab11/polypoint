@@ -337,23 +337,37 @@ void uart_write(uint32_t length, const uint8_t* tx);
 // Handle when we receive packets
 static void calibration_rxcallback (const dwt_callback_data_t *rxd) {
 	if (rxd->event == DWT_SIG_RX_OKAY) {
+		// Start things off with a packet header
+		const uint8_t header[] = {0x80, 0x01, 0x80, 0x01};
+		uart_write(4, header);
 
 		// Read in parameters of this packet reception
 		uint64_t dw_rx_timestamp;
 		uint8_t  buf[CALIBRATION_MAX_RX_PKT_LEN];
-		//uint8_t  message_type;
 
 		// Get the received time of this packet first
 		dwt_readrxtimestamp(buf);
 		dw_rx_timestamp = DW_TIMESTAMP_TO_UINT64(buf);
 
+		// Send the timestamp
+		uart_write(sizeof(uint64_t), (uint8_t*) &dw_rx_timestamp);
+
 		// Get the actual packet bytes
 		dwt_readrxdata(buf, MIN(CALIBRATION_MAX_RX_PKT_LEN, rxd->datalength), 0);
 		for(int ii = 0; ii < 4096; ii += 512){
+			// Some timing issues in UART, catch them
+			const uint8_t data_header[] = {0x80, 0x80};
+			uart_write(2, data_header);
+
+			// Due to a memory timing bug in DW, you have to read one
+			// extra byte to start that should then be discarded
 			dwt_readaccdata(acc_data, 513, ii);
-			//USART_SendData(USART1, 0x55);
-			uart_write(513, acc_data);
+			uart_write(512, acc_data+1);
 		}
+
+		// Finish things off with a packet footer
+		const uint8_t footer[] = {0x80, 0xfe};
+		uart_write(2, footer);
 
 		// Update antenna selection based on next packet number sequence
 		memcpy(&_round_num, &buf[16], 4);
@@ -370,6 +384,7 @@ static void calibration_rxcallback (const dwt_callback_data_t *rxd) {
 
 		//// We process based on the first byte in the packet. How very active
 		//// message like...
+		//uint8_t  message_type;
 		//message_type = buf[offsetof(struct pp_calibration_msg, message_type)];
 
 		//// Packet
