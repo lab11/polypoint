@@ -45,7 +45,7 @@ static uint64_t _calibration_timing[3];
 static uint8_t _calibration_response_buf[64];
 
 // Counter for the weird timers
-static uint8_t _timeout_firing = 0;
+// static uint8_t _timeout_firing = 0;
 
 // Keep track of if we got the init() packet from node 0. If not, then we didn't
 // set the antenna and channel correctly, so we shouldn't report these values.
@@ -246,6 +246,7 @@ void send_calibration_pkt (uint8_t message_type, uint8_t packet_num) {
 // one of the nodes is not configured yet) and our timeout fired. This
 // resets us so we can be ready for the next round.
 // This timeout does not apply to node 0.
+/*
 static void round_timeout () {
 	if (_timeout_firing == 0) {
 		// skip the immediate callback
@@ -258,6 +259,7 @@ static void round_timeout () {
 		_got_init = FALSE;
 	}
 }
+*/
 
 // After we have sent/received all of the packets, tell the host about
 // our timestamps.
@@ -328,6 +330,10 @@ static void calibration_txcallback (const dwt_callback_data_t *txd) {
 
 static uint8_t acc_data[513];
 
+// From dw1000.c
+void uart_write(uint32_t length, const uint8_t* tx);
+
+
 // Handle when we receive packets
 static void calibration_rxcallback (const dwt_callback_data_t *rxd) {
 	if (rxd->event == DWT_SIG_RX_OKAY) {
@@ -335,7 +341,7 @@ static void calibration_rxcallback (const dwt_callback_data_t *rxd) {
 		// Read in parameters of this packet reception
 		uint64_t dw_rx_timestamp;
 		uint8_t  buf[CALIBRATION_MAX_RX_PKT_LEN];
-		uint8_t  message_type;
+		//uint8_t  message_type;
 
 		// Get the received time of this packet first
 		dwt_readrxtimestamp(buf);
