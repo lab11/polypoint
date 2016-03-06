@@ -97,9 +97,9 @@ try:
 
 			tline += ']'
 
+			bline += useful_read(4) # round_num
 			bline += useful_read(2) # fp_idx
 			bline += useful_read(4) # finfo
-			bline += useful_read(4) # round_num
 
 			footer = useful_read(len(FOOTER))
 			if footer != FOOTER:

@@ -571,7 +571,7 @@ void dw1000_reset () {
 
 // Choose which antenna to connect to the radio
 void dw1000_choose_antenna (uint8_t antenna_number) {
-	antenna_number = 2;
+	antenna_number = 1;
 	// Antenna selection comes from the STM32 chip instead of the DW1000 now
 
 	// Set all of them low
@@ -685,7 +685,7 @@ dw1000_err_e dw1000_configure_settings () {
 	_dw1000_config.rxPAC          = DWT_PAC64;
 	_dw1000_config.txCode         = 17;  // preamble code
 	_dw1000_config.rxCode         = 17;  // preamble code
-	_dw1000_config.nsSFD          = 1;
+	_dw1000_config.nsSFD          = 0;
 	_dw1000_config.dataRate       = DWT_BR_110K;
 	_dw1000_config.phrMode        = DWT_PHRMODE_EXT; //Enable extended PHR mode (up to 1024-byte packets)
 	_dw1000_config.smartPowerEn   = 0;
