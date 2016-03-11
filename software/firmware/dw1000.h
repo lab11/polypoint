@@ -47,7 +47,7 @@
 
 #define SPI_US_PER_BYTE        0.94	// 0.94 @ 8mhz, 0.47 @ 16mhz
 #define SPI_US_BETWEEN_BYTES   0.25	// 0.25 @ 8mhz, 0.30 @ 16mhz
-#define SPI_SLACK_US           5000	// 200 @ 8mhz, 150 @ 16mhz
+#define SPI_SLACK_US           10000	// 200 @ 8mhz, 150 @ 16mhz
 #define DW_DELAY_FROM_PKT_LEN(_len) \
 	(APP_US_TO_DEVICETIMEU32(SPI_US_PER_BYTE * (_len) + SPI_US_BETWEEN_BYTES * (_len) + SPI_SLACK_US) >> 8)
 

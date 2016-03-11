@@ -384,6 +384,9 @@ static void calibration_rxcallback (const dwt_callback_data_t *rxd) {
 
 		uint32_t finfo = dwt_read32bitreg(RX_FINFO_ID);
 		uart_write(4, (uint8_t*) &finfo);
+		//dwt_readfromdevice(RX_FQUAL_ID, 6, 2, fp_idx);
+		//uart_write(2, fp_idx);
+		//uart_write(2, fp_idx);
 
 		// Finish things off with a packet footer
 		const uint8_t footer[] = {0x80, 0xfe};
