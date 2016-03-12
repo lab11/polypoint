@@ -84,7 +84,7 @@ try:
 
 			# for(int ii = 0; ii < 4096; ii += 512)
 			# uart_write(512, acc_data+1);
-			for x in range(8):
+			for x in range(1):
 				b = useful_read(len(DATA_HEADER))
 				if b != DATA_HEADER:
 					raise AssertionError
