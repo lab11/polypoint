@@ -55,5 +55,6 @@ void calibration_start ();
 void calibration_stop ();
 void calibration_reset ();
 void calib_start_round ();
+void fuzz_dw_bits ();
 
 #endif

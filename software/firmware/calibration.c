@@ -83,7 +83,7 @@ static void calibration_txcallback (const dwt_callback_data_t *txd);
 static void calibration_rxcallback (const dwt_callback_data_t *txd);
 
 void setup_round_antenna_channel (uint32_t round_num);
-void send_calibration_pkt (uint8_t message_type, uint8_t packet_num);
+void send_calibration_pkt (uint8_t message_type, uint8_t packet_num, uint32_t tx_time);
 static void finish ();
 
 /******************************************************************************/
@@ -166,6 +166,35 @@ void calibration_reset () {
 	init();
 }
 
+uint32_t abs_bit_num = 0;
+void fuzz_dw_bits(){
+	abs_bit_num = 143;//99;108;143;
+
+	uint32_t byte_num = (abs_bit_num/8) % 32;
+	uint32_t bit_num = abs_bit_num % 8;
+	uint8_t reg_byte;
+	dwt_readfromdevice(0x23, byte_num, 1, &reg_byte);
+	reg_byte &= ~(0x01 << bit_num);
+	dwt_writetodevice(0x23, byte_num, 1, &reg_byte);
+	return;
+
+	uint32_t ii;
+	//abs_bit_num = 38;//36;
+
+	for(ii = 0; ii < 2; ii++){
+		uint32_t byte_num = (abs_bit_num/8) % 32;
+		uint32_t bit_num = abs_bit_num % 8;
+		uint8_t reg_byte;
+
+		dwt_readfromdevice(0x23, byte_num, 1, &reg_byte);
+		reg_byte ^= (0x01 << bit_num);
+		dwt_writetodevice(0x23, byte_num, 1, &reg_byte);
+
+		if(ii == 0) abs_bit_num++;
+	}
+	
+}
+
 /******************************************************************************/
 // Calibration action functions
 /******************************************************************************/
@@ -191,25 +220,27 @@ char code_sequence[63] = {
 	1, 1, 1
 };
 
+uint32_t _delay_time;
+
 // Timer callback that marks the start of each round
 void calib_start_round () {
+	// Record the packet length to send to DW1000
+	uint16_t tx_len = sizeof(struct pp_calibration_msg);
 
-	// Increment the round number
-	if (_round_num == UINT32_MAX) {
-		_round_num = 0;
-	} else {
-		_round_num++;
-	}
-
+	_round_num = 0;
 	//// Before the INIT packet, use the default settings
 	//setup_round_antenna_channel(0);
 
+	// Setup the time the packet will go out at, and save that timestamp
+	_delay_time = dwt_readsystimestamphi32() + DW_DELAY_FROM_PKT_LEN(tx_len);
+	_delay_time &= 0xFFFFFFFE; // Make sure last bit is zero
+
 	// Send a packet to announce the start of the a calibration round.
-	send_calibration_pkt(MSG_TYPE_PP_CALIBRATION_INIT, 0);
+	send_calibration_pkt(MSG_TYPE_PP_CALIBRATION_INIT, 0, _delay_time);
 }
 
 // Send a packet
-void send_calibration_pkt (uint8_t message_type, uint8_t packet_num) {
+void send_calibration_pkt (uint8_t message_type, uint8_t packet_num, uint32_t delay_time) {
 	// Record the packet length to send to DW1000
 	uint16_t tx_len = sizeof(struct pp_calibration_msg);
 
@@ -225,9 +256,6 @@ void send_calibration_pkt (uint8_t message_type, uint8_t packet_num) {
 	// Tell the DW1000 about the packet
 	dwt_writetxfctrl(tx_len, 0);
 
-	// Setup the time the packet will go out at, and save that timestamp
-	uint32_t delay_time = dwt_readsystimestamphi32() + DW_DELAY_FROM_PKT_LEN(tx_len);
-	delay_time &= 0xFFFFFFFE; // Make sure last bit is zero
 	dwt_setdelayedtrxtime(delay_time);
 	_calibration_timing[packet_num] = ((uint64_t) delay_time) << 8;
 
@@ -303,29 +331,15 @@ static void finish () {
 // Use this callback to start the next cycle in the round
 static void calibration_txcallback (const dwt_callback_data_t *txd) {
 
-	if (pp_calibration_pkt.message_type == MSG_TYPE_PP_CALIBRATION_INIT &&
-	    CALIBRATION_ROUND_STARTED_BY_ME(_round_num, _config.index)) {
-		// We just sent the "get everybody on the same page packet".
-		// Now start the actual cycle because it is our turn to send the first
-		// packet.
-		// Delay a bit to give the other nodes a chance to download and
-		// process.
-		mDelay(2);
-		// Send on the next ranging cycle in this round
-		//setup_round_antenna_channel(_round_num);
-		//send_calibration_pkt(MSG_TYPE_PP_CALIBRATION_MSG, 0);
-
-	} else if (CALIBRATION_ROUND_FOR_ME(_round_num, _config.index) &&
-	           pp_calibration_pkt.num == 1) {
-		// We send the first response, now send another
-		mDelay(2);
-		// Send on the next ranging cycle in this round
-		//send_calibration_pkt(MSG_TYPE_PP_CALIBRATION_MSG, 2);
-
-	} else if (pp_calibration_pkt.num == 2) {
-		// We have sent enough packets, call this a day.
-		finish();
+	// Increment the round number
+	if (_round_num == UINT32_MAX) {
+		_round_num = 0;
+	} else {
+		_round_num++;
 	}
+
+	_delay_time += (DW_DELAY_FROM_US(10000) & 0xFFFFFFFE);
+	send_calibration_pkt(MSG_TYPE_PP_CALIBRATION_INIT, 0, _delay_time);
 }
 
 static uint8_t acc_data[513];
@@ -365,7 +379,7 @@ static void calibration_rxcallback (const dwt_callback_data_t *rxd) {
 		uint16_t fp_idx = dwt_read16bitoffsetreg(RX_TIME_ID, RX_TIME_FP_INDEX_OFFSET);
 		uint32_t finfo = dwt_read32bitreg(RX_FINFO_ID);
 
-		uint16_t fp_integer_idx = (fp_idx & 0xFFC0) >> 4;
+		uint16_t fp_integer_idx = (fp_idx & 0xFF00) >> 4;
 
 		// Get the actual packet bytes
 		dwt_readrxdata(buf, MIN(CALIBRATION_MAX_RX_PKT_LEN, rxd->datalength), 0);
@@ -390,7 +404,7 @@ static void calibration_rxcallback (const dwt_callback_data_t *rxd) {
 
 		// Report the round number
 		_Static_assert(sizeof(_round_num) == 4, "_round_num size");
-		uart_write(4, (uint8_t*) &_round_num);
+		uart_write(4, (uint8_t*) &abs_bit_num);
 		uart_write(2, (uint8_t*) &fp_idx);
 
 		uart_write(4, (uint8_t*) &finfo);
@@ -401,7 +415,8 @@ static void calibration_rxcallback (const dwt_callback_data_t *rxd) {
 		// Finish things off with a packet footer
 		const uint8_t footer[] = {0x80, 0xfe};
 		uart_write(2, footer);
-		//usleep(4000);
+		//usleep(3900);
+		//usleep(4600);
 		dw1000_choose_antenna(1);
 
 		// Start prepping for next round
