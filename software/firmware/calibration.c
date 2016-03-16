@@ -168,15 +168,15 @@ void calibration_reset () {
 
 uint32_t abs_bit_num = 0;
 void fuzz_dw_bits(){
-	abs_bit_num = 143;//99;108;143;
+	//abs_bit_num = 143;//99;108;143;
 
-	uint32_t byte_num = (abs_bit_num/8) % 32;
-	uint32_t bit_num = abs_bit_num % 8;
-	uint8_t reg_byte;
-	dwt_readfromdevice(0x23, byte_num, 1, &reg_byte);
-	reg_byte &= ~(0x01 << bit_num);
-	dwt_writetodevice(0x23, byte_num, 1, &reg_byte);
-	return;
+	//uint32_t byte_num = (abs_bit_num/8) % 32;
+	//uint32_t bit_num = abs_bit_num % 8;
+	//uint8_t reg_byte;
+	//dwt_readfromdevice(0x23, byte_num, 1, &reg_byte);
+	//reg_byte &= ~(0x01 << bit_num);
+	//dwt_writetodevice(0x23, byte_num, 1, &reg_byte);
+	//return;
 
 	uint32_t ii;
 	//abs_bit_num = 38;//36;
@@ -338,7 +338,7 @@ static void calibration_txcallback (const dwt_callback_data_t *txd) {
 		_round_num++;
 	}
 
-	_delay_time += (DW_DELAY_FROM_US(10000) & 0xFFFFFFFE);
+	_delay_time += (DW_DELAY_FROM_US(10000) & 0xFFFFFFF8);
 	send_calibration_pkt(MSG_TYPE_PP_CALIBRATION_INIT, 0, _delay_time);
 }
 
@@ -396,7 +396,7 @@ static void calibration_rxcallback (const dwt_callback_data_t *rxd) {
 		// Immediately return DW1000 back to RX mode so we can receive another message quickly
 		uint8 ldok = OTP_SF_OPS_KICK | OTP_SF_OPS_SEL_TIGHT;
 		dwt_writetodevice(OTP_IF_ID, OTP_SF, 1, &ldok); // set load LDE kick bit
-		dw1000_choose_antenna(2);
+		//dw1000_choose_antenna(2);
 		dwt_rxenable(0);
 
 		// Push everything out via UART

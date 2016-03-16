@@ -355,7 +355,7 @@ int main () {
 	init();
 	setup_round_antenna_channel(0);
 	dwt_rxenable(0);
-	timer_start(_app_timer, 1000000, fuzz_dw_bits);
+	//timer_start(_app_timer, 1000000, fuzz_dw_bits);
 
 	while(1)
 	{
