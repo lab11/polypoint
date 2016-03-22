@@ -338,7 +338,9 @@ static void calibration_txcallback (const dwt_callback_data_t *txd) {
 		_round_num++;
 	}
 
-	_delay_time += (DW_DELAY_FROM_US(10000) & 0xFFFFFFF8);
+	dw1000_choose_antenna(_round_num % 3);
+
+	_delay_time += (DW_DELAY_FROM_US(25000) & 0xFFFFFFF8);
 	send_calibration_pkt(MSG_TYPE_PP_CALIBRATION_INIT, 0, _delay_time);
 }
 
@@ -364,6 +366,7 @@ static void calibration_rxcallback (const dwt_callback_data_t *rxd) {
 		// Read in parameters of this packet reception
 		uint64_t dw_rx_timestamp;
 		uint8_t  buf[CALIBRATION_MAX_RX_PKT_LEN];
+		uint8_t  antenna_buffer[2];
 
 		// Get the received time of this packet first
 		dwt_readrxtimestamp(buf);
@@ -373,16 +376,20 @@ static void calibration_rxcallback (const dwt_callback_data_t *rxd) {
 		uart_write(sizeof(uint64_t), (uint8_t*) &dw_rx_timestamp);
 
 
-		// Update antenna selection based on next packet number sequence
-		memcpy(&_round_num, &buf[16], 4);
-
 		uint16_t fp_idx = dwt_read16bitoffsetreg(RX_TIME_ID, RX_TIME_FP_INDEX_OFFSET);
 		uint32_t finfo = dwt_read32bitreg(RX_FINFO_ID);
 
-		uint16_t fp_integer_idx = (fp_idx & 0xFF00) >> 4;
+		uint16_t fp_integer_idx = (fp_idx & 0xFFC0) >> 4;
 
 		// Get the actual packet bytes
 		dwt_readrxdata(buf, MIN(CALIBRATION_MAX_RX_PKT_LEN, rxd->datalength), 0);
+
+		antenna_buffer[1] = (_round_num / CALIB_NUM_ANTENNAS) % CALIB_NUM_ANTENNAS;
+
+		// Update antenna selection based on next packet number sequence
+		memcpy(&_round_num, &buf[16], 4);
+
+		antenna_buffer[0] = _round_num % CALIB_NUM_ANTENNAS;
 
 		// Some timing issues in UART, catch them
 		const uint8_t data_header[] = {0x80, 0x80};
@@ -397,6 +404,7 @@ static void calibration_rxcallback (const dwt_callback_data_t *rxd) {
 		uint8 ldok = OTP_SF_OPS_KICK | OTP_SF_OPS_SEL_TIGHT;
 		dwt_writetodevice(OTP_IF_ID, OTP_SF, 1, &ldok); // set load LDE kick bit
 		//dw1000_choose_antenna(2);
+		dw1000_choose_antenna((_round_num/3) % 3);
 		dwt_rxenable(0);
 
 		// Push everything out via UART
@@ -404,8 +412,9 @@ static void calibration_rxcallback (const dwt_callback_data_t *rxd) {
 
 		// Report the round number
 		_Static_assert(sizeof(_round_num) == 4, "_round_num size");
-		uart_write(4, (uint8_t*) &abs_bit_num);
+		uart_write(4, (uint8_t*) &_round_num);
 		uart_write(2, (uint8_t*) &fp_idx);
+		uart_write(2, antenna_buffer);
 
 		uart_write(4, (uint8_t*) &finfo);
 		//dwt_readfromdevice(RX_FQUAL_ID, 6, 2, fp_idx);
@@ -417,10 +426,9 @@ static void calibration_rxcallback (const dwt_callback_data_t *rxd) {
 		uart_write(2, footer);
 		//usleep(3900);
 		//usleep(4600);
-		dw1000_choose_antenna(1);
 
 		// Start prepping for next round
-		_round_num++;
+		//_round_num++;
 
 
 		//if(_round_num & 1){//code_sequence[_round_num % 63]){

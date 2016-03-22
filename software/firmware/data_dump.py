@@ -99,6 +99,7 @@ try:
 
 			bline += useful_read(4) # round_num
 			bline += useful_read(2) # fp_idx
+			bline += useful_read(2) # fp_idx
 			bline += useful_read(4) # finfo
 
 			footer = useful_read(len(FOOTER))

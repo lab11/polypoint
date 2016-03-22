@@ -36,7 +36,7 @@ const uint32_t txPower[DW1000_NUM_CHANNELS] = {
 	0x07274767UL,
 	0x07274767UL,
 	0x2B4B6B8BUL,
-	0x5A5A5A5AUL,//0x9A9A9A9AUL,//0xC0C0C0C0UL,
+	0x9A9A9A9AUL,//0xC0C0C0C0UL,
 	0x25456585UL,
 	0x0,
 	0x5171B1D1UL
@@ -680,10 +680,10 @@ dw1000_err_e dw1000_configure_settings () {
 	// Set the parameters of ranging and channel and whatnot
 	_dw1000_config.chan           = 4;
 	_dw1000_config.prf            = DWT_PRF_64M;
-	_dw1000_config.txPreambLength = DWT_PLEN_1024;
+	_dw1000_config.txPreambLength = DWT_PLEN_4096;
 	_dw1000_config.rxPAC          = DWT_PAC64;
-	_dw1000_config.txCode         = 17;  // preamble code
-	_dw1000_config.rxCode         = 17;  // preamble code
+	_dw1000_config.txCode         = 18;  // preamble code
+	_dw1000_config.rxCode         = 18;  // preamble code
 	_dw1000_config.nsSFD          = 0;
 	_dw1000_config.dataRate       = DWT_BR_110K;
 	_dw1000_config.phrMode        = DWT_PHRMODE_EXT; //Enable extended PHR mode (up to 1024-byte packets)
