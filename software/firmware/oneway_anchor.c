@@ -17,7 +17,6 @@ static void anchor_rxcallback (const dwt_callback_data_t *rxd);
 
 
 void oneway_anchor_init (void *app_scratchspace) {
-	int ii;
 	
 	oa_scratch = (oneway_anchor_scratchspace_struct*) app_scratchspace;
 	
@@ -182,7 +181,7 @@ static void ranging_listening_window_task () {
 
 		// Pick a slot to respond in. Generate a random number and mod it
 		// by the number of slots
-		uint8_t slot_num = ranval(&(oa_scratch->_prng_state)) % oa_scratch->ranging_operation_config.anchor_reply_num_slots;
+		uint8_t slot_num = ranval(&(oa_scratch->prng_state)) % oa_scratch->ranging_operation_config.anchor_reply_num_slots;
 
 		// Come up with the time to send this packet back to the
 		// tag based on the slot we picked.

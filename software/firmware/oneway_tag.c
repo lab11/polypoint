@@ -268,7 +268,7 @@ static void send_poll () {
 	uint16_t tx_len = sizeof(struct pp_tag_poll);
 
 	// Vary reply window length depending on baudrate and preamble length
-	pp_tag_poll_pkt.anchor_reply_window_in_us = RANGING_LISTENING_WINDOW_US + dw1000_preamble_time_in_us() + dw1000_packet_data_time_in_us(sizeof(struct pp_anc_final));
+	ot_scratch->pp_tag_poll_pkt.anchor_reply_window_in_us = RANGING_LISTENING_WINDOW_US + dw1000_preamble_time_in_us() + dw1000_packet_data_time_in_us(sizeof(struct pp_anc_final));
 
 	// Setup what needs to change in the outgoing packet
 	ot_scratch->pp_tag_poll_pkt.header.seqNum++;
