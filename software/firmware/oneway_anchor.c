@@ -181,13 +181,14 @@ static void ranging_listening_window_task () {
 
 		// Pick a slot to respond in. Generate a random number and mod it
 		// by the number of slots
-		uint8_t slot_num = ranval(&(oa_scratch->prng_state)) % oa_scratch->ranging_operation_config.anchor_reply_num_slots;
+		uint32_t slot_time = ranval(&(oa_scratch->prng_state)) % (oa_scratch->ranging_operation_config.anchor_reply_window_in_us -
+		                                                           dw1000_packet_data_time_in_us(frame_len) -
+		                                                           dw1000_preamble_time_in_us());
 
 		// Come up with the time to send this packet back to the
 		// tag based on the slot we picked.
 		uint32_t delay_time = dwt_readsystimestamphi32() +
-			DW_DELAY_FROM_US(RANGING_LISTENING_WINDOW_PADDING_US +
-				(slot_num*oa_scratch->ranging_operation_config.anchor_reply_slot_time_in_us));
+			DW_DELAY_FROM_US(RANGING_LISTENING_WINDOW_PADDING_US + dw1000_preamble_time_in_us() + slot_time);
 
 		delay_time &= 0xFFFFFFFE;
 
@@ -303,7 +304,6 @@ static void anchor_rxcallback (const dwt_callback_data_t *rxd) {
 					oa_scratch->ranging_operation_config.reply_after_subsequence = rx_poll_pkt->reply_after_subsequence;
 					oa_scratch->ranging_operation_config.anchor_reply_window_in_us = rx_poll_pkt->anchor_reply_window_in_us;
 					oa_scratch->ranging_operation_config.anchor_reply_slot_time_in_us = rx_poll_pkt->anchor_reply_slot_time_in_us;
-					oa_scratch->ranging_operation_config.anchor_reply_num_slots = rx_poll_pkt->anchor_reply_num_slots;
 
 					// Update the statistics we keep about which antenna
 					// receives the most packets from the tag

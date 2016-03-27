@@ -76,7 +76,6 @@ struct pp_tag_poll  {
 	uint8_t reply_after_subsequence;        // Tells anchor which broadcast subsequence number to respond after.
 	uint32_t anchor_reply_window_in_us;     // How long each anchor response window is. Each window allows multiple anchor responses.
 	uint16_t anchor_reply_slot_time_in_us;  // How long that slots that break up each window are.
-	uint16_t anchor_reply_num_slots;
 	struct ieee154_footer footer;
 } __attribute__ ((__packed__));
 

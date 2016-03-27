@@ -314,6 +314,16 @@ int main () {
 	start_dw1000();
 
 
+	//// DEBUG:
+	//oneway_config_t config;
+	////config.my_role = TAG;
+	//config.my_role = ANCHOR;
+	//config.report_mode = ONEWAY_REPORT_MODE_RANGES;
+	//config.update_mode = ONEWAY_UPDATE_MODE_PERIODIC;
+	//config.update_rate = 10;
+	//config.sleep_mode = FALSE;
+	//polypoint_configure_app(APP_ONEWAY, &config);
+	//polypoint_start();
 
 	// MAIN LOOP
 	while (1) {
