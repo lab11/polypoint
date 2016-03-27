@@ -31,7 +31,6 @@
 
 // Listen for responses from the anchors on different channels
 #define NUM_RANGING_LISTENING_WINDOWS 3
-#define RANGING_LISTENING_WINDOW_PADDING_US 2000
 
 // How many slots should be in each listening window for the anchors to respond
 // in.
