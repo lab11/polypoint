@@ -48,6 +48,7 @@ const uint32_t txPower[DW1000_NUM_CHANNELS] = {
 
 // These are for configuring the hardware peripherals on the STM32F0
 static DMA_InitTypeDef DMA_InitStructure;
+static DMA_InitTypeDef DMA_UART_InitStructure;
 static SPI_InitTypeDef SPI_InitStructure;
 
 // Setup TX/RX settings on the DW1000
@@ -255,6 +256,13 @@ static void setup () {
 	DMA_InitStructure.DMA_Mode               = DMA_Mode_Normal;
 	DMA_InitStructure.DMA_M2M                = DMA_M2M_Disable;
 
+	SYSCFG->CFGR1 |= SYSCFG_DMARemap_USART1Tx;
+	DMA_UART_InitStructure.DMA_PeripheralBaseAddr = (uint32_t) USART1_DR_ADDRESS;
+	DMA_UART_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
+	DMA_UART_InitStructure.DMA_MemoryDataSize     = DMA_MemoryDataSize_Byte;
+	DMA_UART_InitStructure.DMA_PeripheralInc      = DMA_PeripheralInc_Disable;
+	DMA_UART_InitStructure.DMA_Mode               = DMA_Mode_Normal;
+	DMA_UART_InitStructure.DMA_M2M                = DMA_M2M_Disable;
 	// Pull from flash the calibration values
 	memcpy(&_prog_values, (uint8_t*) INIT_FLASH_LOCATION, sizeof(dw1000_programmed_values_t));
 	if (_prog_values.magic != PROGRAMMED_MAGIC) {
@@ -278,6 +286,22 @@ void dw1000_spi_fast () {
 void dw1000_spi_slow () {
 	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_64;
 	SPI_Init(SPI1, &SPI_InitStructure);
+}
+
+void uart_write(uint32_t length, const uint8_t* tx){
+	DMA_UART_InitStructure.DMA_BufferSize = length;
+	DMA_UART_InitStructure.DMA_MemoryBaseAddr = (uint32_t) tx;
+	DMA_UART_InitStructure.DMA_DIR = DMA_DIR_PeripheralDST;
+	DMA_UART_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
+	DMA_UART_InitStructure.DMA_Priority = DMA_Priority_High;
+	DMA_Init(USART1_TX_DMA_CHANNEL, &DMA_UART_InitStructure);
+
+	USART_DMACmd(USART1, USART_DMAReq_Tx, ENABLE);
+	DMA_Cmd(USART1_TX_DMA_CHANNEL, ENABLE);
+	while (DMA_GetFlagStatus(USART1_TX_DMA_FLAG_TC) == RESET);
+	DMA_ClearFlag(USART1_TX_DMA_FLAG_GL);
+	DMA_Cmd(USART1_TX_DMA_CHANNEL, DISABLE);
+	USART_DMACmd(USART1, USART_DMAReq_Tx, DISABLE);
 }
 
 // Only write data to the DW1000, and use DMA to do it.

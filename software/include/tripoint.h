@@ -34,6 +34,13 @@
 // SPI
 /******************************************************************************/
 
+/* USER_TIMEOUT value for waiting loops. This timeout is just guarantee that the
+   application will not remain stuck if the USART communication is corrupted.
+   You may modify this timeout value depending on CPU frequency and application
+   conditions (interrupts routines, number of data to transfer, baudrate, CPU
+   frequency...). */
+#define USER_TIMEOUT                    ((uint32_t)0x64) /* Waiting 1s */
+
 /* Communication boards SPIx Interface */
 #define SPI1_DR_ADDRESS                  0x4001300C
 #define SPI1_TX_DMA_CHANNEL              DMA1_Channel3
@@ -43,6 +50,12 @@
 #define SPI1_RX_DMA_FLAG_TC              DMA1_FLAG_TC2
 #define SPI1_RX_DMA_FLAG_GL              DMA1_FLAG_GL2
 #define SPI1_DMA_IRQn                    DMA1_Channel2_3_IRQn
+
+#define USART1_DR_ADDRESS                0x40013828
+#define USART1_TX_DMA_CHANNEL            DMA1_Channel4
+#define USART1_TX_DMA_FLAG_TC            DMA1_FLAG_TC4
+#define USART1_TX_DMA_FLAG_GL            DMA1_FLAG_GL4
+#define USART1_DMA_IRQn                  DMA1_Channel4_IRQn
 
 #define DMA1_CLK                         RCC_AHBPeriph_DMA1
 
