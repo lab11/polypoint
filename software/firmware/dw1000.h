@@ -8,7 +8,7 @@
 // General defines for the DW1000
 /******************************************************************************/
 // Configure how long after a reception the ack is sent
-#define DW1000_ACK_RESPONSE_TIME 5
+#define DW1000_ACK_RESPONSE_TIME 3
 
 // Whether the OTP has been setup (or we expect it to be)
 // This is where constants for calibration of a given device and its
