@@ -1,6 +1,7 @@
 #ifndef __ONEWAY_COMMON_H
 #define __ONEWAY_COMMON_H
 
+#include "polypoint_conf.h"
 #include "system.h"
 #include "dw1000.h"
 #include "timer.h"
@@ -28,14 +29,8 @@
 // on the third channel.
 #define NUM_RANGING_BROADCASTS ((NUM_RANGING_CHANNELS*NUM_ANTENNAS*NUM_ANTENNAS) + NUM_RANGING_CHANNELS)
 
-// How much time between each ranging broadcast in the subsequence from the tag.
-#define RANGING_BROADCASTS_PERIOD_US 10000
-
 // Listen for responses from the anchors on different channels
 #define NUM_RANGING_LISTENING_WINDOWS 3
-
-// How much time the tag listens on each channel when receiving packets from the anchor
-#define RANGING_LISTENING_WINDOW_US 50000
 #define RANGING_LISTENING_WINDOW_PADDING_US 2000
 
 // How many slots should be in each listening window for the anchors to respond
