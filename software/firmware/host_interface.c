@@ -187,9 +187,13 @@ void host_interface_rx_fired () {
 			uint8_t config_main = rxBuffer[1];
 			polypoint_application_e my_app;
 			dw1000_role_e my_role;
+			glossy_role_e my_glossy_role;
 
 			// Check if this module should be an anchor or tag
 			my_role = (config_main & HOST_PKT_CONFIG_MAIN_ANCTAG_MASK) >> HOST_PKT_CONFIG_MAIN_ANCTAG_SHIFT;
+
+			// Check if this module should act as a glossy master of slave
+			my_glossy_role = (config_main & HOST_PKT_CONFIG_MAIN_GLOSSY_MASK) >> HOST_PKT_CONFIG_MAIN_GLOSSY_SHIFT;
 
 			// Check which application we should run
 			my_app = (config_main & HOST_PKT_CONFIG_MAIN_APP_MASK) >> HOST_PKT_CONFIG_MAIN_APP_SHIFT;
@@ -201,6 +205,7 @@ void host_interface_rx_fired () {
 
 				oneway_config_t oneway_config;
 				oneway_config.my_role = my_role;
+				oneway_config.my_glossy_role = my_glossy_role;
 
 				if (my_role == TAG) {
 					// Save some TAG specific settings

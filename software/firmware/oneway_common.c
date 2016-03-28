@@ -58,6 +58,9 @@ void oneway_configure (oneway_config_t* config, stm_timer_t* app_timer, void *ap
 	// Make sure the DW1000 is awake before trying to do anything.
 	dw1000_wakeup();
 
+	// Oneway ranging requires glossy synchronization, so let's enable that now
+	glossy_init(_config.my_glossy_role);
+
 	// Now init based on role
 	if (_config.my_role == TAG) {
 		oneway_tag_init(_scratchspace_ptr);

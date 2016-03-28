@@ -5,6 +5,7 @@
 #include "system.h"
 #include "dw1000.h"
 #include "timer.h"
+#include "glossy.h"
 
 /******************************************************************************/
 // Parameters for the localization and ranging protocol
@@ -108,6 +109,7 @@ typedef enum {
 // Keep config settings for a oneway node
 typedef struct {
 	dw1000_role_e my_role;
+	glossy_role_e my_glossy_role;
 	oneway_report_mode_e report_mode;
 	oneway_update_mode_e update_mode;
 	uint8_t update_rate;
