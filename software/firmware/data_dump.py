@@ -67,6 +67,8 @@ if args.binfile:
 
 good = 0
 bad = 0
+NUM_RANGING_CHANNELS = 3
+data_section_length = 8*NUM_RANGING_CHANNELS + 8+1+1+8+8+30*8
 try:
 	while True:
 		sys.stdout.write("\rGood {}    Bad {}\t\t".format(good, bad))
@@ -74,33 +76,27 @@ try:
 		try:
 			find_header()
 
-			timestamp, = struct.unpack("<Q", useful_read(8))
+			num_anchors, = struct.unpack("<B", useful_read(1))
 
 			tline = '['
 
 			inner = []
 
-			bline = struct.pack("<Q", timestamp)
+			bline = struct.pack("<B", num_anchors)
 
-			# for(int ii = 0; ii < 4096; ii += 512)
-			# uart_write(512, acc_data+1);
-			for x in range(1):
+			for x in range(num_anchors):
 				b = useful_read(len(DATA_HEADER))
 				if b != DATA_HEADER:
 					raise AssertionError
-				data = useful_read(512)
-				for i in range(0, 512, 4):
-					real,imag = struct.unpack("<hh", data[i:i+4])
-					tline += '{}, {}; '.format(real, imag)
-					inner.append(np.complex(real, imag))
+				data = useful_read(data_section_length)
 				bline += data
 
 			tline += ']'
 
-			bline += useful_read(4) # round_num
-			bline += useful_read(2) # fp_idx
-			bline += useful_read(2) # fp_idx
-			bline += useful_read(4) # finfo
+			#bline += useful_read(4) # round_num
+			#bline += useful_read(2) # fp_idx
+			#bline += useful_read(2) # fp_idx
+			#bline += useful_read(4) # finfo
 
 			footer = useful_read(len(FOOTER))
 			if footer != FOOTER:

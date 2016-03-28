@@ -1,4 +1,9 @@
 
+// UART_DATA_OFFLOAD: Option to push data out to PC for further data analysis
+#define UART_DATA_OFFLOAD
+
+// FAST_RANGING_CONFIG: 6.8 Mbps
+// LONG_RANGING_CONFIG: 110 Kbps
 #define FAST_RANGING_CONFIG
 
 #ifdef LONG_RANGING_CONFIG

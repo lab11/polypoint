@@ -367,6 +367,45 @@ static void report_range () {
 	// Calculate ranges
 	calculate_ranges();
 
+	// Push data out over UART if configured to do so
+#ifdef UART_DATA_OFFLOAD
+	// Start things off with a packet header
+	const uint8_t header[] = {0x80, 0x01, 0x80, 0x01};
+	uart_write(4, header);
+
+	// Send the timestamp
+	uart_write(sizeof(uint8_t), &(ot_scratch->anchor_response_count));
+
+	for (uint8_t anchor_index=0; anchor_index<ot_scratch->anchor_response_count; anchor_index++) {
+		// Some timing issues in UART, catch them
+		const uint8_t data_header[] = {0x80, 0x80};
+		uart_write(2, data_header);
+
+		anchor_responses_t* aresp = &(ot_scratch->anchor_responses[anchor_index]);
+
+		uart_write(NUM_RANGING_CHANNELS*sizeof(uint64_t), &(ot_scratch->ranging_broadcast_ss_send_times));
+		uart_write(sizeof(anchor_responses_t), (uint8_t*) aresp);
+	}
+
+	//// Offload parameters appropriate for NLOS analysis
+	//uint8_t buffer[2];
+	//dwt_readfromdevice(RX_TIME_ID, RX_TIME_FP_AMPL1_OFFSET, 2, buffer);
+	//uart_write(2, buffer);
+
+	//dwt_readfromdevice(RX_FQUAL_ID, RX_EQUAL_FP_AMPL2_SHIFT/8, 2, buffer);
+	//uart_write(2, buffer);
+
+	//dwt_readfromdevice(RX_FQUAL_ID, RX_EQUAL_PP_AMPL3_SHIFT/8, 2, buffer);
+	//uart_write(2, buffer);
+
+	//dwt_readfromdevice(RX_FINFO_ID, RX_FINFO_RXPACC_SHIFT/8, 2, buffer);
+	//uart_write(2, buffer);
+
+	// Finish things off with a packet footer
+	const uint8_t footer[] = {0x80, 0xfe};
+	uart_write(2, footer);
+#endif
+
 	// Decide what we should do with these ranges. We can either report
 	// these right back to the host, or we can try to get the anchors
 	// to calculate location.

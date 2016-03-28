@@ -121,7 +121,7 @@ typedef struct {
 	uint64_t anc_final_tx_timestamp; // When the anchor node sent the ANC_FINAL
 	uint64_t anc_final_rx_timestamp; // When the tag received the ANC_FINAL
 	uint64_t tag_poll_TOAs[NUM_RANGING_BROADCASTS];
-} anchor_responses_t;
+} __attribute__ ((__packed__)) anchor_responses_t;
 
 
 void oneway_configure (oneway_config_t* config, stm_timer_t* app_timer, void *app_scratchspace);
