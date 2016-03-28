@@ -1,5 +1,6 @@
 #include "dw1000.h"
 #include "glossy.h"
+#include "oneway_common.h"
 #include "timer.h"
 
 static stm_timer_t* _glossy_timer;
@@ -23,6 +24,7 @@ void glossy_init(glossy_role_e role){
 			},
 			.sourceAddr = { 0 },
 		},
+		.message_type = MSG_TYPE_PP_GLOSSY_SYNC,
 		.depth = 0,
 		.dw_time_sent = 0,
 	};
@@ -47,4 +49,8 @@ void glossy_sync_task(){
 	dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED);
 	dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
 	dwt_writetxdata(sizeof(_sync_pkt), (uint8_t*) &_sync_pkt, 0);
+}
+
+void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
+	//TODO: Fill this logic in...
 }

@@ -13,12 +13,14 @@ typedef enum {
 
 struct pp_glossy_sync {
 	struct ieee154_header_broadcast header;
+	uint8_t message_type;
 	uint8_t depth;
 	uint32_t dw_time_sent;
 } __attribute__ ((__packed__));
 
 void glossy_init(glossy_role_e role);
 void glossy_sync_task();
+void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf);
 
 #endif
 
