@@ -1,6 +1,7 @@
 
 // UART_DATA_OFFLOAD: Option to push data out to PC for further data analysis
 #define UART_DATA_OFFLOAD
+//#define CW_TEST_MODE
 
 // FAST_RANGING_CONFIG: 6.8 Mbps
 // LONG_RANGING_CONFIG: 110 Kbps
