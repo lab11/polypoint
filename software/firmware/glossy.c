@@ -3,8 +3,16 @@
 #include "oneway_common.h"
 #include "timer.h"
 
+void send_sync(uint32_t delay_time);
+
 static stm_timer_t* _glossy_timer;
 static struct pp_glossy_sync _sync_pkt;
+
+static uint8_t _last_sync_depth;
+static uint64_t _last_sync_timestamp;
+static uint32_t _last_time_sent;
+static uint8_t _currently_syncd;
+static uint8_t _xtal_trim;
 
 void glossy_init(glossy_role_e role){
 	_sync_pkt = (struct pp_glossy_sync) {
@@ -36,11 +44,14 @@ void glossy_init(glossy_role_e role){
 }
 
 void glossy_sync_task(){
+	uint32_t delay_time = dwt_readsystimestamphi32() + DW_DELAY_FROM_US(dw1000_preamble_time_in_us() + SPI_SLACK);
+	delay_time &= 0xFFFFFFFE;
+	send_sync(delay_time);
+}
+
+void send_sync(uint32_t delay_time){
 	uint16_t frame_len = sizeof(struct pp_glossy_sync);
 	dwt_writetxfctrl(frame_len, 0);
-
-	uint32_t delay_time = dwt_readsystimestamphi32() + DW_DELAY_FROM_US(dw1000_preamble_time_in_us() + 0);
-	delay_time &= 0xFFFFFFFE;
 
 	_sync_pkt.dw_time_sent = delay_time;
 
@@ -51,6 +62,52 @@ void glossy_sync_task(){
 	dwt_writetxdata(sizeof(_sync_pkt), (uint8_t*) &_sync_pkt, 0);
 }
 
+uint8_t clock_offset_to_trim_diff(double ppm_offset){
+	return (uint8_t) ppm_offset*1-1; /* TODO: Fill this in with a measured calibration function */
+}
+
 void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
-	//TODO: Fill this logic in...
+	struct pp_glossy_sync *in_glossy_sync = (struct pp_glossy_sync *) buf;
+
+	if(in_glossy_sync->depth == _last_sync_depth){
+		// Check to see if this is the next sync message from the depth previously seen
+		if(_last_sync_timestamp + ((uint64_t)(DW_DELAY_FROM_US(GLOSSY_UPDATE_INTERVAL_US * 1.5)) << 8) > dw_timestamp){
+			// Calculate the ppm offset from the last two received sync messages
+			double clock_offset_ppm = (((double)(dw_timestamp - _last_sync_timestamp) / ((_last_time_sent - in_glossy_sync->dw_time_sent) << 8)) - 1.0) * 1e6;
+
+			// Great, we're still sync'd!
+			_last_sync_timestamp = dw_timestamp;
+			_last_time_sent = in_glossy_sync->dw_time_sent;
+			_last_sync_depth = in_glossy_sync->depth;
+			_currently_syncd = 1;
+
+			// Update DW1000's crystal trim to account for observed PPM offset
+			_xtal_trim += clock_offset_to_trim_diff(clock_offset_ppm);
+			dwt_xtaltrim(_xtal_trim);
+
+			// Perpetuate the flood!
+			memcpy(&_sync_pkt, in_glossy_sync, sizeof(struct pp_glossy_sync));
+			_sync_pkt.depth = _last_sync_depth+1;
+
+			uint32_t delay_time = (dw_timestamp >> 8) + DW_DELAY_FROM_US(dw1000_preamble_time_in_us() + SPI_SLACK + GLOSSY_FLOOD_TIMESLOT_US);
+			delay_time = 0xFFFFFFFE;
+			send_sync(delay_time);
+		} else {
+			// We lost sync :(
+			_currently_syncd = 0;
+		}
+	} else {
+		// Ignore this sync message if we're currently sync'd at some other depth
+		if(_currently_syncd){ /* Do Nothing */ }
+		else {
+			if(_last_sync_timestamp + ((uint64_t)(DW_DELAY_FROM_US(GLOSSY_UPDATE_INTERVAL_US * 1.5)) << 8) < dw_timestamp) {
+				// If it's been too long since our last received sync packet, let's try things at a different depth
+				_last_sync_timestamp = dw_timestamp;
+				_last_time_sent = in_glossy_sync->dw_time_sent;
+				_last_sync_depth = in_glossy_sync->depth;
+			} else {
+				/* Do Nothing */
+			}
+		}
+	}
 }

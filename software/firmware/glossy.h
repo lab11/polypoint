@@ -5,6 +5,7 @@
 #include "deca_device_api.h"
 
 #define GLOSSY_UPDATE_INTERVAL_US 10e6
+#define GLOSSY_FLOOD_TIMESLOT_US  1e3
 
 typedef enum {
 	GLOSSY_SLAVE = 0,
