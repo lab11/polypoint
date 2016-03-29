@@ -44,7 +44,7 @@ void glossy_init(glossy_role_e role){
 }
 
 void glossy_sync_task(){
-	uint32_t delay_time = dwt_readsystimestamphi32() + DW_DELAY_FROM_US(dw1000_preamble_time_in_us() + SPI_SLACK);
+	uint32_t delay_time = dwt_readsystimestamphi32() + DW_DELAY_FROM_US(dw1000_preamble_time_in_us() + SPI_SLACK_US);
 	delay_time &= 0xFFFFFFFE;
 	send_sync(delay_time);
 }
@@ -62,8 +62,9 @@ void send_sync(uint32_t delay_time){
 	dwt_writetxdata(sizeof(_sync_pkt), (uint8_t*) &_sync_pkt, 0);
 }
 
+#define CW_CAL_12PF ((3.494350-3.494173)/3.4944*1e6/30)
 uint8_t clock_offset_to_trim_diff(double ppm_offset){
-	return (uint8_t) ppm_offset*1-1; /* TODO: Fill this in with a measured calibration function */
+	return (uint8_t) (ppm_offset/CW_CAL_12PF);
 }
 
 void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
@@ -89,7 +90,7 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 			memcpy(&_sync_pkt, in_glossy_sync, sizeof(struct pp_glossy_sync));
 			_sync_pkt.depth = _last_sync_depth+1;
 
-			uint32_t delay_time = (dw_timestamp >> 8) + DW_DELAY_FROM_US(dw1000_preamble_time_in_us() + SPI_SLACK + GLOSSY_FLOOD_TIMESLOT_US);
+			uint32_t delay_time = (dw_timestamp >> 8) + DW_DELAY_FROM_US(dw1000_preamble_time_in_us() + SPI_SLACK_US + GLOSSY_FLOOD_TIMESLOT_US);
 			delay_time = 0xFFFFFFFE;
 			send_sync(delay_time);
 		} else {
