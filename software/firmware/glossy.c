@@ -39,12 +39,18 @@ void glossy_init(glossy_role_e role){
 
 	// If the anchor, let's kick off a task which unconditionally kicks off sync messages with depth = 0
 	if(role == GLOSSY_MASTER){
+		_glossy_timer = timer_init();
 		timer_start(_glossy_timer, GLOSSY_UPDATE_INTERVAL_US, glossy_sync_task);
 	}
 }
 
 void glossy_sync_task(){
-	uint32_t delay_time = dwt_readsystimestamphi32() + DW_DELAY_FROM_US(dw1000_preamble_time_in_us() + SPI_SLACK_US);
+	dwt_forcetrxoff();
+
+	dw1000_update_channel(1);
+	dw1000_choose_antenna(0);
+
+	uint32_t delay_time = dwt_readsystimestamphi32() + DW_DELAY_FROM_PKT_LEN(sizeof(struct pp_glossy_sync));
 	delay_time &= 0xFFFFFFFE;
 	send_sync(delay_time);
 }
