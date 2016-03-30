@@ -368,11 +368,11 @@ static void anchor_rxcallback (const dwt_callback_data_t *rxd) {
 				}
 
 			} else {
+				// We do want to enter RX mode again, however
+				dwt_rxenable(0);
 				// Other message types go here, if they get added
 				if(message_type == MSG_TYPE_PP_GLOSSY_SYNC)
 					glossy_sync_process(dw_rx_timestamp-oneway_get_rxdelay_from_subsequence(ANCHOR, 0), buf);
-				// We do want to enter RX mode again, however
-				dwt_rxenable(0);
 			}
 		}
 

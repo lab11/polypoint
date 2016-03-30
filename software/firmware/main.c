@@ -328,6 +328,12 @@ int main () {
 	// ranging events.
 	_app_timer = timer_init();
 
+	// Next up do some preliminary setup of the DW1000. This mostly configures
+	// pins and hardware peripherals, as well as straightening out some
+	// of the settings on the DW1000.
+	start_dw1000();
+
+#ifndef BYPASS_HOST_INTERFACE
 	// Initialize the I2C listener. This is the main interface
 	// the host controller (that is using TriPoint for ranging/localization)
 	// uses to configure how this module operates.
@@ -337,24 +343,21 @@ int main () {
 	// Need to wait for the host board to tell us what to do.
 	err = host_interface_wait();
 	if (err) error();
+#else
 
-	// Next up do some preliminary setup of the DW1000. This mostly configures
-	// pins and hardware peripherals, as well as straightening out some
-	// of the settings on the DW1000.
-	start_dw1000();
-
-
-	//// DEBUG:
-	//oneway_config_t config;
-	////config.my_role = TAG;
-	//config.my_role = ANCHOR;
-	//config.my_glossy_role = GLOSSY_MASTER;
-	//config.report_mode = ONEWAY_REPORT_MODE_RANGES;
-	//config.update_mode = ONEWAY_UPDATE_MODE_PERIODIC;
-	//config.update_rate = 10;
-	//config.sleep_mode = FALSE;
-	//polypoint_configure_app(APP_ONEWAY, &config);
-	//polypoint_start();
+	// DEBUG:
+	oneway_config_t config;
+	//config.my_role = TAG;
+	config.my_role = ANCHOR;
+	config.my_glossy_role = GLOSSY_MASTER;
+	//config.my_glossy_role = GLOSSY_SLAVE;
+	config.report_mode = ONEWAY_REPORT_MODE_RANGES;
+	config.update_mode = ONEWAY_UPDATE_MODE_PERIODIC;
+	config.update_rate = 10;
+	config.sleep_mode = FALSE;
+	polypoint_configure_app(APP_ONEWAY, &config);
+	polypoint_start();
+#endif
 
 	// MAIN LOOP
 	while (1) {

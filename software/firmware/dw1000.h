@@ -47,17 +47,17 @@
 // Timing defines for this particular MCU
 /******************************************************************************/
 
-#define APP_US_TO_DEVICETIMEU32(_microsecu) \
-	((uint32_t) ( ((_microsecu) / (double) DWT_TIME_UNITS) / 1e6 ))
+#define APP_US_TO_DEVICETIMEU64(_microsecu) \
+	((uint64_t) ( ((_microsecu) / (double) DWT_TIME_UNITS) / 1e6 ))
 
 #define SPI_US_PER_BYTE        0.94	// 0.94 @ 8mhz, 0.47 @ 16mhz
 #define SPI_US_BETWEEN_BYTES   0.25	// 0.25 @ 8mhz, 0.30 @ 16mhz
 #define SPI_SLACK_US           300	// 200 @ 8mhz, 150 @ 16mhz
 #define DW_DELAY_FROM_PKT_LEN(_len) \
-	(APP_US_TO_DEVICETIMEU32(SPI_US_PER_BYTE * (_len) + SPI_US_BETWEEN_BYTES * (_len) + SPI_SLACK_US + dw1000_preamble_time_in_us()) >> 8)
+	((uint32_t)(APP_US_TO_DEVICETIMEU64(SPI_US_PER_BYTE * (_len) + SPI_US_BETWEEN_BYTES * (_len) + SPI_SLACK_US + dw1000_preamble_time_in_us()) >> 8))
 
 
-#define DW_DELAY_FROM_US(_us) (APP_US_TO_DEVICETIMEU32((_us)) >> 8)
+#define DW_DELAY_FROM_US(_us) ((uint32_t)(APP_US_TO_DEVICETIMEU64((_us)) >> 8))
 
 #define ANC_FINAL_RX_PKT_TIME_US	398  // 8mhz: 398; 16mhz: 256
 #define ANC_FINAL_RX_PKT_MEMCPY_TIME_US	 79  // 8mhz: 120

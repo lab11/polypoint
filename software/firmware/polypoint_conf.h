@@ -2,6 +2,7 @@
 // UART_DATA_OFFLOAD: Option to push data out to PC for further data analysis
 #define UART_DATA_OFFLOAD
 //#define CW_TEST_MODE
+//#define BYPASS_HOST_INTERFACE
 
 // FAST_RANGING_CONFIG: 6.8 Mbps
 // LONG_RANGING_CONFIG: 110 Kbps
@@ -21,7 +22,7 @@
 	#define DW1000_PREAMBLE_LENGTH       DWT_PLEN_64
 	#define DW1000_PAC_SIZE              DWT_PAC8
 	#define DW1000_DATA_RATE             DWT_BR_6M8
-	#define DW1000_SMART_PWR_EN          0
+	#define DW1000_SMART_PWR_EN          1
 	#define DW1000_SFD_TO                (64+8+1)
 	#define RANGING_BROADCASTS_PERIOD_US 1000
 	#define RANGING_LISTENING_WINDOW_US  8000

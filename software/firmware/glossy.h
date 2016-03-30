@@ -4,7 +4,7 @@
 #include "firmware.h"
 #include "deca_device_api.h"
 
-#define GLOSSY_UPDATE_INTERVAL_US 10e6
+#define GLOSSY_UPDATE_INTERVAL_US 1e6
 #define GLOSSY_FLOOD_TIMESLOT_US  1e3
 
 typedef enum {
@@ -17,6 +17,7 @@ struct pp_glossy_sync {
 	uint8_t message_type;
 	uint8_t depth;
 	uint32_t dw_time_sent;
+	struct ieee154_footer footer;
 } __attribute__ ((__packed__));
 
 void glossy_init(glossy_role_e role);
