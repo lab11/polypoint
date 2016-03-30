@@ -16,7 +16,7 @@ struct pp_glossy_sync {
 	struct ieee154_header_broadcast header;
 	uint8_t message_type;
 	uint8_t depth;
-	uint32_t dw_time_sent;
+	uint64_t dw_time_sent;
 	struct ieee154_footer footer;
 } __attribute__ ((__packed__));
 

@@ -13,7 +13,9 @@ static uint8_t _last_sync_depth;
 static uint64_t _last_sync_timestamp;
 static uint64_t _last_overall_timestamp;
 static uint64_t _time_overflow;
-static uint32_t _last_time_sent;
+static uint64_t _last_time_sent;
+static uint64_t _time_sent_overflow;
+static uint32_t _last_delay_time;
 static uint8_t _currently_syncd;
 static uint8_t _xtal_trim;
 
@@ -42,6 +44,8 @@ void glossy_init(glossy_role_e role){
 
 	_currently_syncd = 0;
 	_last_overall_timestamp = 0;
+	_time_sent_overflow = 0;
+	_last_delay_time = 0;
 	_role = role;
 
 	// Set crystal trim to mid-range
@@ -70,7 +74,10 @@ void send_sync(uint32_t delay_time){
 	uint16_t frame_len = sizeof(struct pp_glossy_sync);
 	dwt_writetxfctrl(frame_len, 0);
 
-	_sync_pkt.dw_time_sent = delay_time;
+	if(delay_time < _last_delay_time)
+		_time_sent_overflow += 0x100000000ULL;
+	_last_delay_time = delay_time;
+	_sync_pkt.dw_time_sent = delay_time + _time_sent_overflow;
 
 	dwt_setdelayedtrxtime(delay_time);
 	dwt_setrxaftertxdelay(1);
@@ -104,7 +111,6 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 		// Check to see if this is the next sync message from the depth previously seen
 		if(_last_sync_timestamp + ((uint64_t)(DW_DELAY_FROM_US(GLOSSY_UPDATE_INTERVAL_US * 1.5)) << 8) > dw_timestamp){
 			// Calculate the ppm offset from the last two received sync messages
-			// TODO: _last_time_sent needs a overflow counter too...
 			double clock_offset_ppm = (((double)(dw_timestamp - _last_sync_timestamp) / ((uint64_t)(in_glossy_sync->dw_time_sent - _last_time_sent) << 8)) - 1.0) * 1e6;
 
 			// Great, we're still sync'd!
