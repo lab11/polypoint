@@ -4,6 +4,10 @@
 #include "firmware.h"
 #include "deca_device_api.h"
 
+#define LPM_SLOT_US               1e4
+
+#define MAX_SCHED_TAGS            10
+
 #ifdef GLOSSY_PER_TEST
 #define GLOSSY_UPDATE_INTERVAL_US 1e4
 #else

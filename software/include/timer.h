@@ -21,7 +21,7 @@ typedef void (*timer_callback)();
 
 stm_timer_t* timer_init ();
 void timer_start (stm_timer_t* t, uint32_t us_period, timer_callback);
-void timer_reset (stm_timer_t* t);
+void timer_reset (stm_timer_t* t, uint32_t val_us);
 void timer_stop (stm_timer_t* t);
 
 

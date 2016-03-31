@@ -68,6 +68,7 @@
 #define MSG_TYPE_PP_NOSLOTS_TAG_POLL  0x80
 #define MSG_TYPE_PP_NOSLOTS_ANC_FINAL 0x81
 #define MSG_TYPE_PP_GLOSSY_SYNC       0x82
+#define MSG_TYPE_PP_GLOSSY_SCHED_REQ  0x83
 
 // Packet the tag broadcasts to all nearby anchors
 struct pp_tag_poll  {
