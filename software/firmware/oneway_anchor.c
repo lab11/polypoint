@@ -249,7 +249,7 @@ static void ranging_listening_window_setup () {
 // Called after a packet is transmitted. We don't need this so it is
 // just empty.
 static void anchor_txcallback (const dwt_callback_data_t *txd) {
-
+	glossy_process_txcallback();
 }
 
 // Called when the radio has received a packet.

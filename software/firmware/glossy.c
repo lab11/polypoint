@@ -19,6 +19,7 @@ static uint64_t _time_sent_overflow;
 static uint32_t _last_delay_time;
 static uint8_t _currently_syncd;
 static uint8_t _xtal_trim;
+static bool _sending_sync;
 
 #ifdef GLOSSY_PER_TEST
 static uint32_t _total_syncs_sent;
@@ -45,7 +46,6 @@ void glossy_init(glossy_role_e role){
 		},
 		.message_type = MSG_TYPE_PP_GLOSSY_SYNC,
 		.depth = 0,
-		.dw_time_sent = 0,
 	};
 
 	_currently_syncd = 0;
@@ -53,6 +53,7 @@ void glossy_init(glossy_role_e role){
 	_time_sent_overflow = 0;
 	_last_delay_time = 0;
 	_role = role;
+	_sending_sync = FALSE;
 
 #ifdef GLOSSY_PER_TEST
 	_total_syncs_sent = 0;
@@ -66,8 +67,9 @@ void glossy_init(glossy_role_e role){
 	if(role == GLOSSY_MASTER){
 		uint8 ldok = OTP_SF_OPS_KICK | OTP_SF_OPS_SEL_TIGHT;
 		dwt_writetodevice(OTP_IF_ID, OTP_SF, 1, &ldok); // set load LDE kick bit
+		_last_time_sent = dwt_readsystimestamphi32() & 0xFFFFFFFE;
 		_glossy_timer = timer_init();
-		timer_start(_glossy_timer, GLOSSY_UPDATE_INTERVAL_US, glossy_sync_task);
+		timer_start(_glossy_timer, GLOSSY_UPDATE_INTERVAL_US-1e3, glossy_sync_task);
 	}
 }
 
@@ -86,10 +88,17 @@ void glossy_sync_task(){
 	dw1000_update_channel(1);
 	dw1000_choose_antenna(0);
 
-	uint32_t delay_time = dwt_readsystimestamphi32() + DW_DELAY_FROM_PKT_LEN(sizeof(struct pp_glossy_sync));
-	delay_time &= 0xFFFFFFFE;
-	_sync_pkt.dw_time_sent = delay_time + _time_sent_overflow;
-	send_sync(delay_time);
+	_last_time_sent += GLOSSY_UPDATE_INTERVAL_DW;
+	send_sync(_last_time_sent);
+	_sending_sync = TRUE;
+}
+
+void glossy_process_txcallback(){
+	if(_role == GLOSSY_MASTER && _sending_sync){
+		// Sync has sent, set the timer to send the next one at a later time
+		timer_reset(_glossy_timer);
+		_sending_sync = FALSE;
+	}
 }
 
 void send_sync(uint32_t delay_time){
@@ -136,11 +145,10 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 		// Check to see if this is the next sync message from the depth previously seen
 		if(_last_sync_timestamp + ((uint64_t)(DW_DELAY_FROM_US(GLOSSY_UPDATE_INTERVAL_US * 1.5)) << 8) > dw_timestamp){
 			// Calculate the ppm offset from the last two received sync messages
-			double clock_offset_ppm = (((double)(dw_timestamp - _last_sync_timestamp) / ((uint64_t)(in_glossy_sync->dw_time_sent - _last_time_sent) << 8)) - 1.0) * 1e6;
+			double clock_offset_ppm = (((double)(dw_timestamp - _last_sync_timestamp) / ((uint64_t)(GLOSSY_UPDATE_INTERVAL_DW) << 8)) - 1.0) * 1e6;
 
 			// Great, we're still sync'd!
 			_last_sync_timestamp = dw_timestamp;
-			_last_time_sent = in_glossy_sync->dw_time_sent;
 			_last_sync_depth = in_glossy_sync->depth;
 			_currently_syncd = 1;
 
@@ -172,7 +180,6 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 		if(_last_sync_timestamp + ((uint64_t)(DW_DELAY_FROM_US(GLOSSY_UPDATE_INTERVAL_US * 1.5)) << 8) < dw_timestamp) {
 			// If it's been too long since our last received sync packet, let's try things at a different depth
 			_last_sync_timestamp = dw_timestamp;
-			_last_time_sent = in_glossy_sync->dw_time_sent;
 			_last_sync_depth = in_glossy_sync->depth;
 		} else {
 			/* Do Nothing */

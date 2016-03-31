@@ -93,6 +93,10 @@ void timer_start (stm_timer_t* t, uint32_t us_period, timer_callback cb) {
 	TIM_Cmd(t->tim_ptr, ENABLE);
 }
 
+void timer_reset (stm_timer_t* t){
+	TIM_SetCounter(t->tim_ptr, 0);
+}
+
 // Disable everything that timer_start enabled
 void timer_stop (stm_timer_t* t) {
 	// Disable the timer
