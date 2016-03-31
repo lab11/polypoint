@@ -7,7 +7,7 @@
 void send_sync(uint32_t delay_time);
 
 static stm_timer_t* _glossy_timer;
-static struct pp_glossy_sync _sync_pkt;
+static struct pp_sched_flood _sync_pkt;
 static glossy_role_e _role;
 
 static uint8_t _last_sync_depth;
@@ -27,7 +27,7 @@ static uint32_t _total_syncs_received;
 #endif
 
 void glossy_init(glossy_role_e role){
-	_sync_pkt = (struct pp_glossy_sync) {
+	_sync_pkt = (struct pp_sched_flood) {
 		.header = {
 			.frameCtrl = {
 				0x41,
@@ -45,7 +45,6 @@ void glossy_init(glossy_role_e role){
 			.sourceAddr = { 0 },
 		},
 		.message_type = MSG_TYPE_PP_GLOSSY_SYNC,
-		.depth = 0,
 	};
 
 	_currently_syncd = 0;
@@ -102,7 +101,7 @@ void glossy_process_txcallback(){
 }
 
 void send_sync(uint32_t delay_time){
-	uint16_t frame_len = sizeof(struct pp_glossy_sync);
+	uint16_t frame_len = sizeof(struct pp_sched_flood);
 	dwt_writetxfctrl(frame_len, 0);
 
 	if(delay_time < _last_delay_time)
@@ -125,7 +124,7 @@ int8_t clock_offset_to_trim_diff(double ppm_offset){
 }
 
 void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
-	struct pp_glossy_sync *in_glossy_sync = (struct pp_glossy_sync *) buf;
+	struct pp_sched_flood *in_glossy_sync = (struct pp_sched_flood *) buf;
 
 	// Due to frequent overflow in the decawave system time counter, we must keep a running total
 	// of the number of times it's overflown
@@ -141,7 +140,7 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 		return;
 	}
 
-	if(in_glossy_sync->depth == _last_sync_depth){
+	if(in_glossy_sync->header.seqNum == _last_sync_depth){
 		// Check to see if this is the next sync message from the depth previously seen
 		if(_last_sync_timestamp + ((uint64_t)(DW_DELAY_FROM_US(GLOSSY_UPDATE_INTERVAL_US * 1.5)) << 8) > dw_timestamp){
 			// Calculate the ppm offset from the last two received sync messages
@@ -149,7 +148,7 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 
 			// Great, we're still sync'd!
 			_last_sync_timestamp = dw_timestamp;
-			_last_sync_depth = in_glossy_sync->depth;
+			_last_sync_depth = in_glossy_sync->header.seqNum;
 			_currently_syncd = 1;
 
 			// Update DW1000's crystal trim to account for observed PPM offset
@@ -163,8 +162,8 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 			dwt_xtaltrim(_xtal_trim);
 
 			// Perpetuate the flood!
-			memcpy(&_sync_pkt, in_glossy_sync, sizeof(struct pp_glossy_sync));
-			_sync_pkt.depth = _last_sync_depth+1;
+			memcpy(&_sync_pkt, in_glossy_sync, sizeof(struct pp_sched_flood));
+			_sync_pkt.header.seqNum = _last_sync_depth+1;
 
 			uint32_t delay_time = (dw_timestamp >> 8) + DW_DELAY_FROM_US(GLOSSY_FLOOD_TIMESLOT_US);
 			delay_time &= 0xFFFFFFFE;
@@ -180,7 +179,7 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 		if(_last_sync_timestamp + ((uint64_t)(DW_DELAY_FROM_US(GLOSSY_UPDATE_INTERVAL_US * 1.5)) << 8) < dw_timestamp) {
 			// If it's been too long since our last received sync packet, let's try things at a different depth
 			_last_sync_timestamp = dw_timestamp;
-			_last_sync_depth = in_glossy_sync->depth;
+			_last_sync_depth = in_glossy_sync->header.seqNum;
 		} else {
 			/* Do Nothing */
 		}

@@ -18,11 +18,19 @@ typedef enum {
 	GLOSSY_MASTER = 1
 } glossy_role_e;
 
-struct pp_glossy_sync {
+struct pp_sched_flood {
 	struct ieee154_header_broadcast header;
 	uint8_t message_type;
-	uint8_t depth;
+	uint64_t tag_ranging_mask;
+	uint8_t tag_sched_idx;
+	uint8_t tag_sched_eui[EUI_LEN];
 	struct ieee154_footer footer;
+} __attribute__ ((__packed__));
+
+struct pp_sched_req_flood {
+	struct ieee154_header_broadcast header;
+	uint8_t message_type;
+	uint8_t tag_sched_eui[EUI_LEN];
 } __attribute__ ((__packed__));
 
 void glossy_init(glossy_role_e role);
