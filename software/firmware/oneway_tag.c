@@ -61,7 +61,7 @@ void oneway_tag_init (void *app_scratchspace) {
 
 	// Setup parameters of how the radio should work
 	dwt_setautorxreenable(TRUE);
-	dwt_setdblrxbuffmode(TRUE);
+	dwt_setdblrxbuffmode(FALSE);
 	dwt_enableautoack(DW1000_ACK_RESPONSE_TIME);
 
 	// Put source EUI in the pp_tag_poll packet
@@ -140,6 +140,7 @@ void oneway_tag_stop () {
 
 // Called after the TAG has transmitted a packet.
 static void tag_txcallback (const dwt_callback_data_t *data) {
+	glossy_process_txcallback();
 
 	if (data->event == DWT_SIG_TX_DONE) {
 		// Packet was sent successfully
@@ -245,6 +246,9 @@ static void tag_rxcallback (const dwt_callback_data_t* rxd) {
 
 		} else {
 			// TAGs don't expect to receive any other types of packets.
+			message_type = buf[offsetof(struct pp_tag_poll, message_type)];
+			if(message_type == MSG_TYPE_PP_GLOSSY_SYNC || message_type == MSG_TYPE_PP_GLOSSY_SCHED_REQ)
+				glossy_sync_process(dw_rx_timestamp-oneway_get_rxdelay_from_subsequence(TAG, 0), buf);
 		}
 
 	} else {
