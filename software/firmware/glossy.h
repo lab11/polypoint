@@ -4,8 +4,8 @@
 #include "firmware.h"
 #include "deca_device_api.h"
 
-#define LPM_SLOT_US               1e4
-#define LPM_SLOTS_PER_RANGE       5
+#define LWB_SLOT_US               1e4
+#define LWB_SLOTS_PER_RANGE       7
 
 #define MAX_SCHED_TAGS            10
 

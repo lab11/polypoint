@@ -97,6 +97,7 @@ void glossy_init(glossy_role_e role){
 	_lwb_valid = FALSE;
 	_lwb_sched_en = FALSE;
 	_lwb_scheduled = FALSE;
+	_lwb_schedule_callback = NULL;
 
 #ifdef GLOSSY_PER_TEST
 	_total_syncs_sent = 0;
@@ -116,7 +117,7 @@ void glossy_init(glossy_role_e role){
 
 	// The glossy timer acts to synchronize everyone to a common timebase
 	_glossy_timer = timer_init();
-	timer_start(_glossy_timer, LPM_SLOT_US, glossy_sync_task);
+	timer_start(_glossy_timer, LWB_SLOT_US, glossy_sync_task);
 }
 
 void glossy_sync_task(){
@@ -124,7 +125,7 @@ void glossy_sync_task(){
 
 	if(_role == GLOSSY_MASTER){
 		// Last timeslot is used by the master to schedule the next glossy sync packet
-		if(_lwb_counter == (GLOSSY_UPDATE_INTERVAL_US/LPM_SLOT_US)-1){
+		if(_lwb_counter == (GLOSSY_UPDATE_INTERVAL_US/LWB_SLOT_US)-1){
 			dwt_forcetrxoff();
 		
 		#ifdef GLOSSY_PER_TEST
@@ -155,30 +156,40 @@ void glossy_sync_task(){
 
 		else {
 			// Check to see if it's our turn to do a ranging event!
-			// LPM Slot 1: Contention slot
+			// LWB Slot 1: Contention slot
 			if(_lwb_counter == 1){
 				if(!_lwb_scheduled && _lwb_sched_en){
 					dwt_forcetrxoff();
 
 					// Send out a schedule request during this contention slot
 					// Pick a random time offset to avoid colliding with others
-					uint32_t sched_req_time = ranval(&_prng_state) % (uint32_t)(LPM_SLOT_US);
+					uint32_t sched_req_time = ranval(&_prng_state) % (uint32_t)(LWB_SLOT_US);
 					uint32_t delay_time = (dwt_readsystimestamphi32() + DW_DELAY_FROM_PKT_LEN(sizeof(struct pp_sched_req_flood)) + DW_DELAY_FROM_US(sched_req_time)) & 0xFFFFFFFE;
 					dwt_setdelayedtrxtime(delay_time);
-					dwt_setrxaftertxdelay(LPM_SLOT_US);
+					dwt_setrxaftertxdelay(LWB_SLOT_US);
 					dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED);
 					dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
 					dwt_writetxdata(sizeof(struct pp_sched_req_flood), (uint8_t*) &_sched_req_pkt, 0);
 				}
 
-			// LPM Slots 2-N: Ranging slots
-			} else if(_lwb_counter < (GLOSSY_UPDATE_INTERVAL_US/LPM_SLOT_US)) {
-				if(_lwb_scheduled && (((_lwb_counter - 2)/LPM_SLOTS_PER_RANGE) % _lwb_num_timeslots == _lwb_timeslot) && ((_lwb_counter - 2) % LPM_SLOTS_PER_RANGE == 0)){
+			// LWB Slots 2-N-2: Ranging slots
+			} else if(_lwb_counter < (GLOSSY_UPDATE_INTERVAL_US/LWB_SLOT_US - LWB_SLOTS_PER_RANGE)) {
+				if(_lwb_schedule_callback && _lwb_scheduled && 
+				   (((_lwb_counter - 2)/LWB_SLOTS_PER_RANGE) % _lwb_num_timeslots == _lwb_timeslot) && 
+				   ((_lwb_counter - 2) % LWB_SLOTS_PER_RANGE == 0)){
 					// Our scheduled timeslot!  Call the timeslot callback which will likely kick off a ranging event
 					dwt_setdblrxbuffmode(TRUE);
 					_lwb_schedule_callback();
 					dwt_setdblrxbuffmode(FALSE);
 				}
+
+			// LWB Slot N-1: Get ready for next glossy flood
+			} else if(_lwb_counter == (GLOSSY_UPDATE_INTERVAL_US/LWB_SLOT_US)-1){
+				// Make sure we're in RX mode, ready for next glossy sync flood!
+				dwt_forcetrxoff();
+				dw1000_update_channel(1);
+				dw1000_choose_antenna(0);
+				dwt_rxenable(0);
 			}
 		}
 	}
@@ -270,7 +281,7 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 			uint32_t delay_time = (dw_timestamp >> 8) + DW_DELAY_FROM_US(GLOSSY_FLOOD_TIMESLOT_US);
 			delay_time &= 0xFFFFFFFE;
 			dwt_forcetrxoff();
-			dwt_setrxaftertxdelay(LPM_SLOT_US);
+			dwt_setrxaftertxdelay(LWB_SLOT_US);
 			dwt_setdelayedtrxtime(delay_time);
 			dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED);
 			dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
@@ -294,7 +305,7 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 					_last_sync_depth = in_glossy_sync->header.seqNum;
 					_currently_syncd = 1;
 
-					// Since we're sync'd, we should make sure to reset our LPM window timer
+					// Since we're sync'd, we should make sure to reset our LWB window timer
 					_lwb_counter = 0;
 					_lwb_valid = TRUE;
 					timer_reset(_glossy_timer, in_glossy_sync->header.seqNum*GLOSSY_FLOOD_TIMESLOT_US);
