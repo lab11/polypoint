@@ -5,6 +5,7 @@
 #include "deca_device_api.h"
 
 #define LPM_SLOT_US               1e4
+#define LPM_SLOTS_PER_RANGE       5
 
 #define MAX_SCHED_TAGS            10
 
@@ -39,6 +40,8 @@ struct pp_sched_req_flood {
 
 void glossy_init(glossy_role_e role);
 void glossy_sync_task();
+void lpm_set_sched_request(bool sched_en);
+void lpm_set_sched_callback(void (*callback)(void));
 void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf);
 void glossy_process_txcallback();
 

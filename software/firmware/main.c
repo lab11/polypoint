@@ -90,11 +90,11 @@ void polypoint_configure_app (polypoint_application_e app, void* app_config) {
 	_current_app = app;
 	switch (_current_app) {
 		case APP_ONEWAY:
-			oneway_configure((oneway_config_t*) app_config, _app_timer, (void*)&_app_scratchspace);
+			oneway_configure((oneway_config_t*) app_config, NULL, (void*)&_app_scratchspace);
 			break;
 
 		case APP_CALIBRATION:
-			calibration_configure((calibration_config_t*) app_config, _app_timer, (void*)&_app_scratchspace);
+			calibration_configure((calibration_config_t*) app_config, NULL, (void*)&_app_scratchspace);
 			break;
 
 		default:
@@ -169,7 +169,7 @@ void polypoint_reset () {
 	_state = APPSTATE_NOT_INITED;
 
 	// Stop the timer in case it was in use.
-	timer_stop(_app_timer);
+	//timer_stop(_app_timer);
 
 	// Init the dw1000, and loop until it works.
 	// start does a reset.
@@ -326,7 +326,7 @@ int main () {
 
 	// In case we need a timer, get one. This is used for things like periodic
 	// ranging events.
-	_app_timer = timer_init();
+	//_app_timer = timer_init();
 
 	// Next up do some preliminary setup of the DW1000. This mostly configures
 	// pins and hardware peripherals, as well as straightening out some

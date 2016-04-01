@@ -3,6 +3,7 @@
 #include "glossy.h"
 #include "oneway_common.h"
 #include "timer.h"
+#include "prng.h"
 #include <string.h>
 
 void send_sync(uint32_t delay_time);
@@ -24,13 +25,30 @@ static uint8_t _xtal_trim;
 static bool _sending_sync;
 static uint32_t _lpm_counter;
 
+static bool _lpm_sched_en;
+static bool _lpm_scheduled;
+static uint32_t _lpm_num_timeslots;
+static uint32_t _lpm_timeslot;
+static void (*_lpm_schedule_callback)(void);
+
 static uint8_t _sched_euis[MAX_SCHED_TAGS][EUI_LEN];
 static int _cur_sched_tags;
+
+static ranctx _prng_state;
 
 #ifdef GLOSSY_PER_TEST
 static uint32_t _total_syncs_sent;
 static uint32_t _total_syncs_received;
 #endif
+
+uint8_t uint64_count_ones(uint64_t number){
+	int ii;
+	uint8_t ret = 0;
+	for(ii = 0; ii < 64; ii++){
+		if(number & (1 << ii)) ret++;
+	}
+	return ret;
+}
 
 void glossy_init(glossy_role_e role){
 	_sync_pkt = (struct pp_sched_flood) {
@@ -60,6 +78,12 @@ void glossy_init(glossy_role_e role){
 	_sched_req_pkt.message_type = MSG_TYPE_PP_GLOSSY_SCHED_REQ;
 	dw1000_read_eui(_sched_req_pkt.tag_sched_eui);
 
+	// TODO: We're currently using the same EUI throughout...
+	// What happens to glossy when the EUIs are different??
+
+	// Seed our random number generator with our EUI
+	raninit(&_prng_state, _sched_req_pkt.tag_sched_eui[0]<<8|_sched_req_pkt.tag_sched_eui[1]);
+
 	_currently_syncd = 0;
 	_last_overall_timestamp = 0;
 	_time_sent_overflow = 0;
@@ -68,6 +92,9 @@ void glossy_init(glossy_role_e role){
 	_sending_sync = FALSE;
 	_lpm_counter = 0;
 	_cur_sched_tags = 0;
+
+	_lpm_sched_en = FALSE;
+	_lpm_scheduled = FALSE;
 
 #ifdef GLOSSY_PER_TEST
 	_total_syncs_sent = 0;
@@ -115,7 +142,36 @@ void glossy_sync_task(){
 		}
 	} else {
 		// Check to see if it's our turn to do a ranging event!
+		// LPM Slot 1: Contention slot
+		if(_lpm_counter == 1){
+			if(!_lpm_scheduled && _lpm_sched_en){
+				// Send out a schedule request during this contention slot
+				// Pick a random time offset to avoid colliding with others
+				uint32_t sched_req_time = ranval(&_prng_state) % DW_DELAY_FROM_US(LPM_SLOT_US);
+				uint32_t delay_time = (dwt_readsystimestamphi32() + DW_DELAY_FROM_US(sched_req_time)) & 0xFFFFFFFE;
+				dwt_forcetrxoff();
+				dwt_setrxaftertxdelay(LPM_SLOT_US);
+				dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED);
+				dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
+				dwt_writetxdata(sizeof(struct pp_sched_req_flood), (uint8_t*) &_sched_req_pkt, 0);
+			}
+
+		// LPM Slots 2-N: Ranging slots
+		} else if(_lpm_counter < (GLOSSY_UPDATE_INTERVAL_US/LPM_SLOT_US)) {
+			if(_lpm_scheduled && (((_lpm_counter - 2)/LPM_SLOTS_PER_RANGE) % _lpm_num_timeslots == _lpm_timeslot)){
+				// Our scheduled timeslot!  Call the timeslot callback which will likely kick off a ranging event
+				_lpm_schedule_callback();
+			}
+		}
 	}
+}
+
+void lpm_set_sched_request(bool sched_en){
+	_lpm_sched_en = sched_en;
+}
+
+void lpm_set_sched_callback(void (*callback)(void)){
+	_lpm_schedule_callback = callback;
 }
 
 void glossy_process_txcallback(){
@@ -200,6 +256,13 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 			dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
 			dwt_writetxdata(sizeof(struct pp_sched_req_flood), (uint8_t*) in_glossy_sched_req, 0);
 		} else {
+			// First check to see if this sync packet contains a schedule update for this node
+			if(memcmp(in_glossy_sync->tag_sched_eui, _sched_req_pkt.tag_sched_eui, EUI_LEN) == 0){
+				_lpm_timeslot = in_glossy_sync->tag_sched_idx;
+				_lpm_scheduled = TRUE;
+			}
+			_lpm_num_timeslots = uint64_count_ones(in_glossy_sync->tag_ranging_mask);
+
 			if(in_glossy_sync->header.seqNum == _last_sync_depth){
 				// Check to see if this is the next sync message from the depth previously seen
 				if(_last_sync_timestamp + ((uint64_t)(DW_DELAY_FROM_US(GLOSSY_UPDATE_INTERVAL_US * 1.5)) << 8) > dw_timestamp){

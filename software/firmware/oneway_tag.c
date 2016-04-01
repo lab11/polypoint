@@ -77,6 +77,10 @@ void oneway_tag_init (void *app_scratchspace) {
 
 	// Reset our state because nothing should be in progress if we call init()
 	ot_scratch->state = TSTATE_IDLE;
+
+	// LPM now schedules all of our ranging events!
+	lpm_set_sched_request(TRUE);
+	lpm_set_sched_callback(oneway_tag_start_ranging_event);
 }
 
 // This starts a ranging event by causing the tag to send a series of
