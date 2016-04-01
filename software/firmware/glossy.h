@@ -36,6 +36,7 @@ struct pp_sched_req_flood {
 	struct ieee154_header_broadcast header;
 	uint8_t message_type;
 	uint8_t tag_sched_eui[EUI_LEN];
+	struct ieee154_footer footer;
 } __attribute__ ((__packed__));
 
 void glossy_init(glossy_role_e role);

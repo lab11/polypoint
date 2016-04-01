@@ -146,7 +146,12 @@ void glossy_sync_task(){
 	} else {
 		// Force ourselves into RX mode if we still haven't received any sync floods...
 		// TODO: This is a hack... :(
-		if(!_lwb_valid) dwt_rxenable(0);
+		if(!_lwb_valid && ((_lwb_counter % 5) == 0)) {
+			dwt_forcetrxoff();
+			dw1000_update_channel(1);
+			dw1000_choose_antenna(0);
+			dwt_rxenable(0);
+		}
 
 		else {
 			// Check to see if it's our turn to do a ranging event!
@@ -157,7 +162,7 @@ void glossy_sync_task(){
 
 					// Send out a schedule request during this contention slot
 					// Pick a random time offset to avoid colliding with others
-					uint32_t sched_req_time = ranval(&_prng_state) % DW_DELAY_FROM_US(LPM_SLOT_US);
+					uint32_t sched_req_time = ranval(&_prng_state) % (uint32_t)(LPM_SLOT_US);
 					uint32_t delay_time = (dwt_readsystimestamphi32() + DW_DELAY_FROM_PKT_LEN(sizeof(struct pp_sched_req_flood)) + DW_DELAY_FROM_US(sched_req_time)) & 0xFFFFFFFE;
 					dwt_setdelayedtrxtime(delay_time);
 					dwt_setrxaftertxdelay(LPM_SLOT_US);
@@ -242,6 +247,7 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 			}
 			// If we didn't find the EUI (not scheduled), schedule it!
 			if(ii == _cur_sched_tags){
+				memcpy(_sched_euis[ii], in_glossy_sched_req->tag_sched_eui, EUI_LEN);
 				_cur_sched_tags++;
 			}
 			memcpy(_sync_pkt.tag_sched_eui, _sched_euis[ii], EUI_LEN);
@@ -265,6 +271,7 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 			delay_time &= 0xFFFFFFFE;
 			dwt_forcetrxoff();
 			dwt_setrxaftertxdelay(LPM_SLOT_US);
+			dwt_setdelayedtrxtime(delay_time);
 			dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED);
 			dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
 			dwt_writetxdata(sizeof(struct pp_sched_req_flood), (uint8_t*) in_glossy_sched_req, 0);
