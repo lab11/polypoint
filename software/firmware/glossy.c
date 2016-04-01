@@ -23,14 +23,14 @@ static uint32_t _last_delay_time;
 static uint8_t _currently_syncd;
 static uint8_t _xtal_trim;
 static bool _sending_sync;
-static uint32_t _lpm_counter;
-static bool _lpm_valid;
+static uint32_t _lwb_counter;
+static bool _lwb_valid;
 
-static bool _lpm_sched_en;
-static bool _lpm_scheduled;
-static uint32_t _lpm_num_timeslots;
-static uint32_t _lpm_timeslot;
-static void (*_lpm_schedule_callback)(void);
+static bool _lwb_sched_en;
+static bool _lwb_scheduled;
+static uint32_t _lwb_num_timeslots;
+static uint32_t _lwb_timeslot;
+static void (*_lwb_schedule_callback)(void);
 
 static uint8_t _sched_euis[MAX_SCHED_TAGS][EUI_LEN];
 static int _cur_sched_tags;
@@ -91,12 +91,12 @@ void glossy_init(glossy_role_e role){
 	_last_delay_time = 0;
 	_role = role;
 	_sending_sync = FALSE;
-	_lpm_counter = 0;
+	_lwb_counter = 0;
 	_cur_sched_tags = 0;
 
-	_lpm_valid = FALSE;
-	_lpm_sched_en = FALSE;
-	_lpm_scheduled = FALSE;
+	_lwb_valid = FALSE;
+	_lwb_sched_en = FALSE;
+	_lwb_scheduled = FALSE;
 
 #ifdef GLOSSY_PER_TEST
 	_total_syncs_sent = 0;
@@ -108,7 +108,7 @@ void glossy_init(glossy_role_e role){
 
 	// If the anchor, let's kick off a task which unconditionally kicks off sync messages with depth = 0
 	if(role == GLOSSY_MASTER){
-		_lpm_valid = TRUE;
+		_lwb_valid = TRUE;
 		uint8 ldok = OTP_SF_OPS_KICK | OTP_SF_OPS_SEL_TIGHT;
 		dwt_writetodevice(OTP_IF_ID, OTP_SF, 1, &ldok); // set load LDE kick bit
 		_last_time_sent = dwt_readsystimestamphi32() & 0xFFFFFFFE;
@@ -120,11 +120,11 @@ void glossy_init(glossy_role_e role){
 }
 
 void glossy_sync_task(){
-	_lpm_counter++;
+	_lwb_counter++;
 
 	if(_role == GLOSSY_MASTER){
 		// Last timeslot is used by the master to schedule the next glossy sync packet
-		if(_lpm_counter == (GLOSSY_UPDATE_INTERVAL_US/LPM_SLOT_US)-1){
+		if(_lwb_counter == (GLOSSY_UPDATE_INTERVAL_US/LPM_SLOT_US)-1){
 			dwt_forcetrxoff();
 		
 		#ifdef GLOSSY_PER_TEST
@@ -146,13 +146,13 @@ void glossy_sync_task(){
 	} else {
 		// Force ourselves into RX mode if we still haven't received any sync floods...
 		// TODO: This is a hack... :(
-		if(!_lpm_valid) dwt_rxenable(0);
+		if(!_lwb_valid) dwt_rxenable(0);
 
 		else {
 			// Check to see if it's our turn to do a ranging event!
 			// LPM Slot 1: Contention slot
-			if(_lpm_counter == 1){
-				if(!_lpm_scheduled && _lpm_sched_en){
+			if(_lwb_counter == 1){
+				if(!_lwb_scheduled && _lwb_sched_en){
 					dwt_forcetrxoff();
 
 					// Send out a schedule request during this contention slot
@@ -167,11 +167,11 @@ void glossy_sync_task(){
 				}
 
 			// LPM Slots 2-N: Ranging slots
-			} else if(_lpm_counter < (GLOSSY_UPDATE_INTERVAL_US/LPM_SLOT_US)) {
-				if(_lpm_scheduled && (((_lpm_counter - 2)/LPM_SLOTS_PER_RANGE) % _lpm_num_timeslots == _lpm_timeslot) && ((_lpm_counter - 2) % LPM_SLOTS_PER_RANGE == 0)){
+			} else if(_lwb_counter < (GLOSSY_UPDATE_INTERVAL_US/LPM_SLOT_US)) {
+				if(_lwb_scheduled && (((_lwb_counter - 2)/LPM_SLOTS_PER_RANGE) % _lwb_num_timeslots == _lwb_timeslot) && ((_lwb_counter - 2) % LPM_SLOTS_PER_RANGE == 0)){
 					// Our scheduled timeslot!  Call the timeslot callback which will likely kick off a ranging event
 					dwt_setdblrxbuffmode(TRUE);
-					_lpm_schedule_callback();
+					_lwb_schedule_callback();
 					dwt_setdblrxbuffmode(FALSE);
 				}
 			}
@@ -179,19 +179,19 @@ void glossy_sync_task(){
 	}
 }
 
-void lpm_set_sched_request(bool sched_en){
-	_lpm_sched_en = sched_en;
+void lwb_set_sched_request(bool sched_en){
+	_lwb_sched_en = sched_en;
 }
 
-void lpm_set_sched_callback(void (*callback)(void)){
-	_lpm_schedule_callback = callback;
+void lwb_set_sched_callback(void (*callback)(void)){
+	_lwb_schedule_callback = callback;
 }
 
 void glossy_process_txcallback(){
 	if(_role == GLOSSY_MASTER && _sending_sync){
 		// Sync has sent, set the timer to send the next one at a later time
 		timer_reset(_glossy_timer, 0);
-		_lpm_counter = 0;
+		_lwb_counter = 0;
 		_sending_sync = FALSE;
 	}
 }
@@ -271,10 +271,10 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 		} else {
 			// First check to see if this sync packet contains a schedule update for this node
 			if(memcmp(in_glossy_sync->tag_sched_eui, _sched_req_pkt.tag_sched_eui, EUI_LEN) == 0){
-				_lpm_timeslot = in_glossy_sync->tag_sched_idx;
-				_lpm_scheduled = TRUE;
+				_lwb_timeslot = in_glossy_sync->tag_sched_idx;
+				_lwb_scheduled = TRUE;
 			}
-			_lpm_num_timeslots = uint64_count_ones(in_glossy_sync->tag_ranging_mask);
+			_lwb_num_timeslots = uint64_count_ones(in_glossy_sync->tag_ranging_mask);
 
 			if(in_glossy_sync->header.seqNum == _last_sync_depth){
 				// Check to see if this is the next sync message from the depth previously seen
@@ -288,8 +288,8 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 					_currently_syncd = 1;
 
 					// Since we're sync'd, we should make sure to reset our LPM window timer
-					_lpm_counter = 0;
-					_lpm_valid = TRUE;
+					_lwb_counter = 0;
+					_lwb_valid = TRUE;
 					timer_reset(_glossy_timer, in_glossy_sync->header.seqNum*GLOSSY_FLOOD_TIMESLOT_US);
 
 					// Update DW1000's crystal trim to account for observed PPM offset
