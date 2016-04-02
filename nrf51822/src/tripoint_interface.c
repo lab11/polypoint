@@ -141,14 +141,17 @@ ret_code_t tripoint_start_ranging (bool periodic, uint8_t rate) {
 }
 
 // Tell the attached TriPoint module to become an anchor.
-ret_code_t tripoint_start_anchor () {
+ret_code_t tripoint_start_anchor (bool is_glossy_master) {
 	uint8_t buf_cmd[4];
 	ret_code_t ret;
 
 	buf_cmd[0] = TRIPOINT_CMD_CONFIG;
 
 	// Make ANCHOR
-	buf_cmd[1] = 1;
+	if(is_glossy_master)
+		buf_cmd[1] = 0x01 | 0x20;
+	else
+		buf_cmd[1] = 0x01;
 
 	// // TAG options
 	// buf_cmd[2] = 0;

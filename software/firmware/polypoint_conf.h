@@ -2,7 +2,7 @@
 // UART_DATA_OFFLOAD: Option to push data out to PC for further data analysis
 #define UART_DATA_OFFLOAD
 //#define CW_TEST_MODE
-#define BYPASS_HOST_INTERFACE
+//#define BYPASS_HOST_INTERFACE
 //#define GLOSSY_PER_TEST
 
 // FAST_RANGING_CONFIG: 6.8 Mbps

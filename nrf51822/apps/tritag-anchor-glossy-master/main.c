@@ -68,7 +68,7 @@ static void timer_handler (void* p_context) {
         err_code = tripoint_init(tripointData);
         if (err_code == NRF_SUCCESS) {
             tripoint_inited = true;
-            tripoint_start_anchor(false);
+            tripoint_start_anchor(true);
         }
     }
 }
@@ -126,7 +126,7 @@ int main(void) {
 
     // Make this node an anchor
     if (tripoint_inited) {
-        tripoint_start_anchor(false);
+        tripoint_start_anchor(true);
     }
 
     led_on(LED_0);
