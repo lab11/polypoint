@@ -259,7 +259,7 @@ static void anchor_rxcallback (const dwt_callback_data_t *rxd) {
 
 		// First check to see if this is an acknowledgement...
 		// If so, we can stop sending ranging responses
-		if(rxd->aatset){
+		if((rxd->fctrl[0] & 0x03) == 0x02){  //This bit says whether this was an ack or not
 			oa_scratch->ranging_listening_window_num = NUM_RANGING_CHANNELS;
 		} else {
 

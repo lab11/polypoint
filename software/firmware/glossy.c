@@ -180,12 +180,12 @@ void glossy_sync_task(){
 					// Our scheduled timeslot!  Call the timeslot callback which will likely kick off a ranging event
 					dwt_setdblrxbuffmode(TRUE);
 					_lwb_schedule_callback();
-					dwt_setdblrxbuffmode(FALSE);
 				}
 
 			// LWB Slot N-1: Get ready for next glossy flood
 			} else if(_lwb_counter == (GLOSSY_UPDATE_INTERVAL_US/LWB_SLOT_US)-1){
 				// Make sure we're in RX mode, ready for next glossy sync flood!
+				dwt_setdblrxbuffmode(FALSE);
 				dwt_forcetrxoff();
 				dw1000_update_channel(1);
 				dw1000_choose_antenna(0);

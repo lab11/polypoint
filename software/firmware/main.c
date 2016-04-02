@@ -347,10 +347,10 @@ int main () {
 
 	// DEBUG:
 	oneway_config_t config;
-	//config.my_role = TAG;
-	config.my_role = ANCHOR;
-	config.my_glossy_role = GLOSSY_MASTER;
-	//config.my_glossy_role = GLOSSY_SLAVE;
+	config.my_role = TAG;
+	//config.my_role = ANCHOR;
+	//config.my_glossy_role = GLOSSY_MASTER;
+	config.my_glossy_role = GLOSSY_SLAVE;
 	config.report_mode = ONEWAY_REPORT_MODE_RANGES;
 	config.update_mode = ONEWAY_UPDATE_MODE_PERIODIC;
 	config.update_rate = 10;
