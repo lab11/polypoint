@@ -276,7 +276,7 @@ uint8_t oneway_get_ss_index_from_settings (uint8_t anchor_antenna_index,
                                            uint8_t window_num) {
 	// NOTE: need something more rigorous than setting 0 here
 	uint8_t tag_antenna_index = 0;
-	uint8_t channel_index = listening_window_number_to_channel(window_num);
+	uint8_t channel_index = window_num % NUM_RANGING_CHANNELS;
 
 	return antenna_and_channel_to_subsequence_number(tag_antenna_index,
 	                                                 anchor_antenna_index,
