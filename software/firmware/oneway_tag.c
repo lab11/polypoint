@@ -185,8 +185,7 @@ static void tag_rxcallback (const dwt_callback_data_t* rxd) {
 		uint8_t  message_type;
 
 		// Get the received time of this packet first
-		dwt_readrxtimestamp(buf);
-		dw_rx_timestamp = DW_TIMESTAMP_TO_UINT64(buf);
+		dw_rx_timestamp = dw1000_readrxtimestamp();
 
 		// Get the actual packet bytes
 		dwt_readrxdata(buf, MIN(ONEWAY_TAG_MAX_RX_PKT_LEN, rxd->datalength), 0);
@@ -291,12 +290,12 @@ static void send_poll () {
 	// Setup the time the packet will go out at, and save that timestamp
 	uint32_t delay_time = dwt_readsystimestamphi32() + DW_DELAY_FROM_PKT_LEN(tx_len);
 	delay_time &= 0xFFFFFFFE; //Make sure last bit is zero
-	dwt_setdelayedtrxtime(delay_time);
+	dw1000_setdelayedtrxtime(delay_time);
 
 	// Take the TX+RX delay into account here by adding it to the time stamp
 	// of each outgoing packet.
 	ot_scratch->ranging_broadcast_ss_send_times[ot_scratch->ranging_broadcast_ss_num] =
-		(((uint64_t) delay_time) << 8) + oneway_get_txdelay_from_subsequence(TAG, ot_scratch->ranging_broadcast_ss_num);
+		(((uint64_t) delay_time) << 8) + dw1000_gettimestampoverflow() + oneway_get_txdelay_from_subsequence(TAG, ot_scratch->ranging_broadcast_ss_num);
 
 	// Write the data
 	dwt_writetxdata(tx_len, (uint8_t*) &(ot_scratch->pp_tag_poll_pkt), 0);

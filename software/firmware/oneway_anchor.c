@@ -200,12 +200,12 @@ static void ranging_listening_window_task () {
 	
 			delay_time &= 0xFFFFFFFE;
 	
+			// Set the packet to be transmitted later.
+			dw1000_setdelayedtrxtime(delay_time);
+	
 			// Record the outgoing time in the packet. Do not take calibration into
 			// account here, as that is done on all of the RX timestamps.
-			oa_scratch->pp_anc_final_pkt.dw_time_sent = (((uint64_t) delay_time) << 8) + oneway_get_txdelay_from_ranging_listening_window(oa_scratch->ranging_listening_window_num);
-	
-			// Set the packet to be transmitted later.
-			dwt_setdelayedtrxtime(delay_time);
+			oa_scratch->pp_anc_final_pkt.dw_time_sent = (((uint64_t) delay_time) << 8) + dw1000_gettimestampoverflow() + oneway_get_txdelay_from_ranging_listening_window(oa_scratch->ranging_listening_window_num);
 	
 			// Send the response packet
 			// TODO: handle if starttx errors. I'm not sure what to do about it,
@@ -283,8 +283,7 @@ static void anchor_rxcallback (const dwt_callback_data_t *rxd) {
 			uint8_t  message_type;
 
 			// Get the received time of this packet first
-			dwt_readrxtimestamp(buf);
-			dw_rx_timestamp = DW_TIMESTAMP_TO_UINT64(buf);
+			dw_rx_timestamp = dw1000_readrxtimestamp();
 
 			// Get the actual packet bytes
 			dwt_readrxdata(buf, MIN(ONEWAY_ANCHOR_MAX_RX_PKT_LEN, rxd->datalength), 0);

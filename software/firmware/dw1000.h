@@ -189,6 +189,9 @@ void          dw1000_sleep ();
 dw1000_err_e  dw1000_wakeup ();
 void          dw1000_update_channel (uint8_t chan);
 void          dw1000_reset_configuration ();
+uint64_t      dw1000_readrxtimestamp();
+uint64_t      dw1000_setdelayedtrxtime(uint32_t delay_time);
+uint64_t      dw1000_gettimestampoverflow();
 
 // for main.c
 void          dw1000_interrupt_fired ();

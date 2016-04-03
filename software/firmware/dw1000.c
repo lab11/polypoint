@@ -59,6 +59,8 @@ static dwt_txconfig_t global_tx_config;
 // Calibration values and other things programmed in with flash
 static dw1000_programmed_values_t _prog_values;
 
+static uint32_t _last_dw_timestamp;
+static uint64_t _dw_timestamp_overflow;
 
 /******************************************************************************/
 // Internal state for this file
@@ -644,6 +646,9 @@ dw1000_err_e dw1000_init () {
 	// Choose antenna 0 as a default
 	dw1000_choose_antenna(0);
 
+	_last_dw_timestamp = 0;
+	_dw_timestamp_overflow = 0;
+
 #ifdef CW_TEST_MODE
 	uint8_t buf[2];
 	dwt_configcwmode(1);
@@ -938,4 +943,33 @@ void insert_sorted (int arr[], int new, unsigned end) {
 			insert_at++;
 		}
 	}
+}
+
+uint64_t dw1000_readrxtimestamp(){
+	uint64_t cur_dw_timestamp = 0;
+	dwt_readrxtimestamp(&cur_dw_timestamp);
+	
+	// Check to see if an overflow has occurred.
+	if(cur_dw_timestamp < _last_dw_timestamp){
+		_dw_timestamp_overflow += 0x100000000ULL;
+	}
+	_last_dw_timestamp = cur_dw_timestamp;
+
+	return _dw_timestamp_overflow + cur_dw_timestamp;
+}
+
+uint64_t dw1000_setdelayedtrxtime(uint32_t delay_time){
+	uint64_t cur_dw_timestamp = ((uint64_t) delay_time) << 8;
+	
+	// Check to see if an overflow has occurred.
+	if(cur_dw_timestamp < _last_dw_timestamp){
+		_dw_timestamp_overflow += 0x100000000ULL;
+	}
+	_last_dw_timestamp = cur_dw_timestamp;
+	
+	dwt_setdelayedtrxtime(delay_time);
+}
+
+uint64_t dw1000_gettimestampoverflow(){
+	return _dw_timestamp_overflow;
 }
