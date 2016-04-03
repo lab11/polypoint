@@ -8,6 +8,7 @@
 #define LWB_SLOTS_PER_RANGE       7
 
 #define MAX_SCHED_TAGS            10
+#define GLOSSY_MAX_DEPTH          10
 
 #ifdef GLOSSY_PER_TEST
 #define GLOSSY_UPDATE_INTERVAL_US 1e4

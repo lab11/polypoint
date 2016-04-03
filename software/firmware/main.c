@@ -12,7 +12,6 @@
 #include "oneway_common.h"
 #include "oneway_tag.h"
 #include "oneway_anchor.h"
-#include "calibration.h"
 #include "timer.h"
 #include "delay.h"
 #include "firmware.h"
@@ -61,7 +60,6 @@ static void error () {
 union app_scratchspace {
 	oneway_tag_scratchspace_struct ot_scratch;
 	oneway_anchor_scratchspace_struct oa_scratch;
-	calibration_scratchspace_struct cal_scratch;
 } _app_scratchspace;
 
 /******************************************************************************/
@@ -93,10 +91,6 @@ void polypoint_configure_app (polypoint_application_e app, void* app_config) {
 			oneway_configure((oneway_config_t*) app_config, NULL, (void*)&_app_scratchspace);
 			break;
 
-		case APP_CALIBRATION:
-			calibration_configure((calibration_config_t*) app_config, NULL, (void*)&_app_scratchspace);
-			break;
-
 		default:
 			break;
 	}
@@ -123,10 +117,6 @@ void polypoint_start () {
 			oneway_start();
 			break;
 
-		case APP_CALIBRATION:
-			calibration_start();
-			break;
-
 		default:
 			break;
 	}
@@ -144,10 +134,6 @@ void polypoint_stop () {
 	switch (_current_app) {
 		case APP_ONEWAY:
 			oneway_stop();
-			break;
-
-		case APP_CALIBRATION:
-			calibration_stop();
 			break;
 
 		default:
@@ -179,10 +165,6 @@ void polypoint_reset () {
 	switch (_current_app) {
 		case APP_ONEWAY:
 			oneway_reset();
-			break;
-
-		case APP_CALIBRATION:
-			calibration_reset();
 			break;
 
 		default:

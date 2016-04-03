@@ -18,13 +18,14 @@ static uint64_t _last_sync_timestamp;
 static uint64_t _last_overall_timestamp;
 static uint64_t _time_overflow;
 static uint64_t _last_time_sent;
-static uint64_t _time_sent_overflow;
 static uint32_t _last_delay_time;
 static uint8_t _currently_syncd;
 static uint8_t _xtal_trim;
 static bool _sending_sync;
 static uint32_t _lwb_counter;
 static bool _lwb_valid;
+static uint8_t _cur_glossy_depth;
+static bool _glossy_currently_flooding;
 
 static bool _lwb_sched_en;
 static bool _lwb_scheduled;
@@ -87,7 +88,6 @@ void glossy_init(glossy_role_e role){
 
 	_currently_syncd = 0;
 	_last_overall_timestamp = 0;
-	_time_sent_overflow = 0;
 	_last_delay_time = 0;
 	_role = role;
 	_sending_sync = FALSE;
@@ -98,6 +98,7 @@ void glossy_init(glossy_role_e role){
 	_lwb_sched_en = FALSE;
 	_lwb_scheduled = FALSE;
 	_lwb_schedule_callback = NULL;
+	_glossy_currently_flooding = FALSE;
 
 #ifdef GLOSSY_PER_TEST
 	_total_syncs_sent = 0;
@@ -147,7 +148,7 @@ void glossy_sync_task(){
 	} else {
 		// Force ourselves into RX mode if we still haven't received any sync floods...
 		// TODO: This is a hack... :(
-		if(!_lwb_valid && ((_lwb_counter % 5) == 0)) {
+		if((!_lwb_valid || (_lwb_counter > (GLOSSY_UPDATE_INTERVAL_US/LWB_SLOT_US))) && ((_lwb_counter % 5) == 0)) {
 			dwt_forcetrxoff();
 			dw1000_update_channel(1);
 			dw1000_choose_antenna(0);
@@ -209,6 +210,26 @@ void glossy_process_txcallback(){
 		timer_reset(_glossy_timer, 0);
 		_lwb_counter = 0;
 		_sending_sync = FALSE;
+	} else if(_role == GLOSSY_SLAVE){
+		if(_glossy_currently_flooding){
+			// We're flooding, keep doing it until the max depth!
+			uint32_t delay_time = _last_delay_time + DW_DELAY_FROM_US(GLOSSY_FLOOD_TIMESLOT_US);
+			delay_time &= 0xFFFFFFFE;
+			_last_delay_time = delay_time;
+
+			_cur_glossy_depth++;
+			if (_cur_glossy_depth < GLOSSY_MAX_DEPTH){
+				dwt_forcetrxoff();
+				dwt_setrxaftertxdelay(LWB_SLOT_US);
+				dwt_setdelayedtrxtime(delay_time);
+				dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED);
+				dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
+				dwt_writetxdata(1, &_cur_glossy_depth, offsetof(struct ieee154_header_broadcast, seqNum));
+			} else {
+				dwt_rxenable(0);
+				_glossy_currently_flooding = FALSE;
+			}
+		}
 	}
 }
 
@@ -216,8 +237,6 @@ void send_sync(uint32_t delay_time){
 	uint16_t frame_len = sizeof(struct pp_sched_flood);
 	dwt_writetxfctrl(frame_len, 0);
 
-	if(delay_time < _last_delay_time)
-		_time_sent_overflow += 0x100000000ULL;
 	_last_delay_time = delay_time;
 
 	dwt_setdelayedtrxtime(delay_time);
@@ -232,7 +251,7 @@ void send_sync(uint32_t delay_time){
 #define CW_CAL_22PF ((3.494078-3.493998)/3.4944*1e6/30)
 #define CW_CAL_33PF ((3.493941-3.493891)/3.4944*1e6/30)
 int8_t clock_offset_to_trim_diff(double ppm_offset){
-       return (int8_t) (ppm_offset/CW_CAL_22PF + 0.5);
+       return (int8_t) (ppm_offset/CW_CAL_12PF + 0.5);
 }
 
 void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){

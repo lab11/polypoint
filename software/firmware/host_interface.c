@@ -9,7 +9,6 @@
 #include "host_interface.h"
 #include "dw1000.h"
 #include "oneway_common.h"
-#include "calibration.h"
 
 #define BUFFER_SIZE 128
 uint8_t rxBuffer[BUFFER_SIZE];
@@ -223,12 +222,12 @@ void host_interface_rx_fired () {
 				polypoint_start();
 
 			} else if (my_app == APP_CALIBRATION) {
-				// Run the calibration application to find the TX and RX
-				// delays in the node.
-				calibration_config_t cal_config;
-				cal_config.index = rxBuffer[2];
-				polypoint_configure_app(my_app, &cal_config);
-				polypoint_start();
+				//// Run the calibration application to find the TX and RX
+				//// delays in the node.
+				//calibration_config_t cal_config;
+				//cal_config.index = rxBuffer[2];
+				//polypoint_configure_app(my_app, &cal_config);
+				//polypoint_start();
 			}
 
 			break;
