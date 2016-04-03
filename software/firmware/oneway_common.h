@@ -87,7 +87,11 @@ struct pp_anc_final {
 	uint8_t message_type;
 	uint8_t final_antenna;                 // The antenna the anchor used when sending this packet.
 	uint64_t dw_time_sent;                 // The anchor timestamp of when it sent this packet
-	uint64_t TOAs[NUM_RANGING_BROADCASTS]; // The anchor timestamps of when it received the tag poll messages.
+	uint8_t  first_rxd_idx;
+	uint64_t first_rxd_toa;
+	uint8_t  last_rxd_idx;
+	uint64_t last_rxd_toa;
+	uint16_t TOAs[NUM_RANGING_BROADCASTS]; // The anchor timestamps of when it received the tag poll messages.
 	struct ieee154_footer footer;
 } __attribute__ ((__packed__));
 
@@ -124,7 +128,11 @@ typedef struct {
 	uint8_t  window_packet_recv;         // The window the tag was in when it received the packet from the anchor.
 	uint64_t anc_final_tx_timestamp; // When the anchor node sent the ANC_FINAL
 	uint64_t anc_final_rx_timestamp; // When the tag received the ANC_FINAL
-	uint64_t tag_poll_TOAs[NUM_RANGING_BROADCASTS];
+	uint8_t  tag_poll_first_idx;
+	uint64_t tag_poll_first_TOA;
+	uint8_t  tag_poll_last_idx;
+	uint64_t tag_poll_last_TOA;
+	uint16_t tag_poll_TOAs[NUM_RANGING_BROADCASTS];
 } __attribute__ ((__packed__)) anchor_responses_t;
 
 

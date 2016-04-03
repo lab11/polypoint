@@ -316,8 +316,10 @@ static void anchor_rxcallback (const dwt_callback_data_t *rxd) {
 						oa_scratch->ranging_broadcast_ss_num = rx_poll_pkt->subsequence;
 						// Record the timestamp. Need to subtract off the TX+RX delay from each recorded
 						// timestamp.
+						oa_scratch->pp_anc_final_pkt.first_rxd_toa = dw_rx_timestamp - oneway_get_rxdelay_from_subsequence(ANCHOR, oa_scratch->ranging_broadcast_ss_num);
+						oa_scratch->pp_anc_final_pkt.first_rxd_idx = oa_scratch->ranging_broadcast_ss_num;
 						oa_scratch->pp_anc_final_pkt.TOAs[oa_scratch->ranging_broadcast_ss_num] =
-							dw_rx_timestamp - oneway_get_rxdelay_from_subsequence(ANCHOR, oa_scratch->ranging_broadcast_ss_num);
+							(dw_rx_timestamp - oneway_get_rxdelay_from_subsequence(ANCHOR, oa_scratch->ranging_broadcast_ss_num)) & 0xFFFF;
 						// Also record parameters the tag has sent us about how to respond
 						// (or other operational parameters).
 						oa_scratch->ranging_operation_config.reply_after_subsequence = rx_poll_pkt->reply_after_subsequence;
@@ -354,7 +356,9 @@ static void anchor_rxcallback (const dwt_callback_data_t *rxd) {
 							// This is the packet we were expecting from the tag.
 							// Record the TOA, and adjust it with the calibration value.
 							oa_scratch->pp_anc_final_pkt.TOAs[oa_scratch->ranging_broadcast_ss_num] =
-								dw_rx_timestamp - oneway_get_rxdelay_from_subsequence(ANCHOR, oa_scratch->ranging_broadcast_ss_num);
+								(dw_rx_timestamp - oneway_get_rxdelay_from_subsequence(ANCHOR, oa_scratch->ranging_broadcast_ss_num)) & 0xFFFF;
+							oa_scratch->pp_anc_final_pkt.last_rxd_toa = dw_rx_timestamp - oneway_get_rxdelay_from_subsequence(ANCHOR, oa_scratch->ranging_broadcast_ss_num);
+							oa_scratch->pp_anc_final_pkt.last_rxd_idx = oa_scratch->ranging_broadcast_ss_num;
 
 							// Update the statistics we keep about which antenna
 							// receives the most packets from the tag
