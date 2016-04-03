@@ -224,7 +224,7 @@ void glossy_process_txcallback(){
 				dwt_setdelayedtrxtime(delay_time);
 				dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED);
 				dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
-				dwt_writetxdata(1, &_cur_glossy_depth, offsetof(struct ieee154_header_broadcast, seqNum));
+    				dwt_writetodevice( TX_BUFFER_ID, offsetof(struct ieee154_header_broadcast, seqNum), 1, &_cur_glossy_depth) ;
 			} else {
 				dwt_rxenable(0);
 				_glossy_currently_flooding = FALSE;
@@ -294,11 +294,13 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 	else if(_role == GLOSSY_SLAVE){
 		if(in_glossy_sync->message_type == MSG_TYPE_PP_GLOSSY_SCHED_REQ){
 			// Increment depth counter
-			in_glossy_sched_req->header.seqNum++;
+			_cur_glossy_depth = ++in_glossy_sched_req->header.seqNum;
+			_glossy_currently_flooding = TRUE;
 
 			// Flood out as soon as possible
 			uint32_t delay_time = (dw_timestamp >> 8) + DW_DELAY_FROM_US(GLOSSY_FLOOD_TIMESLOT_US);
 			delay_time &= 0xFFFFFFFE;
+			_last_delay_time = delay_time;
 			dwt_forcetrxoff();
 			dwt_setrxaftertxdelay(LWB_SLOT_US);
 			dwt_setdelayedtrxtime(delay_time);
@@ -313,14 +315,14 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 			}
 			_lwb_num_timeslots = uint64_count_ones(in_glossy_sync->tag_ranging_mask);
 
-			if(in_glossy_sync->header.seqNum == _last_sync_depth){
-				// Check to see if this is the next sync message from the depth previously seen
+			if(_last_sync_timestamp + ((uint64_t)(DW_DELAY_FROM_US(GLOSSY_UPDATE_INTERVAL_US * 0.5)) << 8) < dw_timestamp){
 				if(_last_sync_timestamp + ((uint64_t)(DW_DELAY_FROM_US(GLOSSY_UPDATE_INTERVAL_US * 1.5)) << 8) > dw_timestamp){
+					// If we're between 0.5 to 1.0 times the update interval, we are now able to update our clock and perpetuate the flood!
+			
 					// Calculate the ppm offset from the last two received sync messages
 					double clock_offset_ppm = (((double)(dw_timestamp - _last_sync_timestamp) / ((uint64_t)(GLOSSY_UPDATE_INTERVAL_DW) << 8)) - 1.0) * 1e6;
 
 					// Great, we're still sync'd!
-					_last_sync_timestamp = dw_timestamp;
 					_last_sync_depth = in_glossy_sync->header.seqNum;
 					_currently_syncd = 1;
 
@@ -341,27 +343,23 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 
 					// Perpetuate the flood!
 					memcpy(&_sync_pkt, in_glossy_sync, sizeof(struct pp_sched_flood));
-					_sync_pkt.header.seqNum = _last_sync_depth+1;
+					_cur_glossy_depth = ++_sync_pkt.header.seqNum;
 
 					uint32_t delay_time = (dw_timestamp >> 8) + DW_DELAY_FROM_US(GLOSSY_FLOOD_TIMESLOT_US);
 					delay_time &= 0xFFFFFFFE;
 					dwt_forcetrxoff();
 					send_sync(delay_time);
+
+					_glossy_currently_flooding = TRUE;
 				} else {
 					// We lost sync :(
 					_currently_syncd = 0;
-					_last_sync_depth = 0xFF;
 				}
 			} else {
-				// Ignore this sync message if we're currently sync'd at some other depth
-				if(_last_sync_timestamp + ((uint64_t)(DW_DELAY_FROM_US(GLOSSY_UPDATE_INTERVAL_US * 1.5)) << 8) < dw_timestamp) {
-					// If it's been too long since our last received sync packet, let's try things at a different depth
-					_last_sync_timestamp = dw_timestamp;
-					_last_sync_depth = in_glossy_sync->header.seqNum;
-				} else {
-					/* Do Nothing */
-				}
+				// We've just received a following packet in the flood
+				// This really shouldn't happen, but for now let's ignore it
 			}
+			_last_sync_timestamp = dw_timestamp - (DW_DELAY_FROM_US(GLOSSY_FLOOD_TIMESLOT_US) << 8)*(in_glossy_sync->header.seqNum);
 		}
 	}
 }

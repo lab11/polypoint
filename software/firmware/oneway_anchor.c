@@ -110,6 +110,8 @@ dw1000_err_e oneway_anchor_start () {
 	// Obviously we want to be able to receive packets
 	dwt_rxenable(0);
 
+	oa_scratch->final_ack_received = FALSE;
+
 	return DW1000_NO_ERR;
 }
 
@@ -167,44 +169,51 @@ static void ranging_listening_window_task () {
 
 	} else {
 
-		// Setup the channel and antenna settings
-		oneway_set_ranging_listening_window_settings(ANCHOR,
-		                                             oa_scratch->ranging_listening_window_num,
-		                                             oa_scratch->pp_anc_final_pkt.final_antenna);
+		if(!oa_scratch->final_ack_received){
 
-		// Prepare the outgoing packet to send back to the
-		// tag with our TOAs.
-		oa_scratch->pp_anc_final_pkt.ieee154_header_unicast.seqNum++;
-		const uint16_t frame_len = sizeof(struct pp_anc_final);
-		// const uint16_t frame_len = sizeof(struct pp_anc_final) - (sizeof(uint64_t)*NUM_RANGING_BROADCASTS);
-		dwt_writetxfctrl(frame_len, 0);
-
-		// Pick a slot to respond in. Generate a random number and mod it
-		// by the number of slots
-		uint32_t slot_time = ranval(&(oa_scratch->prng_state)) % (oa_scratch->ranging_operation_config.anchor_reply_window_in_us -
-		                                                           dw1000_packet_data_time_in_us(frame_len) -
-		                                                           dw1000_preamble_time_in_us());
-
-		// Come up with the time to send this packet back to the
-		// tag based on the slot we picked.
-		uint32_t delay_time = dwt_readsystimestamphi32() +
-			DW_DELAY_FROM_US(RANGING_LISTENING_WINDOW_PADDING_US + dw1000_preamble_time_in_us() + slot_time);
-
-		delay_time &= 0xFFFFFFFE;
-
-		// Record the outgoing time in the packet. Do not take calibration into
-		// account here, as that is done on all of the RX timestamps.
-		oa_scratch->pp_anc_final_pkt.dw_time_sent = (((uint64_t) delay_time) << 8) + oneway_get_txdelay_from_ranging_listening_window(oa_scratch->ranging_listening_window_num);
-
-		// Set the packet to be transmitted later.
-		dwt_setdelayedtrxtime(delay_time);
-
-		// Send the response packet
-		// TODO: handle if starttx errors. I'm not sure what to do about it,
-		//       other than just wait for the next slot.
-		dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED);
-		dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
-		dwt_writetxdata(frame_len, (uint8_t*) &(oa_scratch->pp_anc_final_pkt), 0);
+			dwt_forcetrxoff();
+	
+			// Setup the channel and antenna settings
+			oneway_set_ranging_listening_window_settings(ANCHOR,
+			                                             oa_scratch->ranging_listening_window_num,
+			                                             oa_scratch->pp_anc_final_pkt.final_antenna);
+	
+			// Prepare the outgoing packet to send back to the
+			// tag with our TOAs.
+			oa_scratch->pp_anc_final_pkt.ieee154_header_unicast.seqNum = ranval(&(oa_scratch->prng_state)) & 0xFF;
+			const uint16_t frame_len = sizeof(struct pp_anc_final);
+			// const uint16_t frame_len = sizeof(struct pp_anc_final) - (sizeof(uint64_t)*NUM_RANGING_BROADCASTS);
+			dwt_writetxfctrl(frame_len, 0);
+	
+			// Pick a slot to respond in. Generate a random number and mod it
+			// by the number of slots
+			uint32_t slot_time = ranval(&(oa_scratch->prng_state)) % (oa_scratch->ranging_operation_config.anchor_reply_window_in_us -
+			                                                           dw1000_packet_data_time_in_us(frame_len) -
+			                                                           dw1000_preamble_time_in_us());
+	
+			dwt_setrxaftertxdelay(1);
+	
+			// Come up with the time to send this packet back to the
+			// tag based on the slot we picked.
+			uint32_t delay_time = dwt_readsystimestamphi32() +
+				DW_DELAY_FROM_US(RANGING_LISTENING_WINDOW_PADDING_US + dw1000_preamble_time_in_us() + slot_time);
+	
+			delay_time &= 0xFFFFFFFE;
+	
+			// Record the outgoing time in the packet. Do not take calibration into
+			// account here, as that is done on all of the RX timestamps.
+			oa_scratch->pp_anc_final_pkt.dw_time_sent = (((uint64_t) delay_time) << 8) + oneway_get_txdelay_from_ranging_listening_window(oa_scratch->ranging_listening_window_num);
+	
+			// Set the packet to be transmitted later.
+			dwt_setdelayedtrxtime(delay_time);
+	
+			// Send the response packet
+			// TODO: handle if starttx errors. I'm not sure what to do about it,
+			//       other than just wait for the next slot.
+			dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED);
+			dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
+			dwt_writetxdata(frame_len, (uint8_t*) &(oa_scratch->pp_anc_final_pkt), 0);
+		}
 
 		oa_scratch->ranging_listening_window_num++;
 	}
@@ -260,12 +269,17 @@ static void anchor_rxcallback (const dwt_callback_data_t *rxd) {
 		// First check to see if this is an acknowledgement...
 		// If so, we can stop sending ranging responses
 		if((rxd->fctrl[0] & 0x03) == 0x02){  //This bit says whether this was an ack or not
-			oa_scratch->ranging_listening_window_num = NUM_RANGING_CHANNELS;
+			uint8_t cur_seq_num;
+			dwt_readrxdata(&cur_seq_num, 1, 2);
+
+			// Check to see if the sequence number matches the outgoing packet
+			if(cur_seq_num == oa_scratch->pp_anc_final_pkt.ieee154_header_unicast.seqNum)
+				oa_scratch->final_ack_received = TRUE;
 		} else {
 
 			// Read in parameters of this packet reception
-			uint64_t dw_rx_timestamp;
 			uint8_t  buf[ONEWAY_ANCHOR_MAX_RX_PKT_LEN];
+			uint64_t dw_rx_timestamp;
 			uint8_t  message_type;
 
 			// Get the received time of this packet first

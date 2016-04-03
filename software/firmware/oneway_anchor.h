@@ -53,6 +53,8 @@ typedef struct {
 	
 	// Packet that the anchor unicasts to the tag
 	struct pp_anc_final pp_anc_final_pkt;
+
+	bool final_ack_received;
 } oneway_anchor_scratchspace_struct;
 
 oneway_anchor_scratchspace_struct *oa_scratch;
