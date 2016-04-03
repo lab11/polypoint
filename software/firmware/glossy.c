@@ -213,7 +213,7 @@ void glossy_process_txcallback(){
 	} else if(_role == GLOSSY_SLAVE){
 		if(_glossy_currently_flooding){
 			// We're flooding, keep doing it until the max depth!
-			uint32_t delay_time = _last_delay_time + DW_DELAY_FROM_US(GLOSSY_FLOOD_TIMESLOT_US);
+			uint32_t delay_time = _last_delay_time + (DW_DELAY_FROM_US(GLOSSY_FLOOD_TIMESLOT_US) & 0xFFFFFFFE);
 			delay_time &= 0xFFFFFFFE;
 			_last_delay_time = delay_time;
 
@@ -298,7 +298,7 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 			_glossy_currently_flooding = TRUE;
 
 			// Flood out as soon as possible
-			uint32_t delay_time = (dw_timestamp >> 8) + DW_DELAY_FROM_US(GLOSSY_FLOOD_TIMESLOT_US);
+			uint32_t delay_time = (dw_timestamp >> 8) + (DW_DELAY_FROM_US(GLOSSY_FLOOD_TIMESLOT_US) & 0xFFFFFFFE);
 			delay_time &= 0xFFFFFFFE;
 			_last_delay_time = delay_time;
 			dwt_forcetrxoff();
@@ -345,7 +345,7 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 					memcpy(&_sync_pkt, in_glossy_sync, sizeof(struct pp_sched_flood));
 					_cur_glossy_depth = ++_sync_pkt.header.seqNum;
 
-					uint32_t delay_time = (dw_timestamp >> 8) + DW_DELAY_FROM_US(GLOSSY_FLOOD_TIMESLOT_US);
+					uint32_t delay_time = (dw_timestamp >> 8) + (DW_DELAY_FROM_US(GLOSSY_FLOOD_TIMESLOT_US) & 0xFFFFFFFE);
 					delay_time &= 0xFFFFFFFE;
 					dwt_forcetrxoff();
 					send_sync(delay_time);
@@ -359,7 +359,7 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 				// We've just received a following packet in the flood
 				// This really shouldn't happen, but for now let's ignore it
 			}
-			_last_sync_timestamp = dw_timestamp - (DW_DELAY_FROM_US(GLOSSY_FLOOD_TIMESLOT_US) << 8)*(in_glossy_sync->header.seqNum);
+			_last_sync_timestamp = dw_timestamp - ((uint64_t)(DW_DELAY_FROM_US(GLOSSY_FLOOD_TIMESLOT_US) & 0xFFFFFFFE) << 8)*(in_glossy_sync->header.seqNum);
 		}
 	}
 }
