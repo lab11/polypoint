@@ -951,7 +951,7 @@ uint64_t dw1000_readrxtimestamp(){
 	
 	// Check to see if an overflow has occurred.
 	if(cur_dw_timestamp < _last_dw_timestamp){
-		_dw_timestamp_overflow += 0x100000000ULL;
+		_dw_timestamp_overflow += 0x10000000000ULL;
 	}
 	_last_dw_timestamp = cur_dw_timestamp;
 
@@ -963,7 +963,7 @@ uint64_t dw1000_setdelayedtrxtime(uint32_t delay_time){
 	
 	// Check to see if an overflow has occurred.
 	if(cur_dw_timestamp < _last_dw_timestamp){
-		_dw_timestamp_overflow += 0x100000000ULL;
+		_dw_timestamp_overflow += 0x10000000000ULL;
 	}
 	_last_dw_timestamp = cur_dw_timestamp;
 	
