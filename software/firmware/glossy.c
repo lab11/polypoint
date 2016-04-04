@@ -125,8 +125,12 @@ void glossy_sync_task(){
 	_lwb_counter++;
 
 	if(_role == GLOSSY_MASTER){
+		// During the first timeslot, put ourselves back into RX mode
+		if(_lwb_counter == 1){
+			dwt_rxenable(0);
+
 		// Last timeslot is used by the master to schedule the next glossy sync packet
-		if(_lwb_counter == (GLOSSY_UPDATE_INTERVAL_US/LWB_SLOT_US)-1){
+		} else if(_lwb_counter == (GLOSSY_UPDATE_INTERVAL_US/LWB_SLOT_US)-1){
 			dwt_forcetrxoff();
 		
 		#ifdef GLOSSY_PER_TEST
@@ -159,6 +163,7 @@ void glossy_sync_task(){
 			// Check to see if it's our turn to do a ranging event!
 			// LWB Slot 1: Contention slot
 			if(_lwb_counter == 1){
+				dwt_rxenable(0);
 				if(!_lwb_scheduled && _lwb_sched_en){
 					dwt_forcetrxoff();
 
@@ -242,7 +247,7 @@ void send_sync(uint32_t delay_time){
 	dwt_setdelayedtrxtime(delay_time);
 	dwt_setrxaftertxdelay(1);
 
-	dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED);
+	dwt_starttx(DWT_START_TX_DELAYED);
 	dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
 	dwt_writetxdata(sizeof(_sync_pkt), (uint8_t*) &_sync_pkt, 0);
 }
