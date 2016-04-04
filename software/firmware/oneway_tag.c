@@ -364,6 +364,9 @@ static void ranging_listening_window_task () {
 		// Set the correct listening settings
 		oneway_set_ranging_listening_window_settings(TAG, ot_scratch->ranging_listening_window_num, 0);
 
+		// Make SURE we're in RX mode!
+		dwt_rxenable(0);
+
 		// Increment and wait
 		ot_scratch->ranging_listening_window_num++;
 
