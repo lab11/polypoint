@@ -746,7 +746,6 @@ dw1000_err_e dw1000_configure_settings () {
 	                 DWT_INT_RFTO |
 	                 DWT_INT_RXPTO |
 	                 DWT_INT_SFDT |
-	                 DWT_INT_RXOVRR |
 	                 DWT_INT_ARFE, 1);
 
 	// Set the parameters of ranging and channel and whatnot
