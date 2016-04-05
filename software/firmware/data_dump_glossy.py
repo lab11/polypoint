@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 
+import logging
+log = logging.getLogger(__name__)
+
+
 import argparse
 import binascii
 import os
@@ -10,9 +14,13 @@ import serial
 
 import numpy as np
 import scipy.io as sio
+from scipy.optimize import fmin_bfgs
+
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-s', '--serial',   default='/dev/tty.usbserial-AL00EZAS')
+parser.add_argument('-f', '--file',     default=None)
 parser.add_argument('-b', '--baudrate', default=3000000, type=int)
 parser.add_argument('-o', '--outfile',  default='out')
 parser.add_argument('-t', '--textfiles',action='store_true',
@@ -30,12 +38,95 @@ if not (args.textfiles or args.matfile or args.binfile):
 	parser.print_help()
 	sys.exit(1)
 
-dev = serial.Serial(args.serial, args.baudrate)
-if dev.isOpen():
-	print("Connected to device at " + dev.portstr)
+if args.file is not None:
+	dev = open(args.file, 'rb')
+	print("Reading data back from file:", args.file)
 else:
-	raise NotImplementedError("Failed to connect to serial device " + args.serial)
+	dev = serial.Serial(args.serial, args.baudrate)
+	if dev.isOpen():
+		print("Connected to device at " + dev.portstr)
+	else:
+		raise NotImplementedError("Failed to connect to serial device " + args.serial)
 
+
+##########################################################################
+
+# ; 4.756-2.608+.164
+# 	2.312
+# ; 14.125-2.640+.164
+# 	11.649
+# ; -4.685+.164+15.819-2.640+0.164
+# 	8.822
+# ; 3.193-2.64+.164
+# 	0.717
+ANCHORS = {
+		'22': (  .212,  8.661, 4.047),
+		'3f': ( 7.050,  0.064, 3.295),
+		'28': (12.704,  9.745, 3.695),
+		'2c': ( 2.312,  0.052, 1.369),
+		'24': (11.649,  0.058, 0.333),
+		'23': (12.704,  3.873, 2.398),
+		'2e': ( 8.822, 15.640, 3.910),
+		'2b': ( 0.717,  3.870, 2.522),
+		'26': (12.704, 15.277, 1.494),
+		}
+
+def location_optimize(x,anchor_ranges,anchor_locations):
+	if(x.size == 2):
+		x = np.append(x,2)
+	x = np.expand_dims(x, axis=0)
+	x_rep = np.tile(x, [anchor_ranges.size,1])
+	r_hat = np.sqrt(np.sum(np.power((x_rep-anchor_locations),2),axis=1))
+	r_hat = np.reshape(r_hat,(anchor_ranges.size,))
+	ret = np.sum(np.power(r_hat-anchor_ranges,2))
+	return ret
+
+
+def trilaterate(ranges, tag_position=np.array([0,0,0])):
+	if len(ranges) < 3:
+		log.warn("Not enough ranges")
+		return None
+	#elif(num_valid_anchors == 2):
+	#	if args.always_report_range:
+	#		log.debug("WARNING: ONLY TWO ANCHORS...")
+	#		loc_anchor_positions = ANCHOR_POSITIONS[sorted_range_idxs[first_valid_idx:last_valid_idx]]
+	#		loc_anchor_ranges = sorted_ranges[first_valid_idx:last_valid_idx]
+	#		log.debug("loc_anchor_ranges = {}".format(loc_anchor_ranges))
+	#		tag_position = fmin_bfgs(
+	#				f=location_optimize,
+	#				x0=tag_position[0:2],
+	#				args=(loc_anchor_ranges, loc_anchor_positions)
+	#				)
+	#		tag_position = np.append(tag_position,2)
+	#	else:
+	#		return None
+	else:
+		log.debug("SUCCESS: Enough valid ranges to perform localization...")
+
+		#loc_anchor_positions = ANCHOR_POSITIONS[sorted_range_idxs[first_valid_idx:last_valid_idx]]
+		#loc_anchor_ranges = sorted_ranges[first_valid_idx:last_valid_idx]
+		loc_anchor_positions = []
+		loc_anchor_ranges = []
+		for eui,range in ranges:
+			loc_anchor_positions.append(ANCHORS[eui])
+			loc_anchor_ranges.append(range)
+		log.debug(loc_anchor_positions)
+		log.debug("loc_anchor_ranges = {}".format(loc_anchor_ranges))
+
+		disp = True if log.isEnabledFor(logging.DEBUG) else False
+		tag_position = fmin_bfgs(
+				disp=disp,
+				f=location_optimize, 
+				x0=tag_position,
+				args=(loc_anchor_ranges, loc_anchor_positions)
+				)
+
+	print("{} {} {}".format(tag_position[0], tag_position[1], tag_position[2]))
+	#ofile.write("{},{},{}\n".format(tag_position[0], tag_position[1], tag_position[2]))
+
+	return tag_position
+
+##########################################################################
 
 def useful_read(length):
 	b = dev.read(length)
@@ -94,12 +185,16 @@ try:
 			num_anchors, = struct.unpack("<B", useful_read(1))
 
 			ranging_broadcast_ss_send_times = struct.unpack("<30Q", useful_read(8*NUM_RANGING_BROADCASTS))
+
+			ranges = {}
 			
 			for x in range(num_anchors):
 				b = useful_read(len(DATA_HEADER))
 				if b != DATA_HEADER:
 					raise AssertionError
 				anchor_eui = useful_read(EUI_LEN)
+				anchor_eui = anchor_eui[::-1] # reverse bytes
+				anchor_eui = binascii.hexlify(anchor_eui)
 				anchor_final_antenna_index, = struct.unpack("<B", useful_read(1))
 				window_packet_recv, = struct.unpack("<B", useful_read(1))
 				anc_final_tx_timestamp, = struct.unpack("<Q", useful_read(8))
@@ -111,6 +206,7 @@ try:
 				tag_poll_TOAs = np.array(struct.unpack("<"+str(NUM_RANGING_BROADCASTS)+"H", useful_read(2*NUM_RANGING_BROADCASTS)))
 
 				if tag_poll_first_idx >= NUM_RANGING_BROADCASTS or tag_poll_last_idx >= NUM_RANGING_BROADCASTS:
+					log.warn("tag_poll outside of range; skpping")
 					continue
 			
 				# Perform ranging operations with the received timestamp data
@@ -134,6 +230,8 @@ try:
 				# Figure out what broadcast the received response belongs to
 				ss_index_matching = oneway_get_ss_index_from_settings(anchor_final_antenna_index, window_packet_recv)
 				if int(tag_poll_TOAs[ss_index_matching]) & 0xFFFF == 0:
+					log.warn("no bcast ss match, ss_index_matching {}, TOAs[{}] = {}".format(
+						ss_index_matching, ss_index_matching, tag_poll_TOAs[ss_index_matching]))
 					continue
 		
 				matching_broadcast_send_time = ranging_broadcast_ss_send_times[ss_index_matching]
@@ -160,11 +258,15 @@ try:
 		
 				#anchor_eui_txt = dec2hex(anchor_eui)
 				range = np.percentile(distance_millimeters,10)
-				print(range)
+				log.debug('Anchor {} Range {}'.foramt(anchor_eui, range))
+
+				ranges[anchor_eui[-2:]] = range
 				
 			footer = useful_read(len(FOOTER))
 			if footer != FOOTER:
 				raise AssertionError
+
+			trilaterate(ranges)
 
 			good += 1
 
