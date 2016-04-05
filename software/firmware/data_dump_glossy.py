@@ -48,7 +48,26 @@ def useful_read(length):
 HEADER      = (0x80018001).to_bytes(4, 'big')
 DATA_HEADER = (0x8080).to_bytes(2, 'big')
 FOOTER      = (0x80FE).to_bytes(2, 'big')
+good = 0
+bad = 0
+NUM_RANGING_CHANNELS = 3
+NUM_RANGING_BROADCASTS = 30
+EUI_LEN = 8
+data_section_length = 8*NUM_RANGING_CHANNELS + 8+1+1+8+8+30*8
 
+def antenna_and_channel_to_subsequence_number(tag_antenna_index, anchor_antenna_index, channel_index):
+	anc_offset = anchor_antenna_index * NUM_RANGING_CHANNELS
+	tag_offset = tag_antenna_index * NUM_RANGING_CHANNELS * NUM_RANGING_CHANNELS
+	base_offset = anc_offset + tag_offset + channel_index
+	
+	ret = base_offset
+	return ret
+
+def oneway_get_ss_index_from_settings(anchor_antenna_index, window_num):
+	tag_antenna_index = 0
+	channel_index = window_num % NUM_RANGING_CHANNELS
+	ret = antenna_and_channel_to_subsequence_number(tag_antenna_index, anchor_antenna_index, channel_index)
+	return ret
 
 def find_header():
 	b = useful_read(len(HEADER))
@@ -65,12 +84,6 @@ if args.matfile:
 if args.binfile:
 	binfile = open(args.outfile + '.bin', 'wb')
 
-good = 0
-bad = 0
-NUM_RANGING_CHANNELS = 3
-NUM_RANGING_BROADCASTS = 30
-EUI_LEN = 8
-data_section_length = 8*NUM_RANGING_CHANNELS + 8+1+1+8+8+30*8
 try:
 	while True:
 		sys.stdout.write("\rGood {}    Bad {}\t\t".format(good, bad))
@@ -80,7 +93,7 @@ try:
 
 			num_anchors, = struct.unpack("<B", useful_read(1))
 
-			ranging_broadcast_ss_send_times = struct.unpack("30d", useful_read(8*NUM_RANGING_BROADCASTS))
+			ranging_broadcast_ss_send_times = struct.unpack("<30Q", useful_read(8*NUM_RANGING_BROADCASTS))
 			
 			for x in range(num_anchors):
 				b = useful_read(len(DATA_HEADER))
@@ -95,7 +108,59 @@ try:
 				tag_poll_first_TOA, = struct.unpack("<d", useful_read(8))
 				tag_poll_last_idx, = struct.unpack("<B", useful_read(1))
 				tag_poll_last_TOA, = struct.unpack("<d", useful_read(8))
-				tag_poll_TOAs = struct.unpack("<"+str(NUM_RANGING_BROADCASTS)+"H", useful_read(2*NUM_RANGING_BROADCASTS))
+				tag_poll_TOAs = np.array(struct.unpack("<"+str(NUM_RANGING_BROADCASTS)+"H", useful_read(2*NUM_RANGING_BROADCASTS)))
+
+				if tag_poll_first_idx >= NUM_RANGING_BROADCASTS or tag_poll_last_idx >= NUM_RANGING_BROADCASTS:
+					continue
+			
+				# Perform ranging operations with the received timestamp data
+				tag_poll_TOAs[tag_poll_first_idx] = tag_poll_first_TOA
+				tag_poll_TOAs[tag_poll_last_idx] = tag_poll_last_TOA
+
+				approx_clock_offset = (tag_poll_last_TOA - tag_poll_first_TOA)/(ranging_broadcast_ss_send_times[tag_poll_last_idx] - ranging_broadcast_ss_send_times[tag_poll_first_idx])
+
+				# Interpolate betseen the first and last to find the high 48 bits which fit best
+				for jj in range(tag_poll_first_idx+1,tag_poll_last_idx):
+					estimated_toa = tag_poll_first_TOA + (approx_clock_offset*(ranging_broadcast_ss_send_times[jj] - ranging_broadcast_ss_send_times[tag_poll_first_idx]))
+					actual_toa = int(estimated_toa) & 0xFFFFFFFFFFF0000 + tag_poll_TOAs[jj]
+
+					if(actual_toa < estimated_toa - 0x7FFF):
+						actual_toa = actual_toa + 0x10000
+					elif(actual_toa > estimated_toa + 0x7FFF):
+						actual_toa = actual_toa - 0x10000
+
+					tag_poll_TOAs[jj] = actual_toa
+
+				# Figure out what broadcast the received response belongs to
+				ss_index_matching = oneway_get_ss_index_from_settings(anchor_final_antenna_index, window_packet_recv)
+				if int(tag_poll_TOAs[ss_index_matching]) & 0xFFFF == 0:
+					continue
+		
+				matching_broadcast_send_time = ranging_broadcast_ss_send_times[ss_index_matching]
+				matching_broadcast_recv_time = tag_poll_TOAs[ss_index_matching]
+				response_send_time = anc_final_tx_timestamp
+				response_recv_time = anc_final_rx_timestamp
+		
+				two_way_TOF = ((response_recv_time - matching_broadcast_send_time)*offset_anchor_over_tag) - (response_send_time - matching_broadcast_recv_time)
+				one_way_TOF = two_way_TOF/2
+		
+				# Declare an array for sorting ranges
+				distances_millimeters = []
+				for jj in range(NUM_RANGING_BROADCASTS):
+					broadcast_send_time = ranging_broadcast_ss_send_times[jj]
+					broadcast_recv_time = tag_poll_TOAs[jj]
+					if int(broadcast_recv_time) & 0xFFFF == 0:
+						continue
+		
+					broadcast_anchor_offset = broadcast_recv_time - matching_broadcast_recv_time
+					broadcast_tag_offset = broadcast_send_time - matching_broadcast_send_time
+					TOF = broadcast_anchor_offset - broadcast_tag_offset*offset_anchor_over_tag + one_way_TOF
+		
+					distance_millimeters.append(TOF)
+		
+				#anchor_eui_txt = dec2hex(anchor_eui)
+				range = np.percentile(distance_millimeters,10)
+				print(range)
 				
 			footer = useful_read(len(FOOTER))
 			if footer != FOOTER:
