@@ -379,7 +379,7 @@ static void report_range () {
 	ot_scratch->state = TSTATE_CALCULATE_RANGE;
 
 	// Calculate ranges
-	calculate_ranges();
+	//calculate_ranges();
 
 	// Push data out over UART if configured to do so
 #ifdef UART_DATA_OFFLOAD

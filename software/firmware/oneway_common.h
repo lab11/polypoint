@@ -41,7 +41,7 @@
 #define RANGING_LISTENING_SLOT_US (RANGING_LISTENING_WINDOW_US/NUM_RANGING_LISTENING_SLOTS)
 
 // Maximum number of anchors a tag is willing to hear from
-#define MAX_NUM_ANCHOR_RESPONSES 6
+#define MAX_NUM_ANCHOR_RESPONSES 10
 
 // Reasonable constants to rule out unreasonable ranges
 #define MIN_VALID_RANGE_MM -1000      // -1 meter
