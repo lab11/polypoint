@@ -314,7 +314,7 @@ try:
 			#if args.binfile:
 			#	binfile.write(bline)
 
-		except AssertionError:
+		except (AssertionError, NotImplementedError):
 			bad += 1
 
 except KeyboardInterrupt:
