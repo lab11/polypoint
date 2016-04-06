@@ -25,6 +25,10 @@ ifndef TARGET
 	TARGET = tritag
 endif
 
+ifneq ($(PID), )
+ID = c0:98:e5:44:50:$(PID)
+endif
+
 TARGET_UPPER = $(shell echo $(TARGET) | tr a-z A-Z)
 TARGET_LOWER = $(shell echo $(TARGET) | tr A-Z a-z)
 BOARD = BOARD_$(TARGET_UPPER)
