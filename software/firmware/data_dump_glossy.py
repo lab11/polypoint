@@ -41,6 +41,7 @@ parser.add_argument('-s', '--serial',   default='/dev/tty.usbserial-AL00EZAS')
 parser.add_argument('-f', '--file',     default=None)
 parser.add_argument('-b', '--baudrate', default=3000000, type=int)
 parser.add_argument('-o', '--outfile',  default='out')
+parser.add_argument('-t', '--trilaterate', action='store_true')
 #parser.add_argument('-t', '--textfiles',action='store_true',
 #		help="Generate ASCII text files with the data")
 #parser.add_argument('-m', '--matfile',  action='store_true',
@@ -87,6 +88,8 @@ ANCHORS = {
 		'2e': ( 8.822, 15.640, 3.910),
 		'2b': ( 0.717,  3.870, 2.522),
 		'26': (12.704, 15.277, 1.494),
+		'30': (12.610,  9.768, 0.064),
+		'27': ( 0.719,  3.864, 0.068),
 		}
 
 def location_optimize(x,anchor_ranges,anchor_locations):
@@ -206,9 +209,14 @@ def dwtime_to_millimeters(dwtime):
 
 ofile = open(args.outfile, 'w')
 
+
+anc_seen_hist = [5]
+
 try:
 	while True:
 		#sys.stdout.write("\rGood {}    Bad {}\t\t".format(good, bad))
+		log.info("Good {}    Bad {}    Avg {:.1f}    Last {}\t\t".format(
+				good, bad, np.mean(anc_seen_hist), anc_seen_hist[-1]))
 
 		try:
 			find_header()
@@ -223,6 +231,7 @@ try:
 			for x in range(num_anchors):
 				b = useful_read(len(DATA_HEADER))
 				if b != DATA_HEADER:
+					log.warn("missed DATA_HEADER")
 					raise AssertionError
 				anchor_eui = useful_read(EUI_LEN)
 				anchor_eui = anchor_eui[::-1] # reverse bytes
@@ -316,11 +325,16 @@ try:
 			if footer != FOOTER:
 				raise AssertionError
 
-			position = trilaterate(ranges)
+			if len(anc_seen_hist) > 20:
+				anc_seen_hist.pop(0)
+			anc_seen_hist.append(len(ranges))
 
-			s = "{:.3f} {:1.4f} {:1.4f} {:1.4f}".format(ts, *position)
-			print(s)
-			ofile.write(s + '\n')
+			if args.trilaterate:
+				position = trilaterate(ranges)
+
+				s = "{:.3f} {:1.4f} {:1.4f} {:1.4f}".format(ts, *position)
+				print(s)
+				ofile.write(s + '\n')
 
 			good += 1
 
