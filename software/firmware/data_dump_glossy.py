@@ -41,6 +41,7 @@ parser.add_argument('-s', '--serial',   default='/dev/tty.usbserial-AL00EZAS')
 parser.add_argument('-f', '--file',     default=None)
 parser.add_argument('-b', '--baudrate', default=3000000, type=int)
 parser.add_argument('-o', '--outfile',  default='out')
+parser.add_argument('-t', '--trilaterate', action='store_true')
 #parser.add_argument('-t', '--textfiles',action='store_true',
 #		help="Generate ASCII text files with the data")
 #parser.add_argument('-m', '--matfile',  action='store_true',
@@ -209,6 +210,7 @@ ofile = open(args.outfile, 'w')
 try:
 	while True:
 		#sys.stdout.write("\rGood {}    Bad {}\t\t".format(good, bad))
+		log.info("Good {}    Bad {}\t\t".format(good, bad))
 
 		try:
 			find_header()
@@ -316,11 +318,12 @@ try:
 			if footer != FOOTER:
 				raise AssertionError
 
-			position = trilaterate(ranges)
+			if args.trilaterate:
+				position = trilaterate(ranges)
 
-			s = "{:.3f} {:1.4f} {:1.4f} {:1.4f}".format(ts, *position)
-			print(s)
-			ofile.write(s + '\n')
+				s = "{:.3f} {:1.4f} {:1.4f} {:1.4f}".format(ts, *position)
+				print(s)
+				ofile.write(s + '\n')
 
 			good += 1
 
