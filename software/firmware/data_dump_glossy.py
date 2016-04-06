@@ -3,12 +3,19 @@
 import logging
 log = logging.getLogger(__name__)
 
+import os
+if 'DEBUG' in os.environ:
+	logging.basicConfig(level=logging.DEBUG)
+
 try:
 	import coloredlogs
 	#coloredlogs.DEFAULT_LOG_FORMAT = '%(asctime)s %(hostname)s %(name)s[%(process)d] %(levelname)s %(message)s'
 	coloredlogs.DEFAULT_LOG_FORMAT = '%(message)s'
 	coloredlogs.DEFAULT_LEVEL_STYLES['debug'] = {'color': 'cyan'}
-	coloredlogs.install()
+	if 'DEBUG' in os.environ:
+		coloredlogs.install(level=logging.DEBUG)
+	else:
+		coloredlogs.install()
 
 except ImportError:
 	pass
@@ -16,7 +23,6 @@ except ImportError:
 
 import argparse
 import binascii
-import os
 import struct
 import sys
 import time
@@ -26,6 +32,7 @@ import serial
 import numpy as np
 import scipy.io as sio
 from scipy.optimize import fmin_bfgs
+
 
 
 
@@ -295,6 +302,12 @@ try:
 		
 				#anchor_eui_txt = dec2hex(anchor_eui)
 				range_mm = np.percentile(distance_millimeters,10)
+
+
+				if range_mm < 0 or range_mm > (1000*30):
+					log.warn('Dropping impossible range %d', range_mm)
+					continue
+
 				log.debug('Anchor {} Range {}'.format(anchor_eui, range_mm))
 
 				ranges[anchor_eui[-2:]] = range_mm / 1000
