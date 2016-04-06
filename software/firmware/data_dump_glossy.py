@@ -33,7 +33,7 @@ import numpy as np
 import scipy.io as sio
 from scipy.optimize import fmin_bfgs
 
-
+import dataprint
 
 
 parser = argparse.ArgumentParser()
@@ -207,8 +207,7 @@ def dwtime_to_millimeters(dwtime):
 #if args.binfile:
 #	binfile = open(args.outfile + '.bin', 'wb')
 
-ofile = open(args.outfile, 'w')
-
+data_array = []
 
 anc_seen_hist = [5]
 
@@ -334,7 +333,15 @@ try:
 
 				s = "{:.3f} {:1.4f} {:1.4f} {:1.4f}".format(ts, *position)
 				print(s)
-				ofile.write(s + '\n')
+
+				aa = []
+				for a in sorted(ANCHORS.keys()):
+					if a in ranges:
+						aa.append(ranges[a])
+					else:
+						aa.append(0)
+
+				data_array.append([ts, *position, *aa])
 
 			good += 1
 
@@ -365,5 +372,15 @@ print("\nGood {}\nBad  {}".format(good, bad))
 #	print('\ttimestmap real0    imag0    real1    imag1    ...')
 #	print('\tFor 1024 total complex numbers')
 
+#dataprint.to_newfile(args.outfile, data_array,
+#		overwrite=True,
+#		#comments=("Time", "X", "Y", "Z"),
+#		)
+ofile = open(args.outfile, 'w')
+aa = []
+for a in sorted(ANCHORS.keys()):
+	aa.append(':'.join((a, *map(str, ANCHORS[a]))))
+ofile.write("#" + '\t'.join(("Time", "X", "Y", "Z", *aa)) + '\n')
+dataprint.to_file(ofile, data_array)
 print("Saved to {}".format(args.outfile))
 
