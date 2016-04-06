@@ -264,6 +264,8 @@ static void anchor_txcallback (const dwt_callback_data_t *txd) {
 // Called when the radio has received a packet.
 static void anchor_rxcallback (const dwt_callback_data_t *rxd) {
 
+	timer_disable_interrupt(oa_scratch->anchor_timer);
+
 	if (rxd->event == DWT_SIG_RX_OKAY) {
 
 		// First check to see if this is an acknowledgement...
@@ -371,11 +373,16 @@ static void anchor_rxcallback (const dwt_callback_data_t *rxd) {
 							oa_scratch->ranging_broadcast_ss_num = rx_poll_pkt->subsequence;
 						}
 
-						// Check to see if we got the last of the ranging broadcasts
-						if (oa_scratch->ranging_broadcast_ss_num == oa_scratch->ranging_operation_config.reply_after_subsequence) {
-							// We did!
-							ranging_listening_window_setup();
-						}
+						// Regardless, it's a good idea to immediately call the subsequence task and restart the timer
+						timer_reset(oa_scratch->anchor_timer, 120); // Magic number calculated from timing
+						ranging_broadcast_subsequence_task();
+						//timer_reset(oa_scratch->anchor_timer, 0);
+
+						//// Check to see if we got the last of the ranging broadcasts
+						//if (oa_scratch->ranging_broadcast_ss_num == oa_scratch->ranging_operation_config.reply_after_subsequence) {
+						//	// We did!
+						//	ranging_listening_window_setup();
+						//}
 
 					} else {
 						// Not the same tag, ignore
@@ -406,4 +413,6 @@ static void anchor_rxcallback (const dwt_callback_data_t *rxd) {
 			// Some other unknown error, not sure what to do
 		}
 	}
+
+	timer_enable_interrupt(oa_scratch->anchor_timer);
 }

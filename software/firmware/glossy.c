@@ -111,8 +111,8 @@ void glossy_init(glossy_role_e role){
 	// If the anchor, let's kick off a task which unconditionally kicks off sync messages with depth = 0
 	if(role == GLOSSY_MASTER){
 		_lwb_valid = TRUE;
-		//uint8 ldok = OTP_SF_OPS_KICK | OTP_SF_OPS_SEL_TIGHT;
-		//dwt_writetodevice(OTP_IF_ID, OTP_SF, 1, &ldok); // set load LDE kick bit
+		uint8 ldok = OTP_SF_OPS_KICK | OTP_SF_OPS_SEL_TIGHT;
+		dwt_writetodevice(OTP_IF_ID, OTP_SF, 1, &ldok); // set load LDE kick bit
 		_last_time_sent = dwt_readsystimestamphi32() & 0xFFFFFFFE;
 	}
 
@@ -163,8 +163,8 @@ void glossy_sync_task(){
 			// Check to see if it's our turn to do a ranging event!
 			// LWB Slot 1: Contention slot
 			if(_lwb_counter == 1){
-				dw1000_update_channel(1);
-				dw1000_choose_antenna(0);
+				//dw1000_update_channel(1);
+				//dw1000_choose_antenna(0);
 				dwt_rxenable(0);
 				if(!_lwb_scheduled && _lwb_sched_en){
 					dwt_forcetrxoff();
