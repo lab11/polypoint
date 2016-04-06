@@ -19,6 +19,7 @@ import binascii
 import os
 import struct
 import sys
+import time
 
 import serial
 
@@ -204,6 +205,7 @@ try:
 
 		try:
 			find_header()
+			ts = time.time()
 
 			num_anchors, = struct.unpack("<B", useful_read(1))
 
@@ -303,7 +305,7 @@ try:
 
 			position = trilaterate(ranges)
 
-			s = "{:1.4f} {:1.4f} {:1.4f}".format(*position)
+			s = "{:.3f} {:1.4f} {:1.4f} {:1.4f}".format(ts, *position)
 			print(s)
 			ofile.write(s + '\n')
 
