@@ -3,6 +3,16 @@
 import logging
 log = logging.getLogger(__name__)
 
+try:
+	import coloredlogs
+	#coloredlogs.DEFAULT_LOG_FORMAT = '%(asctime)s %(hostname)s %(name)s[%(process)d] %(levelname)s %(message)s'
+	coloredlogs.DEFAULT_LOG_FORMAT = '%(message)s'
+	coloredlogs.DEFAULT_LEVEL_STYLES['debug'] = {'color': 'cyan'}
+	coloredlogs.install()
+
+except ImportError:
+	pass
+
 
 import argparse
 import binascii
@@ -23,20 +33,20 @@ parser.add_argument('-s', '--serial',   default='/dev/tty.usbserial-AL00EZAS')
 parser.add_argument('-f', '--file',     default=None)
 parser.add_argument('-b', '--baudrate', default=3000000, type=int)
 parser.add_argument('-o', '--outfile',  default='out')
-parser.add_argument('-t', '--textfiles',action='store_true',
-		help="Generate ASCII text files with the data")
-parser.add_argument('-m', '--matfile',  action='store_true',
-		help="Generate Matlab-compatible .mat file of the data")
-parser.add_argument('-n', '--binfile',  action='store_true',
-		help="Generate binary file of the data")
+#parser.add_argument('-t', '--textfiles',action='store_true',
+#		help="Generate ASCII text files with the data")
+#parser.add_argument('-m', '--matfile',  action='store_true',
+#		help="Generate Matlab-compatible .mat file of the data")
+#parser.add_argument('-n', '--binfile',  action='store_true',
+#		help="Generate binary file of the data")
 
 args = parser.parse_args()
 
-if not (args.textfiles or args.matfile or args.binfile):
-	print("Error: Must specify at least one of -t, -m, or -n")
-	print("")
-	parser.print_help()
-	sys.exit(1)
+#if not (args.textfiles or args.matfile or args.binfile):
+#	print("Error: Must specify at least one of -t, -m, or -n")
+#	print("")
+#	parser.print_help()
+#	sys.exit(1)
 
 if args.file is not None:
 	dev = open(args.file, 'rb')
@@ -83,9 +93,23 @@ def location_optimize(x,anchor_ranges,anchor_locations):
 
 
 def trilaterate(ranges, tag_position=np.array([0,0,0])):
-	if len(ranges) < 3:
-		log.warn("Not enough ranges")
-		return None
+	#loc_anchor_positions = ANCHOR_POSITIONS[sorted_range_idxs[first_valid_idx:last_valid_idx]]
+	#loc_anchor_ranges = sorted_ranges[first_valid_idx:last_valid_idx]
+	loc_anchor_positions = []
+	loc_anchor_ranges = []
+	for eui,range in ranges.items():
+		try:
+			loc_anchor_positions.append(ANCHORS[eui])
+			loc_anchor_ranges.append(range)
+		except KeyError:
+			log.warn("Skipping anchor {} with unknown location".format(eui))
+	loc_anchor_positions = np.array(loc_anchor_positions)
+	loc_anchor_ranges = np.array(loc_anchor_ranges)
+	log.debug(loc_anchor_positions)
+	log.debug("loc_anchor_ranges = {}".format(loc_anchor_ranges))
+
+	if loc_anchor_ranges.size < 3:
+		raise NotImplementedError("Not enough ranges")
 	#elif(num_valid_anchors == 2):
 	#	if args.always_report_range:
 	#		log.debug("WARNING: ONLY TWO ANCHORS...")
@@ -101,22 +125,7 @@ def trilaterate(ranges, tag_position=np.array([0,0,0])):
 	#	else:
 	#		return None
 	else:
-		log.debug("SUCCESS: Enough valid ranges to perform localization...")
-
-		#loc_anchor_positions = ANCHOR_POSITIONS[sorted_range_idxs[first_valid_idx:last_valid_idx]]
-		#loc_anchor_ranges = sorted_ranges[first_valid_idx:last_valid_idx]
-		loc_anchor_positions = []
-		loc_anchor_ranges = []
-		for eui,range in ranges:
-			try:
-				loc_anchor_positions.append(ANCHORS[eui])
-				loc_anchor_ranges.append(range)
-			except KeyError:
-				log.warn("Skipping anchor {} with unknown location".format(eui))
-		log.debug(loc_anchor_positions)
-		log.debug("loc_anchor_ranges = {}".format(loc_anchor_ranges))
-
-		disp = True if log.isEnabledFor(logging.DEBUG) else False
+		disp = False #True if log.isEnabledFor(logging.DEBUG) else False
 		tag_position = fmin_bfgs(
 				disp=disp,
 				f=location_optimize, 
@@ -124,8 +133,7 @@ def trilaterate(ranges, tag_position=np.array([0,0,0])):
 				args=(loc_anchor_ranges, loc_anchor_positions)
 				)
 
-	print("{} {} {}".format(tag_position[0], tag_position[1], tag_position[2]))
-	#ofile.write("{},{},{}\n".format(tag_position[0], tag_position[1], tag_position[2]))
+	#print("{} {} {}".format(tag_position[0], tag_position[1], tag_position[2]))
 
 	return tag_position
 
@@ -134,7 +142,10 @@ def trilaterate(ranges, tag_position=np.array([0,0,0])):
 def useful_read(length):
 	b = dev.read(length)
 	while len(b) < length:
-		b += dev.read(length - len(b))
+		r = dev.read(length - len(b))
+		if len(r) == 0:
+			raise EOFError
+		b += r
 	assert len(b) == length
 	return b
 
@@ -176,18 +187,20 @@ def dwtime_to_millimeters(dwtime):
 	ret = ret * 1000;
 	return ret
 
-if args.textfiles:
-	tsfile  = open(args.outfile + '.timestamps', 'w')
-	datfile = open(args.outfile + '.data', 'w')
-if args.matfile:
-	allts   = []
-	alldata = []
-if args.binfile:
-	binfile = open(args.outfile + '.bin', 'wb')
+#if args.textfiles:
+#	tsfile  = open(args.outfile + '.timestamps', 'w')
+#	datfile = open(args.outfile + '.data', 'w')
+#if args.matfile:
+#	allts   = []
+#	alldata = []
+#if args.binfile:
+#	binfile = open(args.outfile + '.bin', 'wb')
+
+ofile = open(args.outfile, 'w')
 
 try:
 	while True:
-		sys.stdout.write("\rGood {}    Bad {}\t\t".format(good, bad))
+		#sys.stdout.write("\rGood {}    Bad {}\t\t".format(good, bad))
 
 		try:
 			find_header()
@@ -204,7 +217,7 @@ try:
 					raise AssertionError
 				anchor_eui = useful_read(EUI_LEN)
 				anchor_eui = anchor_eui[::-1] # reverse bytes
-				anchor_eui = binascii.hexlify(anchor_eui)
+				anchor_eui = binascii.hexlify(anchor_eui).decode('utf-8')
 				anchor_final_antenna_index, = struct.unpack("<B", useful_read(1))
 				window_packet_recv, = struct.unpack("<B", useful_read(1))
 				anc_final_tx_timestamp, = struct.unpack("<Q", useful_read(8))
@@ -282,13 +295,17 @@ try:
 				range_mm = np.percentile(distance_millimeters,10)
 				log.debug('Anchor {} Range {}'.format(anchor_eui, range_mm))
 
-				ranges[anchor_eui[-2:]] = range_mm
-				
+				ranges[anchor_eui[-2:]] = range_mm / 1000
+
 			footer = useful_read(len(FOOTER))
 			if footer != FOOTER:
 				raise AssertionError
 
-			trilaterate(ranges)
+			position = trilaterate(ranges)
+
+			s = "{:1.4f} {:1.4f} {:1.4f}".format(*position)
+			print(s)
+			ofile.write(s + '\n')
 
 			good += 1
 
@@ -300,20 +317,24 @@ try:
 
 except KeyboardInterrupt:
 	pass
+except EOFError:
+	pass
 
 print("\nGood {}\nBad  {}".format(good, bad))
-if args.textfiles:
-	print("Wrote ASCII outputs to " + args.outfile + ".{timestamps,data}")
-if args.matfile:
-	sio.savemat(args.outfile+'.mat', {
-		'timestamps': allts,
-		'data': alldata,
-		})
-	print('Wrote Matlab-friendly file to ' + args.outfile + '.mat')
-if args.binfile:
-	print('Wrote binary output to ' + args.outfile + '.bin')
-	print('\tBinary data is formatted as:')
-	print('\t<uint64_t><int16_t><int16_t><int16_t><int16_t>... all little endian')
-	print('\ttimestmap real0    imag0    real1    imag1    ...')
-	print('\tFor 1024 total complex numbers')
+#if args.textfiles:
+#	print("Wrote ASCII outputs to " + args.outfile + ".{timestamps,data}")
+#if args.matfile:
+#	sio.savemat(args.outfile+'.mat', {
+#		'timestamps': allts,
+#		'data': alldata,
+#		})
+#	print('Wrote Matlab-friendly file to ' + args.outfile + '.mat')
+#if args.binfile:
+#	print('Wrote binary output to ' + args.outfile + '.bin')
+#	print('\tBinary data is formatted as:')
+#	print('\t<uint64_t><int16_t><int16_t><int16_t><int16_t>... all little endian')
+#	print('\ttimestmap real0    imag0    real1    imag1    ...')
+#	print('\tFor 1024 total complex numbers')
+
+print("Saved to {}".format(args.outfile))
 
