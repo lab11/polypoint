@@ -209,10 +209,14 @@ def dwtime_to_millimeters(dwtime):
 
 ofile = open(args.outfile, 'w')
 
+
+anc_seen_hist = [5]
+
 try:
 	while True:
 		#sys.stdout.write("\rGood {}    Bad {}\t\t".format(good, bad))
-		log.info("Good {}    Bad {}\t\t".format(good, bad))
+		log.info("Good {}    Bad {}    Avg {:.1f}    Last {}\t\t".format(
+				good, bad, np.mean(anc_seen_hist), anc_seen_hist[-1]))
 
 		try:
 			find_header()
@@ -227,6 +231,7 @@ try:
 			for x in range(num_anchors):
 				b = useful_read(len(DATA_HEADER))
 				if b != DATA_HEADER:
+					log.warn("missed DATA_HEADER")
 					raise AssertionError
 				anchor_eui = useful_read(EUI_LEN)
 				anchor_eui = anchor_eui[::-1] # reverse bytes
@@ -319,6 +324,10 @@ try:
 			footer = useful_read(len(FOOTER))
 			if footer != FOOTER:
 				raise AssertionError
+
+			if len(anc_seen_hist) > 20:
+				anc_seen_hist.pop(0)
+			anc_seen_hist.append(len(ranges))
 
 			if args.trilaterate:
 				position = trilaterate(ranges)
