@@ -108,8 +108,11 @@ def trilaterate(ranges, tag_position=np.array([0,0,0])):
 		loc_anchor_positions = []
 		loc_anchor_ranges = []
 		for eui,range in ranges:
-			loc_anchor_positions.append(ANCHORS[eui])
-			loc_anchor_ranges.append(range)
+			try:
+				loc_anchor_positions.append(ANCHORS[eui])
+				loc_anchor_ranges.append(range)
+			except KeyError:
+				log.warn("Skipping anchor {} with unknown location".format(eui))
 		log.debug(loc_anchor_positions)
 		log.debug("loc_anchor_ranges = {}".format(loc_anchor_ranges))
 
@@ -139,6 +142,9 @@ def useful_read(length):
 HEADER      = (0x80018001).to_bytes(4, 'big')
 DATA_HEADER = (0x8080).to_bytes(2, 'big')
 FOOTER      = (0x80FE).to_bytes(2, 'big')
+DWT_TIME_UNITS = 1/499.2e6/128;
+SPEED_OF_LIGHT = 2.99792458e8;
+AIR_N = 1.0003;
 good = 0
 bad = 0
 NUM_RANGING_CHANNELS = 3
@@ -165,6 +171,10 @@ def find_header():
 	while b != HEADER:
 		b = b[1:len(HEADER)] + useful_read(1)
 
+def dwtime_to_millimeters(dwtime):
+	ret = dwtime*DWT_TIME_UNITS*SPEED_OF_LIGHT/AIR_N
+	ret = ret * 1000;
+	return ret
 
 if args.textfiles:
 	tsfile  = open(args.outfile + '.timestamps', 'w')
@@ -184,7 +194,7 @@ try:
 
 			num_anchors, = struct.unpack("<B", useful_read(1))
 
-			ranging_broadcast_ss_send_times = struct.unpack("<30Q", useful_read(8*NUM_RANGING_BROADCASTS))
+			ranging_broadcast_ss_send_times = np.array(struct.unpack("<30Q", useful_read(8*NUM_RANGING_BROADCASTS)))
 
 			ranges = {}
 			
@@ -200,9 +210,9 @@ try:
 				anc_final_tx_timestamp, = struct.unpack("<Q", useful_read(8))
 				anc_final_rx_timestamp, = struct.unpack("<Q", useful_read(8))
 				tag_poll_first_idx, = struct.unpack("<B", useful_read(1))
-				tag_poll_first_TOA, = struct.unpack("<d", useful_read(8))
+				tag_poll_first_TOA, = struct.unpack("<Q", useful_read(8))
 				tag_poll_last_idx, = struct.unpack("<B", useful_read(1))
-				tag_poll_last_TOA, = struct.unpack("<d", useful_read(8))
+				tag_poll_last_TOA, = struct.unpack("<Q", useful_read(8))
 				tag_poll_TOAs = np.array(struct.unpack("<"+str(NUM_RANGING_BROADCASTS)+"H", useful_read(2*NUM_RANGING_BROADCASTS)))
 
 				if tag_poll_first_idx >= NUM_RANGING_BROADCASTS or tag_poll_last_idx >= NUM_RANGING_BROADCASTS:
@@ -218,7 +228,7 @@ try:
 				# Interpolate betseen the first and last to find the high 48 bits which fit best
 				for jj in range(tag_poll_first_idx+1,tag_poll_last_idx):
 					estimated_toa = tag_poll_first_TOA + (approx_clock_offset*(ranging_broadcast_ss_send_times[jj] - ranging_broadcast_ss_send_times[tag_poll_first_idx]))
-					actual_toa = int(estimated_toa) & 0xFFFFFFFFFFF0000 + tag_poll_TOAs[jj]
+					actual_toa = (int(estimated_toa) & 0xFFFFFFFFFFF0000) + tag_poll_TOAs[jj]
 
 					if(actual_toa < estimated_toa - 0x7FFF):
 						actual_toa = actual_toa + 0x10000
@@ -226,6 +236,18 @@ try:
 						actual_toa = actual_toa - 0x10000
 
 					tag_poll_TOAs[jj] = actual_toa
+
+				# Get the actual clock offset calculation
+				num_valid_offsets = 0
+				offset_cumsum = 0
+				for jj in range(NUM_RANGING_CHANNELS):
+					if(tag_poll_TOAs[jj] & 0xFFFF > 0 and tag_poll_TOAs[26+jj] & 0xFFFF > 0):
+						offset_cumsum = offset_cumsum + (tag_poll_TOAs[26+jj] - tag_poll_TOAs[jj])/(ranging_broadcast_ss_send_times[26+jj] - ranging_broadcast_ss_send_times[jj])
+						num_valid_offsets = num_valid_offsets + 1
+
+				if num_valid_offsets == 0:
+					continue
+				offset_anchor_over_tag = offset_cumsum/num_valid_offsets;
 
 				# Figure out what broadcast the received response belongs to
 				ss_index_matching = oneway_get_ss_index_from_settings(anchor_final_antenna_index, window_packet_recv)
@@ -243,7 +265,7 @@ try:
 				one_way_TOF = two_way_TOF/2
 		
 				# Declare an array for sorting ranges
-				distances_millimeters = []
+				distance_millimeters = []
 				for jj in range(NUM_RANGING_BROADCASTS):
 					broadcast_send_time = ranging_broadcast_ss_send_times[jj]
 					broadcast_recv_time = tag_poll_TOAs[jj]
@@ -254,13 +276,13 @@ try:
 					broadcast_tag_offset = broadcast_send_time - matching_broadcast_send_time
 					TOF = broadcast_anchor_offset - broadcast_tag_offset*offset_anchor_over_tag + one_way_TOF
 		
-					distance_millimeters.append(TOF)
+					distance_millimeters.append(dwtime_to_millimeters(TOF))
 		
 				#anchor_eui_txt = dec2hex(anchor_eui)
-				range = np.percentile(distance_millimeters,10)
-				log.debug('Anchor {} Range {}'.foramt(anchor_eui, range))
+				range_mm = np.percentile(distance_millimeters,10)
+				log.debug('Anchor {} Range {}'.format(anchor_eui, range_mm))
 
-				ranges[anchor_eui[-2:]] = range
+				ranges[anchor_eui[-2:]] = range_mm
 				
 			footer = useful_read(len(FOOTER))
 			if footer != FOOTER:
