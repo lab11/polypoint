@@ -391,6 +391,6 @@ for a in sorted(ANCHORS.keys()):
 	aa.append(':'.join((a, *map(str, ANCHORS[a]))))
 ofile.write("#" + '\t'.join(("Time", "X", "Y", "Z", *aa)) + '\n')
 dataprint.to_file(ofile, data_array)
-ofile.write('#windows {} {} {}'.format(*windows))
+ofile.write('#windows {} {} {}\n'.format(*windows))
 print("Saved to {}".format(args.outfile))
 
