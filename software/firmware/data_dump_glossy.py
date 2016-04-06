@@ -211,6 +211,8 @@ data_array = []
 
 anc_seen_hist = [5]
 
+windows = [0,0,0]
+
 try:
 	while True:
 		#sys.stdout.write("\rGood {}    Bad {}\t\t".format(good, bad))
@@ -319,6 +321,7 @@ try:
 				log.debug('Anchor {} Range {}'.format(anchor_eui, range_mm))
 
 				ranges[anchor_eui[-2:]] = range_mm / 1000
+				windows[window_packet_recv] += 1
 
 			footer = useful_read(len(FOOTER))
 			if footer != FOOTER:
@@ -357,6 +360,12 @@ except EOFError:
 	pass
 
 print("\nGood {}\nBad  {}".format(good, bad))
+if sum(windows):
+	print("Windows {} ({:.1f}) {} ({:.1f}) {} ({:.1f})".format(
+		windows[0], 100* windows[0] / sum(windows),
+		windows[1], 100* windows[1] / sum(windows),
+		windows[2], 100* windows[2] / sum(windows),
+		))
 #if args.textfiles:
 #	print("Wrote ASCII outputs to " + args.outfile + ".{timestamps,data}")
 #if args.matfile:
@@ -382,5 +391,6 @@ for a in sorted(ANCHORS.keys()):
 	aa.append(':'.join((a, *map(str, ANCHORS[a]))))
 ofile.write("#" + '\t'.join(("Time", "X", "Y", "Z", *aa)) + '\n')
 dataprint.to_file(ofile, data_array)
+ofile.write('#windows {} {} {}'.format(*windows))
 print("Saved to {}".format(args.outfile))
 
