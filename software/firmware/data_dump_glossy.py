@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-<<<<<<< HEAD
-=======
 efile = open('efile', 'w')
 
 import logging
@@ -25,54 +23,47 @@ except ImportError:
 	pass
 
 
->>>>>>> 3d97207da648738651408cb5867976e06705869e
 import argparse
 import binascii
-import os
 import struct
 import sys
-import code
+import time
 
 import serial
 
 import numpy as np
 import scipy.io as sio
-<<<<<<< HEAD
-=======
 from scipy.optimize import fmin_bfgs, least_squares
 
 import dataprint
 
->>>>>>> 3d97207da648738651408cb5867976e06705869e
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-s', '--serial',   default='/dev/tty.usbserial-AL00EZAS')
+parser.add_argument('-f', '--file',     default=None)
 parser.add_argument('-b', '--baudrate', default=3000000, type=int)
 parser.add_argument('-o', '--outfile',  default='out')
-parser.add_argument('-t', '--textfiles',action='store_true',
-		help="Generate ASCII text files with the data")
-parser.add_argument('-m', '--matfile',  action='store_true',
-		help="Generate Matlab-compatible .mat file of the data")
-parser.add_argument('-n', '--binfile',  action='store_true',
-		help="Generate binary file of the data")
+parser.add_argument('-t', '--trilaterate', action='store_true')
+parser.add_argument('-g', '--ground-truth', default=None)
+#parser.add_argument('-t', '--textfiles',action='store_true',
+#		help="Generate ASCII text files with the data")
+#parser.add_argument('-m', '--matfile',  action='store_true',
+#		help="Generate Matlab-compatible .mat file of the data")
+#parser.add_argument('-n', '--binfile',  action='store_true',
+#		help="Generate binary file of the data")
 
 args = parser.parse_args()
 
-if not (args.textfiles or args.matfile or args.binfile):
-	print("Error: Must specify at least one of -t, -m, or -n")
-	print("")
-	parser.print_help()
-	sys.exit(1)
+#if not (args.textfiles or args.matfile or args.binfile):
+#	print("Error: Must specify at least one of -t, -m, or -n")
+#	print("")
+#	parser.print_help()
+#	sys.exit(1)
 
-dev = serial.Serial(args.serial, args.baudrate)
-if dev.isOpen():
-	print("Connected to device at " + dev.portstr)
+if args.file is not None:
+	dev = open(args.file, 'rb')
+	print("Reading data back from file:", args.file)
 else:
-<<<<<<< HEAD
-	raise NotImplementedError("Failed to connect to serial device " + args.serial)
-
-
-=======
 	dev = serial.Serial(args.serial, args.baudrate)
 	if dev.isOpen():
 		print("Connected to device at " + dev.portstr)
@@ -294,11 +285,13 @@ def _trilaterate(loc_anchor_ranges, loc_anchor_positions, last_position, last_er
 
 ##########################################################################
 
->>>>>>> 3d97207da648738651408cb5867976e06705869e
 def useful_read(length):
 	b = dev.read(length)
 	while len(b) < length:
-		b += dev.read(length - len(b))
+		r = dev.read(length - len(b))
+		if len(r) == 0:
+			raise EOFError
+		b += r
 	assert len(b) == length
 	return b
 
@@ -340,40 +333,60 @@ def dwtime_to_millimeters(dwtime):
 	ret = ret * 1000;
 	return ret
 
-if args.textfiles:
-	tsfile  = open(args.outfile + '.timestamps', 'w')
-	datfile = open(args.outfile + '.data', 'w')
-if args.matfile:
-	allts   = []
-	alldata = []
-if args.binfile:
-	binfile = open(args.outfile + '.bin', 'wb')
+#if args.textfiles:
+#	tsfile  = open(args.outfile + '.timestamps', 'w')
+#	datfile = open(args.outfile + '.data', 'w')
+#if args.matfile:
+#	allts   = []
+#	alldata = []
+#if args.binfile:
+#	binfile = open(args.outfile + '.bin', 'wb')
+
+data_array = []
+
+anc_seen_hist = [5]
+
+windows = [0,0,0]
+
+start = 1459998187.496
+first_time = None
+
+last_position = np.array((0,0,0))
 
 try:
 	while True:
-<<<<<<< HEAD
-		sys.stdout.write("\rGood {}    Bad {}\t\t".format(good, bad))
-=======
 		#if good >= 380:
 		#	break
 
 		#sys.stdout.write("\rGood {}    Bad {}\t\t".format(good, bad))
 		log.info("Good {}    Bad {}    Avg {:.1f}    Last {}\t\t".format(
 				good, bad, np.mean(anc_seen_hist), anc_seen_hist[-1]))
->>>>>>> 3d97207da648738651408cb5867976e06705869e
 
 		try:
+			log.debug("")
+			log.debug("")
+			log.debug("")
 			find_header()
 
 			num_anchors, = struct.unpack("<B", useful_read(1))
 
 			ranging_broadcast_ss_send_times = np.array(struct.unpack("<30Q", useful_read(8*NUM_RANGING_BROADCASTS)))
+
+			if first_time is None:
+				first_time = ranging_broadcast_ss_send_times[15]
+			DWT_TIME_UNITS = (1.0/499.2e6/128.0)
+			ts = start +  (ranging_broadcast_ss_send_times[15] - first_time) * DWT_TIME_UNITS
+
+			ranges = {}
 			
 			for x in range(num_anchors):
 				b = useful_read(len(DATA_HEADER))
 				if b != DATA_HEADER:
+					log.warn("missed DATA_HEADER")
 					raise AssertionError
 				anchor_eui = useful_read(EUI_LEN)
+				anchor_eui = anchor_eui[::-1] # reverse bytes
+				anchor_eui = binascii.hexlify(anchor_eui).decode('utf-8')
 				anchor_final_antenna_index, = struct.unpack("<B", useful_read(1))
 				window_packet_recv, = struct.unpack("<B", useful_read(1))
 				anc_final_tx_timestamp, = struct.unpack("<Q", useful_read(8))
@@ -385,13 +398,9 @@ try:
 				tag_poll_TOAs = np.array(struct.unpack("<"+str(NUM_RANGING_BROADCASTS)+"H", useful_read(2*NUM_RANGING_BROADCASTS)))
 
 				if tag_poll_first_idx >= NUM_RANGING_BROADCASTS or tag_poll_last_idx >= NUM_RANGING_BROADCASTS:
+					log.warn("tag_poll outside of range; skpping")
 					continue
 			
-				#print(tag_poll_TOAs[tag_poll_first_idx] & 0xFFFF)
-				#print(tag_poll_first_TOA & 0xFFFF)
-				#print(tag_poll_TOAs[tag_poll_last_idx] & 0xFFFF)
-				#print(tag_poll_last_TOA & 0xFFFF)
-
 				# Perform ranging operations with the received timestamp data
 				tag_poll_TOAs[tag_poll_first_idx] = tag_poll_first_TOA
 				tag_poll_TOAs[tag_poll_last_idx] = tag_poll_last_TOA
@@ -414,8 +423,8 @@ try:
 				num_valid_offsets = 0
 				offset_cumsum = 0
 				for jj in range(NUM_RANGING_CHANNELS):
-					if(tag_poll_TOAs[jj] & 0xFFFF > 0 and tag_poll_TOAs[27+jj] & 0xFFFF > 0):
-						offset_cumsum = offset_cumsum + (tag_poll_TOAs[27+jj] - tag_poll_TOAs[jj])/(ranging_broadcast_ss_send_times[27+jj] - ranging_broadcast_ss_send_times[jj])
+					if(tag_poll_TOAs[jj] & 0xFFFF > 0 and tag_poll_TOAs[26+jj] & 0xFFFF > 0):
+						offset_cumsum = offset_cumsum + (tag_poll_TOAs[26+jj] - tag_poll_TOAs[jj])/(ranging_broadcast_ss_send_times[26+jj] - ranging_broadcast_ss_send_times[jj])
 						num_valid_offsets = num_valid_offsets + 1
 
 				if num_valid_offsets == 0:
@@ -425,6 +434,8 @@ try:
 				# Figure out what broadcast the received response belongs to
 				ss_index_matching = oneway_get_ss_index_from_settings(anchor_final_antenna_index, window_packet_recv)
 				if int(tag_poll_TOAs[ss_index_matching]) & 0xFFFF == 0:
+					log.warn("no bcast ss match, ss_index_matching {}, TOAs[{}] = {}".format(
+						ss_index_matching, ss_index_matching, tag_poll_TOAs[ss_index_matching]))
 					continue
 		
 				matching_broadcast_send_time = ranging_broadcast_ss_send_times[ss_index_matching]
@@ -447,23 +458,29 @@ try:
 					broadcast_tag_offset = broadcast_send_time - matching_broadcast_send_time
 					TOF = broadcast_anchor_offset - broadcast_tag_offset*offset_anchor_over_tag + one_way_TOF
 		
-					distance_millimeters.append(TOF)#dwtime_to_millimeters(TOF))
+					distance_millimeters.append(dwtime_to_millimeters(TOF))
 		
 				#anchor_eui_txt = dec2hex(anchor_eui)
 				range_mm = np.percentile(distance_millimeters,10)
-				if(range_mm < 00):
-					code.interact(local=dict(globals(), **locals()))
-					#print(offset_anchor_over_tag)
-					#print(matching_broadcast_recv_time)
-					#print(distance_millimeters)
-				print(range_mm)
-				
+
+
+				if range_mm < 0 or range_mm > (1000*30):
+					log.warn('Dropping impossible range %d', range_mm)
+					continue
+
+				if args.ground_truth:
+					log.debug('Anchor {} Range {:.4f} Error {:.4f}'.format(anchor_eui,
+						range_mm/1000, range_mm/1000 - GT_RANGE[anchor_eui[-2:]]))
+				else:
+					log.debug('Anchor {} Range {:.4f}'.format(anchor_eui, range_mm/1000))
+
+				ranges[anchor_eui[-2:]] = range_mm / 1000
+				windows[window_packet_recv] += 1
+
 			footer = useful_read(len(FOOTER))
 			if footer != FOOTER:
 				raise AssertionError
 
-<<<<<<< HEAD
-=======
 			if len(anc_seen_hist) > 20:
 				anc_seen_hist.pop(0)
 			anc_seen_hist.append(len(ranges))
@@ -489,33 +506,53 @@ try:
 
 				data_array.append([ts, *position, *aa])
 
->>>>>>> 3d97207da648738651408cb5867976e06705869e
 			good += 1
 
 			#if args.binfile:
 			#	binfile.write(bline)
 
-		except AssertionError:
+		except (AssertionError, NotImplementedError):
 			bad += 1
 
 except KeyboardInterrupt:
 	pass
+except EOFError:
+	pass
 
 print("\nGood {}\nBad  {}".format(good, bad))
-if args.textfiles:
-	print("Wrote ASCII outputs to " + args.outfile + ".{timestamps,data}")
-if args.matfile:
-	sio.savemat(args.outfile+'.mat', {
-		'timestamps': allts,
-		'data': alldata,
-		})
-	print('Wrote Matlab-friendly file to ' + args.outfile + '.mat')
-if args.binfile:
-	print('Wrote binary output to ' + args.outfile + '.bin')
-	print('\tBinary data is formatted as:')
-	print('\t<uint64_t><int16_t><int16_t><int16_t><int16_t>... all little endian')
-	print('\ttimestmap real0    imag0    real1    imag1    ...')
-	print('\tFor 1024 total complex numbers')
+if sum(windows):
+	print("Windows {} ({:.1f}) {} ({:.1f}) {} ({:.1f})".format(
+		windows[0], 100* windows[0] / sum(windows),
+		windows[1], 100* windows[1] / sum(windows),
+		windows[2], 100* windows[2] / sum(windows),
+		))
+#if args.textfiles:
+#	print("Wrote ASCII outputs to " + args.outfile + ".{timestamps,data}")
+#if args.matfile:
+#	sio.savemat(args.outfile+'.mat', {
+#		'timestamps': allts,
+#		'data': alldata,
+#		})
+#	print('Wrote Matlab-friendly file to ' + args.outfile + '.mat')
+#if args.binfile:
+#	print('Wrote binary output to ' + args.outfile + '.bin')
+#	print('\tBinary data is formatted as:')
+#	print('\t<uint64_t><int16_t><int16_t><int16_t><int16_t>... all little endian')
+#	print('\ttimestmap real0    imag0    real1    imag1    ...')
+#	print('\tFor 1024 total complex numbers')
+
+#dataprint.to_newfile(args.outfile, data_array,
+#		overwrite=True,
+#		#comments=("Time", "X", "Y", "Z"),
+#		)
+ofile = open(args.outfile, 'w')
+aa = []
+for a in sorted(ANCHORS.keys()):
+	aa.append(':'.join((a, *map(str, ANCHORS[a]))))
+ofile.write("#" + '\t'.join(("Time", "X", "Y", "Z", *aa)) + '\n')
+dataprint.to_file(ofile, data_array)
+ofile.write('#windows {} {} {}\n'.format(*windows))
+print("Saved to {}".format(args.outfile))
 
 
 if args.ground_truth:
