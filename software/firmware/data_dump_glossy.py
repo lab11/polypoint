@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+efile = open('efile', 'w')
+
 import logging
 log = logging.getLogger(__name__)
 
@@ -31,7 +33,7 @@ import serial
 
 import numpy as np
 import scipy.io as sio
-from scipy.optimize import fmin_bfgs
+from scipy.optimize import fmin_bfgs, least_squares
 
 import dataprint
 
@@ -99,6 +101,9 @@ if args.ground_truth:
 	for a in ANCHORS:
 		GT_RANGE[a] = np.sqrt(sum( (np.array(ANCHORS[a]) - GT)**2 ))
 
+
+
+
 def location_optimize(x,anchor_ranges,anchor_locations):
 	if(x.size == 2):
 		x = np.append(x,2)
@@ -109,11 +114,44 @@ def location_optimize(x,anchor_ranges,anchor_locations):
 	ret = np.sum(np.power(r_hat-anchor_ranges,2))
 	return ret
 
-ftest = open('ftest', 'w')
 
+
+def _trilaterate2(lr, lp, last_pos):
+	log.debug('------------------- tri2')
+	lsq = least_squares(location_optimize, last_pos, args=(lr, lp))
+	pos = lsq['x']
+	if args.ground_truth:
+		error = np.sqrt(sum( (pos - GT)**2 ))
+		log.debug('lsq: {} err {:.4f} opt {:.8f}'.format(pos, error, lsq['optimality']))
+
+	if lsq['optimality'] > 1e-5:
+		best = 1
+		nextp = None
+		dropping = None
+		for i in range(len(lr)):
+			lr2 = np.delete(np.copy(lr), i)
+			lp2 = np.delete(np.copy(lp), i, axis=0)
+			lsq2 = least_squares(location_optimize, last_pos, args=(lr2, lp2))
+			pos2 = lsq2['x']
+			opt2 = lsq2['optimality']
+			if args.ground_truth:
+				error2 = np.sqrt(sum( (pos2 - GT)**2 ))
+				log.debug("lsq w/out {:>8.4f}: {} err {:.4f} opt {:.8f}".format(
+					lr[i], pos2, error2, opt2))
+			if opt2 < best:
+				best = opt2
+				nextp = (lr2, lp2, last_pos)
+				dropping = lr[i]
+		log.debug('dropping {:.4f}'.format(dropping))
+		return _trilaterate2(*nextp)
+
+	if args.ground_truth:
+		efile.write(str(error)+'\t'+str(lsq['optimality'])+'\t'+str(lsq['status'])+'\n')
+	return pos, lr, lp, lsq['optimality']
 
 
 def trilaterate(ranges, last_position):
+	efile.write('\n')
 	loc_anchor_positions = []
 	loc_anchor_ranges = []
 	for eui,arange in ranges.items():
@@ -125,9 +163,56 @@ def trilaterate(ranges, last_position):
 	loc_anchor_positions = np.array(loc_anchor_positions)
 	loc_anchor_ranges = np.array(loc_anchor_ranges)
 
-	return _trilaterate(loc_anchor_ranges, loc_anchor_positions, last_position)
+	pos, lr, lp = _trilaterate(loc_anchor_ranges, loc_anchor_positions, last_position)
+	pos2, lr2, lp2, opt2 = _trilaterate2(loc_anchor_ranges, loc_anchor_positions, last_position)
 
-def _trilaterate(loc_anchor_ranges, loc_anchor_positions, last_position):
+	if args.ground_truth:
+		error  = np.sqrt(sum( (pos  - GT)**2 ))
+		error2 = np.sqrt(sum( (pos2 - GT)**2 ))
+	if len(lr) == len(lr2):
+		if args.ground_truth:
+			efile.flush()
+			if (error - error2) > .05: raise
+		return pos
+
+	log.debug("")
+	log.debug("Aggregate")
+	# np.intersect1d sorts and requires flattening lp; roll our own
+	j = 0
+	lr3 = []
+	lp3 = []
+	for i in range(len(lr)):
+		if lr[i] in lr2:
+			lr3.append(lr[i])
+			lp3.append(lp[i])
+	lr3 = np.array(lr3)
+	lp3 = np.array(lp3)
+	pos3, _, _ = _trilaterate(lr3, lp3, pos)
+	pos4, _, _, opt4 = _trilaterate2(lr3, lp3, pos)
+	#pos5 = (pos3+pos4)/2
+	#if args.ground_truth:
+	#	error5 = np.sqrt(sum( (pos5 - GT)**2 ))
+	#	efile.write(str(error5)+'\n')
+	#	log.debug('pos5 {} err {}'.format(pos5, error5))
+
+	if args.ground_truth:
+		error3 = np.sqrt(sum( (pos3 - GT)**2 ))
+		error4 = np.sqrt(sum( (pos4 - GT)**2 ))
+		efile.flush()
+		if (error3 - error4) > .10: raise
+		if (error3 - error2) > .10: raise
+
+	if opt2 < opt4:
+		return pos2
+	else:
+		return pos3
+	return pos5
+
+
+t1_errs = []
+
+
+def _trilaterate(loc_anchor_ranges, loc_anchor_positions, last_position, last_error=None):
 	if loc_anchor_ranges.size < 3:
 		raise NotImplementedError("Not enough ranges")
 	#elif(num_valid_anchors == 2):
@@ -156,6 +241,7 @@ def _trilaterate(loc_anchor_ranges, loc_anchor_positions, last_position):
 
 	#print("{} {} {}".format(tag_position[0], tag_position[1], tag_position[2]))
 
+	log.debug("root_fopt: {}".format(root_fopt))
 	if root_fopt > 0.1 and loc_anchor_ranges.size > 3:
 		fopts = {}
 		fopts_dbg_r = {}
@@ -174,28 +260,28 @@ def _trilaterate(loc_anchor_ranges, loc_anchor_positions, last_position):
 			fopts_dbg_r[fopt] = i
 
 		s = list(sorted(fopts.keys()))
-		log.debug('fopts   {}'.format(sorted(fopts.keys())))
-		log.debug('ratio   {} {}'.format(s[0]/s[1], s[1]/s[0]))
-		log.debug('margins {} {}'.format(s[1]-s[0], s[-1]-s[0]))
-		log.debug('ratiom  {}'.format((s[-1]-s[0])/(s[1]-s[0])))
 
 		log.warn("--------------------------iter drop")
+		log.debug(fopts.keys())
+		log.debug("dropping range {:.4f}".format(loc_anchor_ranges[fopts_dbg_r[min(fopts)]]))
+		lr, lp = fopts[min(fopts)]
+		error = None
 		if args.ground_truth:
-			log.debug("pos before drop {} Err {}".format(tag_position,
-				np.sqrt(sum( (tag_position - GT)**2 ))))
+			error = np.sqrt(sum( (tag_position - GT)**2 ))
+			log.debug("pos before drop {} Err {:.4f}".format(tag_position, error))
 		else:
 			log.debug("pos before drop {}".format(tag_position))
-		log.debug("dropping range {}".format(loc_anchor_ranges[fopts_dbg_r[min(fopts)]]))
-		lr, lp = fopts[min(fopts)]
-		return _trilaterate(lr, lp, last_position)
+		return _trilaterate(lr, lp, last_position, last_error=error)
 
 
 	if args.ground_truth:
-		log.debug("tag_position {} Err {}".format(tag_position,
-				np.sqrt(sum( (tag_position - GT)**2 ))))
+		error = np.sqrt(sum( (tag_position - GT)**2 ))
+		efile.write(str(error)+'\t'+str(root_fopt)+'\n')
+		t1_errs.append(error)
+		log.debug("tag_position {} Err {}".format(tag_position, error))
 	else:
 		log.debug("tag_position {}".format(tag_position))
-	return tag_position
+	return tag_position, loc_anchor_ranges, loc_anchor_positions
 
 ##########################################################################
 
@@ -269,6 +355,9 @@ last_position = np.array((0,0,0))
 
 try:
 	while True:
+		#if good >= 380:
+		#	break
+
 		#sys.stdout.write("\rGood {}    Bad {}\t\t".format(good, bad))
 		log.info("Good {}    Bad {}    Avg {:.1f}    Last {}\t\t".format(
 				good, bad, np.mean(anc_seen_hist), anc_seen_hist[-1]))
@@ -396,11 +485,16 @@ try:
 				anc_seen_hist.pop(0)
 			anc_seen_hist.append(len(ranges))
 
-			if args.trilaterate:
+			if args.trilaterate:# and good > 35:
 				position = trilaterate(ranges, last_position)
 				last_position = position
 
-				s = "{:.3f} {:1.4f} {:1.4f} {:1.4f}".format(ts, *position)
+				if args.ground_truth:
+					error = np.sqrt(sum( (position - GT)**2 ))
+					efile.write(str(error)+'\n')
+					s = "{:.3f} {:1.4f} {:1.4f} {:1.4f} Err {:1.4f}".format(ts, *position, error)
+				else:
+					s = "{:.3f} {:1.4f} {:1.4f} {:1.4f}".format(ts, *position)
 				print(s)
 
 				aa = []
@@ -459,4 +553,15 @@ ofile.write("#" + '\t'.join(("Time", "X", "Y", "Z", *aa)) + '\n')
 dataprint.to_file(ofile, data_array)
 ofile.write('#windows {} {} {}\n'.format(*windows))
 print("Saved to {}".format(args.outfile))
+
+
+if args.ground_truth:
+	t1_errs = np.array(t1_errs)
+	print("t1:  min {:.4f} max {:.4f} mean {:.4f} med {:.4f}".format(
+		np.min   (t1_errs),
+		np.max   (t1_errs),
+		np.mean  (t1_errs),
+		np.median(t1_errs),
+		))
+
 
