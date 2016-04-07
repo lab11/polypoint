@@ -1,5 +1,31 @@
 #!/usr/bin/env python3
 
+<<<<<<< HEAD
+=======
+efile = open('efile', 'w')
+
+import logging
+log = logging.getLogger(__name__)
+
+import os
+if 'DEBUG' in os.environ:
+	logging.basicConfig(level=logging.DEBUG)
+
+try:
+	import coloredlogs
+	#coloredlogs.DEFAULT_LOG_FORMAT = '%(asctime)s %(hostname)s %(name)s[%(process)d] %(levelname)s %(message)s'
+	coloredlogs.DEFAULT_LOG_FORMAT = '%(message)s'
+	coloredlogs.DEFAULT_LEVEL_STYLES['debug'] = {'color': 'cyan'}
+	if 'DEBUG' in os.environ:
+		coloredlogs.install(level=logging.DEBUG)
+	else:
+		coloredlogs.install()
+
+except ImportError:
+	pass
+
+
+>>>>>>> 3d97207da648738651408cb5867976e06705869e
 import argparse
 import binascii
 import os
@@ -11,6 +37,13 @@ import serial
 
 import numpy as np
 import scipy.io as sio
+<<<<<<< HEAD
+=======
+from scipy.optimize import fmin_bfgs, least_squares
+
+import dataprint
+
+>>>>>>> 3d97207da648738651408cb5867976e06705869e
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-s', '--serial',   default='/dev/tty.usbserial-AL00EZAS')
@@ -35,9 +68,233 @@ dev = serial.Serial(args.serial, args.baudrate)
 if dev.isOpen():
 	print("Connected to device at " + dev.portstr)
 else:
+<<<<<<< HEAD
 	raise NotImplementedError("Failed to connect to serial device " + args.serial)
 
 
+=======
+	dev = serial.Serial(args.serial, args.baudrate)
+	if dev.isOpen():
+		print("Connected to device at " + dev.portstr)
+	else:
+		raise NotImplementedError("Failed to connect to serial device " + args.serial)
+
+
+##########################################################################
+
+# ; 4.756-2.608+.164
+# 	2.312
+# ; 14.125-2.640+.164
+# 	11.649
+# ; -4.685+.164+15.819-2.640+0.164
+# 	8.822
+# ; 3.193-2.64+.164
+# 	0.717
+ANCHORS = {
+		'22': (  .212,  8.661, 4.047),
+		'3f': ( 7.050,  0.064, 3.295),
+		'28': (12.704,  9.745, 3.695),
+		'2c': ( 2.312,  0.052, 1.369),
+		'24': (11.649,  0.058, 0.333),
+		'23': (12.704,  3.873, 2.398),
+		'2e': ( 8.822, 15.640, 3.910),
+		'2b': ( 0.717,  3.870, 2.522),
+		'26': (12.704, 15.277, 1.494),
+		'30': (12.610,  9.768, 0.064),
+		'27': ( 0.719,  3.864, 0.068),
+		}
+
+if args.ground_truth:
+	GT = np.array(list(map(float, args.ground_truth.split(','))))
+	GT_RANGE = {}
+	for a in ANCHORS:
+		GT_RANGE[a] = np.sqrt(sum( (np.array(ANCHORS[a]) - GT)**2 ))
+
+
+
+
+def location_optimize(x,anchor_ranges,anchor_locations):
+	if(x.size == 2):
+		x = np.append(x,2)
+	x = np.expand_dims(x, axis=0)
+	x_rep = np.tile(x, [anchor_ranges.size,1])
+	r_hat = np.sqrt(np.sum(np.power((x_rep-anchor_locations),2),axis=1))
+	r_hat = np.reshape(r_hat,(anchor_ranges.size,))
+	ret = np.sum(np.power(r_hat-anchor_ranges,2))
+	return ret
+
+
+
+def _trilaterate2(lr, lp, last_pos):
+	log.debug('------------------- tri2')
+	lsq = least_squares(location_optimize, last_pos, args=(lr, lp))
+	pos = lsq['x']
+	if args.ground_truth:
+		error = np.sqrt(sum( (pos - GT)**2 ))
+		log.debug('lsq: {} err {:.4f} opt {:.8f}'.format(pos, error, lsq['optimality']))
+
+	if lsq['optimality'] > 1e-5:
+		best = 1
+		nextp = None
+		dropping = None
+		for i in range(len(lr)):
+			lr2 = np.delete(np.copy(lr), i)
+			lp2 = np.delete(np.copy(lp), i, axis=0)
+			lsq2 = least_squares(location_optimize, last_pos, args=(lr2, lp2))
+			pos2 = lsq2['x']
+			opt2 = lsq2['optimality']
+			if args.ground_truth:
+				error2 = np.sqrt(sum( (pos2 - GT)**2 ))
+				log.debug("lsq w/out {:>8.4f}: {} err {:.4f} opt {:.8f}".format(
+					lr[i], pos2, error2, opt2))
+			if opt2 < best:
+				best = opt2
+				nextp = (lr2, lp2, last_pos)
+				dropping = lr[i]
+		log.debug('dropping {:.4f}'.format(dropping))
+		return _trilaterate2(*nextp)
+
+	if args.ground_truth:
+		efile.write(str(error)+'\t'+str(lsq['optimality'])+'\t'+str(lsq['status'])+'\n')
+	return pos, lr, lp, lsq['optimality']
+
+
+def trilaterate(ranges, last_position):
+	efile.write('\n')
+	loc_anchor_positions = []
+	loc_anchor_ranges = []
+	for eui,arange in ranges.items():
+		try:
+			loc_anchor_positions.append(ANCHORS[eui])
+			loc_anchor_ranges.append(arange)
+		except KeyError:
+			log.warn("Skipping anchor {} with unknown location".format(eui))
+	loc_anchor_positions = np.array(loc_anchor_positions)
+	loc_anchor_ranges = np.array(loc_anchor_ranges)
+
+	pos, lr, lp = _trilaterate(loc_anchor_ranges, loc_anchor_positions, last_position)
+	pos2, lr2, lp2, opt2 = _trilaterate2(loc_anchor_ranges, loc_anchor_positions, last_position)
+
+	if args.ground_truth:
+		error  = np.sqrt(sum( (pos  - GT)**2 ))
+		error2 = np.sqrt(sum( (pos2 - GT)**2 ))
+	if len(lr) == len(lr2):
+		if args.ground_truth:
+			efile.flush()
+			if (error - error2) > .05: raise
+		return pos
+
+	log.debug("")
+	log.debug("Aggregate")
+	# np.intersect1d sorts and requires flattening lp; roll our own
+	j = 0
+	lr3 = []
+	lp3 = []
+	for i in range(len(lr)):
+		if lr[i] in lr2:
+			lr3.append(lr[i])
+			lp3.append(lp[i])
+	lr3 = np.array(lr3)
+	lp3 = np.array(lp3)
+	pos3, _, _ = _trilaterate(lr3, lp3, pos)
+	pos4, _, _, opt4 = _trilaterate2(lr3, lp3, pos)
+	#pos5 = (pos3+pos4)/2
+	#if args.ground_truth:
+	#	error5 = np.sqrt(sum( (pos5 - GT)**2 ))
+	#	efile.write(str(error5)+'\n')
+	#	log.debug('pos5 {} err {}'.format(pos5, error5))
+
+	if args.ground_truth:
+		error3 = np.sqrt(sum( (pos3 - GT)**2 ))
+		error4 = np.sqrt(sum( (pos4 - GT)**2 ))
+		efile.flush()
+		if (error3 - error4) > .10: raise
+		if (error3 - error2) > .10: raise
+
+	if opt2 < opt4:
+		return pos2
+	else:
+		return pos3
+	return pos5
+
+
+t1_errs = []
+
+
+def _trilaterate(loc_anchor_ranges, loc_anchor_positions, last_position, last_error=None):
+	if loc_anchor_ranges.size < 3:
+		raise NotImplementedError("Not enough ranges")
+	#elif(num_valid_anchors == 2):
+	#	if args.always_report_range:
+	#		log.debug("WARNING: ONLY TWO ANCHORS...")
+	#		loc_anchor_positions = ANCHOR_POSITIONS[sorted_range_idxs[first_valid_idx:last_valid_idx]]
+	#		loc_anchor_ranges = sorted_ranges[first_valid_idx:last_valid_idx]
+	#		log.debug("loc_anchor_ranges = {}".format(loc_anchor_ranges))
+	#		tag_position = fmin_bfgs(
+	#				f=location_optimize,
+	#				x0=last_position[0:2],
+	#				args=(loc_anchor_ranges, loc_anchor_positions)
+	#				)
+	#		tag_position = np.append(tag_position,2)
+	#	else:
+	#		return None
+	else:
+		disp = False #True if log.isEnabledFor(logging.DEBUG) else False
+		tag_position, root_fopt, gopt, Bopt, func_calls, grad_calls, warnflag = fmin_bfgs(
+				disp=disp,
+				f=location_optimize, 
+				x0=last_position,
+				args=(loc_anchor_ranges, loc_anchor_positions),
+				full_output=True,
+				)
+
+	#print("{} {} {}".format(tag_position[0], tag_position[1], tag_position[2]))
+
+	log.debug("root_fopt: {}".format(root_fopt))
+	if root_fopt > 0.1 and loc_anchor_ranges.size > 3:
+		fopts = {}
+		fopts_dbg_r = {}
+		for i in range(len(loc_anchor_ranges)):
+			lr = np.delete(np.copy(loc_anchor_ranges), i)
+			lp = np.copy(loc_anchor_positions)
+			lp = np.delete(lp, i, axis=0)
+			tag_position, fopt, gopt, Bopt, func_calls, grad_calls, warnflag = fmin_bfgs(
+					disp=disp,
+					f=location_optimize, 
+					x0=last_position,
+					args=(lr, lp),
+					full_output=True,
+					)
+			fopts[fopt] = (lr, lp)
+			fopts_dbg_r[fopt] = i
+
+		s = list(sorted(fopts.keys()))
+
+		log.warn("--------------------------iter drop")
+		log.debug(fopts.keys())
+		log.debug("dropping range {:.4f}".format(loc_anchor_ranges[fopts_dbg_r[min(fopts)]]))
+		lr, lp = fopts[min(fopts)]
+		error = None
+		if args.ground_truth:
+			error = np.sqrt(sum( (tag_position - GT)**2 ))
+			log.debug("pos before drop {} Err {:.4f}".format(tag_position, error))
+		else:
+			log.debug("pos before drop {}".format(tag_position))
+		return _trilaterate(lr, lp, last_position, last_error=error)
+
+
+	if args.ground_truth:
+		error = np.sqrt(sum( (tag_position - GT)**2 ))
+		efile.write(str(error)+'\t'+str(root_fopt)+'\n')
+		t1_errs.append(error)
+		log.debug("tag_position {} Err {}".format(tag_position, error))
+	else:
+		log.debug("tag_position {}".format(tag_position))
+	return tag_position, loc_anchor_ranges, loc_anchor_positions
+
+##########################################################################
+
+>>>>>>> 3d97207da648738651408cb5867976e06705869e
 def useful_read(length):
 	b = dev.read(length)
 	while len(b) < length:
@@ -94,7 +351,16 @@ if args.binfile:
 
 try:
 	while True:
+<<<<<<< HEAD
 		sys.stdout.write("\rGood {}    Bad {}\t\t".format(good, bad))
+=======
+		#if good >= 380:
+		#	break
+
+		#sys.stdout.write("\rGood {}    Bad {}\t\t".format(good, bad))
+		log.info("Good {}    Bad {}    Avg {:.1f}    Last {}\t\t".format(
+				good, bad, np.mean(anc_seen_hist), anc_seen_hist[-1]))
+>>>>>>> 3d97207da648738651408cb5867976e06705869e
 
 		try:
 			find_header()
@@ -196,6 +462,34 @@ try:
 			if footer != FOOTER:
 				raise AssertionError
 
+<<<<<<< HEAD
+=======
+			if len(anc_seen_hist) > 20:
+				anc_seen_hist.pop(0)
+			anc_seen_hist.append(len(ranges))
+
+			if args.trilaterate:# and good > 35:
+				position = trilaterate(ranges, last_position)
+				last_position = position
+
+				if args.ground_truth:
+					error = np.sqrt(sum( (position - GT)**2 ))
+					efile.write(str(error)+'\n')
+					s = "{:.3f} {:1.4f} {:1.4f} {:1.4f} Err {:1.4f}".format(ts, *position, error)
+				else:
+					s = "{:.3f} {:1.4f} {:1.4f} {:1.4f}".format(ts, *position)
+				print(s)
+
+				aa = []
+				for a in sorted(ANCHORS.keys()):
+					if a in ranges:
+						aa.append(ranges[a])
+					else:
+						aa.append(0)
+
+				data_array.append([ts, *position, *aa])
+
+>>>>>>> 3d97207da648738651408cb5867976e06705869e
 			good += 1
 
 			#if args.binfile:
@@ -222,4 +516,15 @@ if args.binfile:
 	print('\t<uint64_t><int16_t><int16_t><int16_t><int16_t>... all little endian')
 	print('\ttimestmap real0    imag0    real1    imag1    ...')
 	print('\tFor 1024 total complex numbers')
+
+
+if args.ground_truth:
+	t1_errs = np.array(t1_errs)
+	print("t1:  min {:.4f} max {:.4f} mean {:.4f} med {:.4f}".format(
+		np.min   (t1_errs),
+		np.max   (t1_errs),
+		np.mean  (t1_errs),
+		np.median(t1_errs),
+		))
+
 
