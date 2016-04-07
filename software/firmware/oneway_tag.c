@@ -61,7 +61,7 @@ void oneway_tag_init (void *app_scratchspace) {
 
 	// Setup parameters of how the radio should work
 	dwt_setautorxreenable(TRUE);
-	dwt_setdblrxbuffmode(FALSE);
+	dwt_setdblrxbuffmode(TRUE);//FALSE);
 	dwt_enableautoack(DW1000_ACK_RESPONSE_TIME);
 
 	// Put source EUI in the pp_tag_poll packet

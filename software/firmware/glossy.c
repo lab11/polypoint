@@ -163,11 +163,13 @@ void glossy_sync_task(){
 			// Check to see if it's our turn to do a ranging event!
 			// LWB Slot 1: Contention slot
 			if(_lwb_counter == 1){
-				//dw1000_update_channel(1);
-				//dw1000_choose_antenna(0);
-				dwt_rxenable(0);
+				dw1000_update_channel(1);
+				dw1000_choose_antenna(0);
 				if(!_lwb_scheduled && _lwb_sched_en){
 					dwt_forcetrxoff();
+
+					uint16_t frame_len = sizeof(struct pp_sched_req_flood);
+					dwt_writetxfctrl(frame_len, 0);
 
 					// Send out a schedule request during this contention slot
 					// Pick a random time offset to avoid colliding with others
@@ -178,6 +180,8 @@ void glossy_sync_task(){
 					dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED);
 					dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
 					dwt_writetxdata(sizeof(struct pp_sched_req_flood), (uint8_t*) &_sched_req_pkt, 0);
+				} else {
+					dwt_rxenable(0);
 				}
 
 			// LWB Slots 2-N-2: Ranging slots
@@ -186,14 +190,13 @@ void glossy_sync_task(){
 				   (((_lwb_counter - 2)/LWB_SLOTS_PER_RANGE) % _lwb_num_timeslots == _lwb_timeslot) && 
 				   ((_lwb_counter - 2) % LWB_SLOTS_PER_RANGE == 0)){
 					// Our scheduled timeslot!  Call the timeslot callback which will likely kick off a ranging event
-					dwt_setdblrxbuffmode(TRUE);
 					_lwb_schedule_callback();
 				}
 
 			// LWB Slot N-1: Get ready for next glossy flood
 			} else if(_lwb_counter == (GLOSSY_UPDATE_INTERVAL_US/LWB_SLOT_US)-1){
 				// Make sure we're in RX mode, ready for next glossy sync flood!
-				dwt_setdblrxbuffmode(FALSE);
+				//dwt_setdblrxbuffmode(FALSE);
 				dwt_forcetrxoff();
 				dw1000_update_channel(1);
 				dw1000_choose_antenna(0);
@@ -303,6 +306,9 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 			// Increment depth counter
 			_cur_glossy_depth = ++in_glossy_sched_req->header.seqNum;
 			_glossy_currently_flooding = TRUE;
+
+			uint16_t frame_len = sizeof(struct pp_sched_req_flood);
+			dwt_writetxfctrl(frame_len, 0);
 
 			// Flood out as soon as possible
 			uint32_t delay_time = (dw_timestamp >> 8) + (DW_DELAY_FROM_US(GLOSSY_FLOOD_TIMESLOT_US) & 0xFFFFFFFE);
