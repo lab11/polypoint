@@ -42,6 +42,7 @@ parser.add_argument('-f', '--file',     default=None)
 parser.add_argument('-b', '--baudrate', default=3000000, type=int)
 parser.add_argument('-o', '--outfile',  default='out')
 parser.add_argument('-t', '--trilaterate', action='store_true')
+parser.add_argument('-g', '--ground-truth', default=None)
 #parser.add_argument('-t', '--textfiles',action='store_true',
 #		help="Generate ASCII text files with the data")
 #parser.add_argument('-m', '--matfile',  action='store_true',
@@ -92,6 +93,12 @@ ANCHORS = {
 		'27': ( 0.719,  3.864, 0.068),
 		}
 
+if args.ground_truth:
+	GT = np.array(list(map(float, args.ground_truth.split(','))))
+	GT_RANGE = {}
+	for a in ANCHORS:
+		GT_RANGE[a] = np.sqrt(sum( (np.array(ANCHORS[a]) - GT)**2 ))
+
 def location_optimize(x,anchor_ranges,anchor_locations):
 	if(x.size == 2):
 		x = np.append(x,2)
@@ -102,21 +109,25 @@ def location_optimize(x,anchor_ranges,anchor_locations):
 	ret = np.sum(np.power(r_hat-anchor_ranges,2))
 	return ret
 
+ftest = open('ftest', 'w')
+
+
 
 def trilaterate(ranges, last_position):
 	loc_anchor_positions = []
 	loc_anchor_ranges = []
-	for eui,range in ranges.items():
+	for eui,arange in ranges.items():
 		try:
 			loc_anchor_positions.append(ANCHORS[eui])
-			loc_anchor_ranges.append(range)
+			loc_anchor_ranges.append(arange)
 		except KeyError:
 			log.warn("Skipping anchor {} with unknown location".format(eui))
 	loc_anchor_positions = np.array(loc_anchor_positions)
 	loc_anchor_ranges = np.array(loc_anchor_ranges)
-	log.debug(loc_anchor_positions)
-	log.debug("loc_anchor_ranges = {}".format(loc_anchor_ranges))
 
+	return _trilaterate(loc_anchor_ranges, loc_anchor_positions, last_position)
+
+def _trilaterate(loc_anchor_ranges, loc_anchor_positions, last_position):
 	if loc_anchor_ranges.size < 3:
 		raise NotImplementedError("Not enough ranges")
 	#elif(num_valid_anchors == 2):
@@ -135,15 +146,55 @@ def trilaterate(ranges, last_position):
 	#		return None
 	else:
 		disp = False #True if log.isEnabledFor(logging.DEBUG) else False
-		tag_position = fmin_bfgs(
+		tag_position, root_fopt, gopt, Bopt, func_calls, grad_calls, warnflag = fmin_bfgs(
 				disp=disp,
 				f=location_optimize, 
 				x0=last_position,
-				args=(loc_anchor_ranges, loc_anchor_positions)
+				args=(loc_anchor_ranges, loc_anchor_positions),
+				full_output=True,
 				)
 
 	#print("{} {} {}".format(tag_position[0], tag_position[1], tag_position[2]))
 
+	if root_fopt > 0.1 and loc_anchor_ranges.size > 3:
+		fopts = {}
+		fopts_dbg_r = {}
+		for i in range(len(loc_anchor_ranges)):
+			lr = np.delete(np.copy(loc_anchor_ranges), i)
+			lp = np.copy(loc_anchor_positions)
+			lp = np.delete(lp, i, axis=0)
+			tag_position, fopt, gopt, Bopt, func_calls, grad_calls, warnflag = fmin_bfgs(
+					disp=disp,
+					f=location_optimize, 
+					x0=last_position,
+					args=(lr, lp),
+					full_output=True,
+					)
+			fopts[fopt] = (lr, lp)
+			fopts_dbg_r[fopt] = i
+
+		s = list(sorted(fopts.keys()))
+		log.debug('fopts   {}'.format(sorted(fopts.keys())))
+		log.debug('ratio   {} {}'.format(s[0]/s[1], s[1]/s[0]))
+		log.debug('margins {} {}'.format(s[1]-s[0], s[-1]-s[0]))
+		log.debug('ratiom  {}'.format((s[-1]-s[0])/(s[1]-s[0])))
+
+		log.warn("--------------------------iter drop")
+		if args.ground_truth:
+			log.debug("pos before drop {} Err {}".format(tag_position,
+				np.sqrt(sum( (tag_position - GT)**2 ))))
+		else:
+			log.debug("pos before drop {}".format(tag_position))
+		log.debug("dropping range {}".format(loc_anchor_ranges[fopts_dbg_r[min(fopts)]]))
+		lr, lp = fopts[min(fopts)]
+		return _trilaterate(lr, lp, last_position)
+
+
+	if args.ground_truth:
+		log.debug("tag_position {} Err {}".format(tag_position,
+				np.sqrt(sum( (tag_position - GT)**2 ))))
+	else:
+		log.debug("tag_position {}".format(tag_position))
 	return tag_position
 
 ##########################################################################
@@ -223,6 +274,9 @@ try:
 				good, bad, np.mean(anc_seen_hist), anc_seen_hist[-1]))
 
 		try:
+			log.debug("")
+			log.debug("")
+			log.debug("")
 			find_header()
 
 			num_anchors, = struct.unpack("<B", useful_read(1))
@@ -325,7 +379,11 @@ try:
 					log.warn('Dropping impossible range %d', range_mm)
 					continue
 
-				log.debug('Anchor {} Range {}'.format(anchor_eui, range_mm))
+				if args.ground_truth:
+					log.debug('Anchor {} Range {:.4f} Error {:.4f}'.format(anchor_eui,
+						range_mm/1000, range_mm/1000 - GT_RANGE[anchor_eui[-2:]]))
+				else:
+					log.debug('Anchor {} Range {:.4f}'.format(anchor_eui, range_mm/1000))
 
 				ranges[anchor_eui[-2:]] = range_mm / 1000
 				windows[window_packet_recv] += 1
