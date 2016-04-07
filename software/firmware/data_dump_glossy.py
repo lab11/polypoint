@@ -211,6 +211,9 @@ anc_seen_hist = [5]
 
 windows = [0,0,0]
 
+start = 1459998187.496
+first_time = None
+
 last_position = np.array((0,0,0))
 
 try:
@@ -221,11 +224,15 @@ try:
 
 		try:
 			find_header()
-			ts = time.time()
 
 			num_anchors, = struct.unpack("<B", useful_read(1))
 
 			ranging_broadcast_ss_send_times = np.array(struct.unpack("<30Q", useful_read(8*NUM_RANGING_BROADCASTS)))
+
+			if first_time is None:
+				first_time = ranging_broadcast_ss_send_times[15]
+			DWT_TIME_UNITS = (1.0/499.2e6/128.0)
+			ts = start +  (ranging_broadcast_ss_send_times[15] - first_time) * DWT_TIME_UNITS
 
 			ranges = {}
 			
