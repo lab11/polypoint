@@ -103,9 +103,7 @@ def location_optimize(x,anchor_ranges,anchor_locations):
 	return ret
 
 
-def trilaterate(ranges, tag_position=np.array([0,0,0])):
-	#loc_anchor_positions = ANCHOR_POSITIONS[sorted_range_idxs[first_valid_idx:last_valid_idx]]
-	#loc_anchor_ranges = sorted_ranges[first_valid_idx:last_valid_idx]
+def trilaterate(ranges, last_position):
 	loc_anchor_positions = []
 	loc_anchor_ranges = []
 	for eui,range in ranges.items():
@@ -129,7 +127,7 @@ def trilaterate(ranges, tag_position=np.array([0,0,0])):
 	#		log.debug("loc_anchor_ranges = {}".format(loc_anchor_ranges))
 	#		tag_position = fmin_bfgs(
 	#				f=location_optimize,
-	#				x0=tag_position[0:2],
+	#				x0=last_position[0:2],
 	#				args=(loc_anchor_ranges, loc_anchor_positions)
 	#				)
 	#		tag_position = np.append(tag_position,2)
@@ -140,7 +138,7 @@ def trilaterate(ranges, tag_position=np.array([0,0,0])):
 		tag_position = fmin_bfgs(
 				disp=disp,
 				f=location_optimize, 
-				x0=tag_position,
+				x0=last_position,
 				args=(loc_anchor_ranges, loc_anchor_positions)
 				)
 
@@ -212,6 +210,8 @@ data_array = []
 anc_seen_hist = [5]
 
 windows = [0,0,0]
+
+last_position = np.array((0,0,0))
 
 try:
 	while True:
@@ -332,7 +332,8 @@ try:
 			anc_seen_hist.append(len(ranges))
 
 			if args.trilaterate:
-				position = trilaterate(ranges)
+				position = trilaterate(ranges, last_position)
+				last_position = position
 
 				s = "{:.3f} {:1.4f} {:1.4f} {:1.4f}".format(ts, *position)
 				print(s)
