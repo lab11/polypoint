@@ -255,6 +255,17 @@ void send_sync(uint32_t delay_time){
 	dwt_starttx(DWT_START_TX_DELAYED);
 	dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
 	dwt_writetxdata(sizeof(_sync_pkt), (uint8_t*) &_sync_pkt, 0);
+
+	if(_role == GLOSSY_MASTER){
+		uint64_t dw_timestamp = (uint64_t)(delay_time) << 8;
+		dw_timestamp += _time_overflow;
+
+		const uint8_t header[] = {0x80, 0x01, 0x80, 0x01};
+		uart_write(4, header);
+
+		uart_write(sizeof(uint64_t), &dw_timestamp);
+		uart_write(sizeof(_sync_pkt), (uint8_t*) &_sync_pkt);
+	}
 }
 
 #define CW_CAL_12PF ((3.494350-3.494173)/3.4944*1e6/30)
@@ -293,7 +304,11 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 			memcpy(_sync_pkt.tag_sched_eui, _sched_euis[ii], EUI_LEN);
 			_sync_pkt.tag_ranging_mask |= (uint64_t)(1) << ii;
 			_sync_pkt.tag_sched_idx = ii;
+
+			uart_write(sizeof(uint64_t), &dw_timestamp);
+			uart_write(sizeof(struct pp_sched_req_flood), (uint8_t*)in_glossy_sched_req);
 		}
+
 
 #ifdef GLOSSY_PER_TEST
 		_total_syncs_received++;
