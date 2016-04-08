@@ -165,6 +165,7 @@ def trilaterate(ranges, last_position):
 	loc_anchor_ranges = np.array(loc_anchor_ranges)
 
 	pos, lr, lp = _trilaterate(loc_anchor_ranges, loc_anchor_positions, last_position)
+	return pos
 	pos2, lr2, lp2, opt2 = _trilaterate2(loc_anchor_ranges, loc_anchor_positions, last_position)
 
 	if args.ground_truth:
@@ -472,6 +473,8 @@ try:
 		
 				#anchor_eui_txt = dec2hex(anchor_eui)
 				range_mm = np.percentile(distance_millimeters,10)
+
+				range_mm -= 121.591
 
 
 				if range_mm < 0 or range_mm > (1000*30):
