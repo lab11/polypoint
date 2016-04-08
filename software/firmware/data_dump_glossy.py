@@ -39,6 +39,7 @@ import dataprint
 
 
 parser = argparse.ArgumentParser()
+parser.add_argument('-a', '--anchor-history', action='store_true')
 parser.add_argument('-s', '--serial',   default='/dev/tty.usbserial-AL00EZAS')
 parser.add_argument('-f', '--file',     default=None)
 parser.add_argument('-b', '--baudrate', default=3000000, type=int)
@@ -345,6 +346,7 @@ def dwtime_to_millimeters(dwtime):
 data_array = []
 
 anc_seen_hist = [5]
+anc_seen_hist_ids = []
 
 windows = [0,0,0]
 
@@ -357,6 +359,14 @@ try:
 	while True:
 		#if good >= 380:
 		#	break
+		if args.anchor_history:
+			for _aid in sorted(ANCHORS):
+				cnt = 0
+				for l in anc_seen_hist_ids:
+					for k in l:
+						if k == _aid:
+							cnt += 1
+				print('{} {}'.format(_aid, cnt))
 
 		#sys.stdout.write("\rGood {}    Bad {}\t\t".format(good, bad))
 		log.info("Good {}    Bad {}    Avg {:.1f}    Last {}\t\t".format(
@@ -484,6 +494,10 @@ try:
 			if len(anc_seen_hist) > 20:
 				anc_seen_hist.pop(0)
 			anc_seen_hist.append(len(ranges))
+
+			if len(anc_seen_hist_ids) > 30:
+				anc_seen_hist_ids.pop(0)
+			anc_seen_hist_ids.append(list(ranges.keys()))
 
 			if args.trilaterate:# and good > 35:
 				position = trilaterate(ranges, last_position)
