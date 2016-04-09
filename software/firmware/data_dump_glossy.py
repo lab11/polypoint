@@ -25,6 +25,7 @@ except ImportError:
 
 import argparse
 import binascii
+import random
 import struct
 import sys
 import time
@@ -46,6 +47,9 @@ parser.add_argument('-b', '--baudrate', default=3000000, type=int)
 parser.add_argument('-o', '--outfile',  default='out')
 parser.add_argument('-t', '--trilaterate', action='store_true')
 parser.add_argument('-g', '--ground-truth', default=None)
+parser.add_argument('-m', '--subsample', action='store_true')
+parser.add_argument('-n', '--no-iter', action='store_true')
+parser.add_argument('-e', '--exact', default=None, type=int)
 #parser.add_argument('-t', '--textfiles',action='store_true',
 #		help="Generate ASCII text files with the data")
 #parser.add_argument('-m', '--matfile',  action='store_true',
@@ -54,6 +58,9 @@ parser.add_argument('-g', '--ground-truth', default=None)
 #		help="Generate binary file of the data")
 
 args = parser.parse_args()
+
+if args.subsample and (args.exact is not None):
+	raise NotImplementedError("Illegal flags -m + -e")
 
 #if not (args.textfiles or args.matfile or args.binfile):
 #	print("Error: Must specify at least one of -t, -m, or -n")
@@ -240,6 +247,9 @@ def _trilaterate(loc_anchor_ranges, loc_anchor_positions, last_position, last_er
 				args=(loc_anchor_ranges, loc_anchor_positions),
 				full_output=True,
 				)
+
+	if args.no_iter:
+		return tag_position, loc_anchor_ranges, loc_anchor_positions
 
 	#print("{} {} {}".format(tag_position[0], tag_position[1], tag_position[2]))
 
@@ -501,6 +511,16 @@ try:
 			if len(anc_seen_hist_ids) > 30:
 				anc_seen_hist_ids.pop(0)
 			anc_seen_hist_ids.append(list(ranges.keys()))
+
+			if args.subsample:
+				while len(ranges) > 3:
+					del ranges[list(ranges.keys())[random.randrange(0, len(ranges))]]
+
+			if args.exact is not None:
+				if len(ranges) < args.exact:
+					continue
+				while len(ranges) > args.exact:
+					del ranges[list(ranges.keys())[random.randrange(0, len(ranges))]]
 
 			if args.trilaterate:# and good > 35:
 				position = trilaterate(ranges, last_position)
