@@ -376,6 +376,9 @@ static void report_range () {
 	// Send the timestamp
 	uart_write(sizeof(uint8_t), &(ot_scratch->anchor_response_count));
 
+	// Send the send times
+	uart_write(NUM_RANGING_BROADCASTS*sizeof(uint64_t), &(ot_scratch->ranging_broadcast_ss_send_times));
+
 	for (uint8_t anchor_index=0; anchor_index<ot_scratch->anchor_response_count; anchor_index++) {
 		// Some timing issues in UART, catch them
 		const uint8_t data_header[] = {0x80, 0x80};
@@ -383,7 +386,6 @@ static void report_range () {
 
 		anchor_responses_t* aresp = &(ot_scratch->anchor_responses[anchor_index]);
 
-		uart_write(NUM_RANGING_CHANNELS*sizeof(uint64_t), &(ot_scratch->ranging_broadcast_ss_send_times));
 		uart_write(sizeof(anchor_responses_t), (uint8_t*) aresp);
 	}
 
