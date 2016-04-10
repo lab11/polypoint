@@ -25,6 +25,7 @@ except ImportError:
 
 import argparse
 import binascii
+import pprint
 import random
 import struct
 import sys
@@ -50,6 +51,7 @@ parser.add_argument('-g', '--ground-truth', default=None)
 parser.add_argument('-m', '--subsample', action='store_true')
 parser.add_argument('-n', '--no-iter', action='store_true')
 parser.add_argument('-e', '--exact', default=None, type=int)
+parser.add_argument('-d', '--dump-full', action='store_true')
 #parser.add_argument('-t', '--textfiles',action='store_true',
 #		help="Generate ASCII text files with the data")
 #parser.add_argument('-m', '--matfile',  action='store_true',
@@ -219,7 +221,9 @@ def trilaterate(ranges, last_position):
 
 
 t1_errs = []
+t1_iter_drop_count = 0
 
+total_ranges_count = 0
 
 def _trilaterate(loc_anchor_ranges, loc_anchor_positions, last_position, last_error=None):
 	if loc_anchor_ranges.size < 3:
@@ -273,7 +277,9 @@ def _trilaterate(loc_anchor_ranges, loc_anchor_positions, last_position, last_er
 
 		s = list(sorted(fopts.keys()))
 
-		log.warn("--------------------------iter drop")
+		global t1_iter_drop_count
+		t1_iter_drop_count += 1
+		log.warn("--------------------------iter drop (count {})".format(t1_iter_drop_count))
 		log.debug(fopts.keys())
 		log.debug("dropping range {:.4f}".format(loc_anchor_ranges[fopts_dbg_r[min(fopts)]]))
 		lr, lp = fopts[min(fopts)]
@@ -321,6 +327,15 @@ NUM_RANGING_BROADCASTS = 30
 EUI_LEN = 8
 data_section_length = 8*NUM_RANGING_CHANNELS + 8+1+1+8+8+30*8
 
+
+if args.dump_full:
+	dffiles = {}
+	for a in ANCHORS:
+		dffiles[a] = open(args.outfile + '.df.' + a, 'w')
+		dffiles[a].write('# ts\t\t' + '\t'.join(list(map(str,
+			range(NUM_RANGING_BROADCASTS)))) + '\n')
+
+
 def antenna_and_channel_to_subsequence_number(tag_antenna_index, anchor_antenna_index, channel_index):
 	anc_offset = anchor_antenna_index * NUM_RANGING_CHANNELS
 	tag_offset = tag_antenna_index * NUM_RANGING_CHANNELS * NUM_RANGING_CHANNELS
@@ -359,6 +374,10 @@ data_array = []
 anc_seen_hist = [5]
 anc_seen_hist_ids = []
 
+anc_seen_counts = {}
+for a in ANCHORS:
+	anc_seen_counts[a] = 0
+
 windows = [0,0,0]
 
 start = 1459998187.496
@@ -368,7 +387,7 @@ last_position = np.array((0,0,0))
 
 try:
 	while True:
-		#if good >= 380:
+		#if good >= 38:
 		#	break
 		if args.anchor_history:
 			for _aid in sorted(ANCHORS):
@@ -466,6 +485,9 @@ try:
 		
 				two_way_TOF = ((response_recv_time - matching_broadcast_send_time)*offset_anchor_over_tag) - (response_send_time - matching_broadcast_recv_time)
 				one_way_TOF = two_way_TOF/2
+
+				if args.dump_full:
+					dffiles[anchor_eui[-2:]].write('{:.2f}\t'.format(ts))
 		
 				# Declare an array for sorting ranges
 				distance_millimeters = []
@@ -473,18 +495,26 @@ try:
 					broadcast_send_time = ranging_broadcast_ss_send_times[jj]
 					broadcast_recv_time = tag_poll_TOAs[jj]
 					if int(broadcast_recv_time) & 0xFFFF == 0:
+						if args.dump_full:
+							dffiles[anchor_eui[-2:]].write('nan\t')
 						continue
 		
 					broadcast_anchor_offset = broadcast_recv_time - matching_broadcast_recv_time
 					broadcast_tag_offset = broadcast_send_time - matching_broadcast_send_time
 					TOF = broadcast_anchor_offset - broadcast_tag_offset*offset_anchor_over_tag + one_way_TOF
 		
-					distance_millimeters.append(dwtime_to_millimeters(TOF))
+					mm = dwtime_to_millimeters(TOF)
+					mm -= 121.591
+					distance_millimeters.append(mm)
+
+					if args.dump_full:
+						dffiles[anchor_eui[-2:]].write('{:.2f}\t'.format(mm/1000))
+
+				if args.dump_full:
+					dffiles[anchor_eui[-2:]].write('\n')
 		
 				#anchor_eui_txt = dec2hex(anchor_eui)
 				range_mm = np.percentile(distance_millimeters,10)
-
-				range_mm -= 121.591
 
 
 				if range_mm < 0 or range_mm > (1000*30):
@@ -521,6 +551,11 @@ try:
 					continue
 				while len(ranges) > args.exact:
 					del ranges[list(ranges.keys())[random.randrange(0, len(ranges))]]
+
+			total_ranges_count += len(ranges)
+
+			for r in ranges:
+				anc_seen_counts[r] += 1
 
 			if args.trilaterate:# and good > 35:
 				position = trilaterate(ranges, last_position)
@@ -563,6 +598,10 @@ if sum(windows):
 		windows[1], 100* windows[1] / sum(windows),
 		windows[2], 100* windows[2] / sum(windows),
 		))
+print("Iteration dropped {} times".format(t1_iter_drop_count))
+print("Total ranges {}".format(total_ranges_count))
+print("Anchors Seen:")
+pprint.pprint(anc_seen_counts)
 #if args.textfiles:
 #	print("Wrote ASCII outputs to " + args.outfile + ".{timestamps,data}")
 #if args.matfile:
