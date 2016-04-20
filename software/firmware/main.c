@@ -357,6 +357,8 @@ int main () {
 	dwt_rxenable(0);
 	//timer_start(_app_timer, 1000000, fuzz_dw_bits);
 
+	sync_dw1000();
+
 	while(1)
 	{
 		PWR_EnterSleepMode(PWR_SLEEPEntry_WFI);

@@ -597,6 +597,13 @@ uint64_t dw1000_get_txrx_delay () {
 	return 0;
 }
 
+void sync_dw1000() {
+	uint8_t register_contents[2] = {0xC0, 0x09};
+
+	//All we need to do is to write to EC_CTRL and wait for an incoming SYNC pulse generated externally
+	dwt_writetodevice(EXT_SYNC_ID, EC_CTRL_OFFSET, 2, register_contents);
+}
+
 // First (generic) init of the DW1000
 dw1000_err_e dw1000_init () {
 	dw1000_err_e err;
