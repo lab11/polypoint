@@ -52,6 +52,7 @@ parser.add_argument('-m', '--subsample', action='store_true')
 parser.add_argument('-n', '--no-iter', action='store_true')
 parser.add_argument('-e', '--exact', default=None, type=int)
 parser.add_argument('-d', '--dump-full', action='store_true')
+parser.add_argument('-v', '--diversity', default=None)
 #parser.add_argument('-t', '--textfiles',action='store_true',
 #		help="Generate ASCII text files with the data")
 #parser.add_argument('-m', '--matfile',  action='store_true',
@@ -219,6 +220,7 @@ def trilaterate(ranges, last_position):
 		return pos3
 	return pos5
 
+nodiversity_drop_count = 0
 
 t1_errs = []
 t1_iter_drop_count = 0
@@ -491,12 +493,14 @@ try:
 		
 				# Declare an array for sorting ranges
 				distance_millimeters = []
+				d_mm_all = []
 				for jj in range(NUM_RANGING_BROADCASTS):
 					broadcast_send_time = ranging_broadcast_ss_send_times[jj]
 					broadcast_recv_time = tag_poll_TOAs[jj]
 					if int(broadcast_recv_time) & 0xFFFF == 0:
 						if args.dump_full:
 							dffiles[anchor_eui[-2:]].write('nan\t')
+						d_mm_all.append(-111)
 						continue
 		
 					broadcast_anchor_offset = broadcast_recv_time - matching_broadcast_recv_time
@@ -506,15 +510,32 @@ try:
 					mm = dwtime_to_millimeters(TOF)
 					mm -= 121.591
 					distance_millimeters.append(mm)
+					d_mm_all.append(mm)
 
 					if args.dump_full:
 						dffiles[anchor_eui[-2:]].write('{:.2f}\t'.format(mm/1000))
 
 				if args.dump_full:
 					dffiles[anchor_eui[-2:]].write('\n')
-		
-				#anchor_eui_txt = dec2hex(anchor_eui)
-				range_mm = np.percentile(distance_millimeters,10)
+
+
+				# Allow for experiments that ignore diversity
+				if args.diversity is not None:
+					if args.diversity[0] == 'r':
+						d = []
+						for i in range(int(args.diversity[1:])):
+							cand = d_mm_all.pop(random.randrange(len(d_mm_all)))
+							if cand != -111:
+								d.append(cand)
+						if len(d) == 0:
+							nodiversity_drop_count += 1
+							print("Dropping, cnt", nodiversity_drop_count)
+							continue
+						range_mm = np.percentile(d,10)
+					else:
+						range_mm = d_mm_all[int(args.diversity)]
+				else:
+					range_mm = np.percentile(distance_millimeters,10)
 
 
 				if range_mm < 0 or range_mm > (1000*30):
@@ -621,14 +642,16 @@ pprint.pprint(anc_seen_counts)
 #		overwrite=True,
 #		#comments=("Time", "X", "Y", "Z"),
 #		)
-ofile = open(args.outfile, 'w')
-aa = []
-for a in sorted(ANCHORS.keys()):
-	aa.append(':'.join((a, *map(str, ANCHORS[a]))))
-ofile.write("#" + '\t'.join(("Time", "X", "Y", "Z", *aa)) + '\n')
-dataprint.to_file(ofile, data_array)
-ofile.write('#windows {} {} {}\n'.format(*windows))
-print("Saved to {}".format(args.outfile))
+
+if args.trilaterate:
+	ofile = open(args.outfile, 'w')
+	aa = []
+	for a in sorted(ANCHORS.keys()):
+		aa.append(':'.join((a, *map(str, ANCHORS[a]))))
+	ofile.write("#" + '\t'.join(("Time", "X", "Y", "Z", *aa)) + '\n')
+	dataprint.to_file(ofile, data_array)
+	ofile.write('#windows {} {} {}\n'.format(*windows))
+	print("Saved to {}".format(args.outfile))
 
 
 if args.ground_truth:
@@ -640,4 +663,5 @@ if args.ground_truth:
 		np.median(t1_errs),
 		))
 
+print(nodiversity_drop_count)
 
