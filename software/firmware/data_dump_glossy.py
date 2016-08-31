@@ -465,8 +465,8 @@ try:
 				num_valid_offsets = 0
 				offset_cumsum = 0
 				for jj in range(NUM_RANGING_CHANNELS):
-					if(tag_poll_TOAs[jj] & 0xFFFF > 0 and tag_poll_TOAs[26+jj] & 0xFFFF > 0):
-						offset_cumsum = offset_cumsum + (tag_poll_TOAs[26+jj] - tag_poll_TOAs[jj])/(ranging_broadcast_ss_send_times[26+jj] - ranging_broadcast_ss_send_times[jj])
+					if(tag_poll_TOAs[jj] & 0xFFFF > 0 and tag_poll_TOAs[27+jj] & 0xFFFF > 0):
+						offset_cumsum = offset_cumsum + (tag_poll_TOAs[27+jj] - tag_poll_TOAs[jj])/(ranging_broadcast_ss_send_times[27+jj] - ranging_broadcast_ss_send_times[jj])
 						num_valid_offsets = num_valid_offsets + 1
 
 				if num_valid_offsets == 0:
