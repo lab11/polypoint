@@ -173,7 +173,7 @@ void glossy_sync_task(){
 
 					// Send out a schedule request during this contention slot
 					// Pick a random time offset to avoid colliding with others
-					uint32_t sched_req_time = ranval(&_prng_state) % (uint32_t)(LWB_SLOT_US);
+					uint32_t sched_req_time = (ranval(&_prng_state) % (uint32_t)(LWB_SLOT_US-2*GLOSSY_FLOOD_TIMESLOT_US)) + GLOSSY_FLOOD_TIMESLOT_US;
 					uint32_t delay_time = (dwt_readsystimestamphi32() + DW_DELAY_FROM_PKT_LEN(sizeof(struct pp_sched_req_flood)) + DW_DELAY_FROM_US(sched_req_time)) & 0xFFFFFFFE;
 					dwt_setdelayedtrxtime(delay_time);
 					dwt_setrxaftertxdelay(LWB_SLOT_US);
@@ -333,7 +333,9 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 					// If we're between 0.5 to 1.0 times the update interval, we are now able to update our clock and perpetuate the flood!
 			
 					// Calculate the ppm offset from the last two received sync messages
-					double clock_offset_ppm = (((double)(dw_timestamp - _last_sync_timestamp) / ((uint64_t)(GLOSSY_UPDATE_INTERVAL_DW) << 8)) - 1.0) * 1e6;
+					double clock_offset_ppm = (((double)(dw_timestamp - 
+					                                     ((uint64_t)(DW_DELAY_FROM_US(GLOSSY_FLOOD_TIMESLOT_US) & 0xFFFFFFFE) << 8)*(in_glossy_sync->header.seqNum) - 
+					                                     _last_sync_timestamp) / ((uint64_t)(GLOSSY_UPDATE_INTERVAL_DW) << 8)) - 1.0) * 1e6;
 
 					// Great, we're still sync'd!
 					_last_sync_depth = in_glossy_sync->header.seqNum;
