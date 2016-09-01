@@ -128,6 +128,9 @@ void glossy_sync_task(){
 		// During the first timeslot, put ourselves back into RX mode
 		if(_lwb_counter == 1){
 			dwt_rxenable(0);
+#ifdef GLOSSY_ANCHOR_SYNC_TEST
+			dw1000_update_antenna(1);
+#endif
 
 		// Last timeslot is used by the master to schedule the next glossy sync packet
 		} else if(_lwb_counter == (GLOSSY_UPDATE_INTERVAL_US/LWB_SLOT_US)-1){
@@ -173,8 +176,17 @@ void glossy_sync_task(){
 
 					// Send out a schedule request during this contention slot
 					// Pick a random time offset to avoid colliding with others
+#ifdef GLOSSY_ANCHOR_SYNC_TEST
+					uint32_t sched_req_time = _sched_req_pkt.tag_sched_eui[0] * GLOSSY_FLOOD_TIMESLOT_US;
+					uint32_t delay_time = (dwt_readsystimestamphi32() + DW_DELAY_FROM_PKT_LEN(sizeof(struct pp_sched_req_flood)) + DW_DELAY_FROM_US(sched_req_time)) & 0xFFFFFFFE;
+					_sched_req_pkt.turnaround_time = (delay_time << 8) - (_last_sync_timestamp & 0xFFFFFFFF);
+					// TODO: Add in turnaround delay?
+					dw1000_choose_antenna(1);
+#else
 					uint32_t sched_req_time = (ranval(&_prng_state) % (uint32_t)(LWB_SLOT_US-2*GLOSSY_FLOOD_TIMESLOT_US)) + GLOSSY_FLOOD_TIMESLOT_US;
 					uint32_t delay_time = (dwt_readsystimestamphi32() + DW_DELAY_FROM_PKT_LEN(sizeof(struct pp_sched_req_flood)) + DW_DELAY_FROM_US(sched_req_time)) & 0xFFFFFFFE;
+#endif
+
 					dwt_setdelayedtrxtime(delay_time);
 					dwt_setrxaftertxdelay(LWB_SLOT_US);
 					dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED);
@@ -276,6 +288,16 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 	dw_timestamp += _time_overflow;
 
 	if(_role == GLOSSY_MASTER){
+#ifdef GLOSSY_ANCHOR_SYNC_TEST
+		uint32_t actual_turnaround = (dw_timestamp - (_last_delay_time << 8));
+		const uint8_t header[] = {0x80, 0x01, 0x80, 0x01};
+		uart_write(4, header);
+
+		actual_turnaround = in_glossy_sched_req->turnaround_time - actual_turnaround;
+
+		uart_write(1, in_glossy_sched_req->tag_sched_eui);
+		uart_write(sizeof(uint32_t), &actual_turnaround);
+#else
 		// If this is a schedule request, try to fit the requesting tag into the schedule
 		if(in_glossy_sync->message_type == MSG_TYPE_PP_GLOSSY_SCHED_REQ){
 			int ii;
@@ -294,6 +316,7 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 			_sync_pkt.tag_ranging_mask |= (uint64_t)(1) << ii;
 			_sync_pkt.tag_sched_idx = ii;
 		}
+#endif
 
 #ifdef GLOSSY_PER_TEST
 		_total_syncs_received++;
@@ -303,6 +326,7 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 
 	else if(_role == GLOSSY_SLAVE){
 		if(in_glossy_sync->message_type == MSG_TYPE_PP_GLOSSY_SCHED_REQ){
+#ifndef GLOSSY_ANCHOR_SYNC_TEST
 			// Increment depth counter
 			_cur_glossy_depth = ++in_glossy_sched_req->header.seqNum;
 			_glossy_currently_flooding = TRUE;
@@ -320,6 +344,7 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 			dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED);
 			dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
 			dwt_writetxdata(sizeof(struct pp_sched_req_flood), (uint8_t*) in_glossy_sched_req, 0);
+#endif
 		} else {
 			// First check to see if this sync packet contains a schedule update for this node
 			if(memcmp(in_glossy_sync->tag_sched_eui, _sched_req_pkt.tag_sched_eui, EUI_LEN) == 0){

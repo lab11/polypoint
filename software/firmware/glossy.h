@@ -37,6 +37,9 @@ struct pp_sched_req_flood {
 	struct ieee154_header_broadcast header;
 	uint8_t message_type;
 	uint8_t tag_sched_eui[EUI_LEN];
+#ifdef GLOSSY_ANCHOR_SYNC_TEST
+	uint32_t turnaround_time;
+#endif
 	struct ieee154_footer footer;
 } __attribute__ ((__packed__));
 
