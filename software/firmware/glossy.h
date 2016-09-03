@@ -5,6 +5,7 @@
 #include "deca_device_api.h"
 
 #define LWB_SLOT_US               1e4
+
 #define LWB_SLOTS_PER_RANGE       8
 
 #define MAX_SCHED_TAGS            10
@@ -15,6 +16,7 @@
 #else
 #define GLOSSY_UPDATE_INTERVAL_US 1e6
 #endif
+
 #define GLOSSY_FLOOD_TIMESLOT_US  1e3
 
 #define GLOSSY_UPDATE_INTERVAL_DW (DW_DELAY_FROM_US(GLOSSY_UPDATE_INTERVAL_US) & 0xFFFFFFFE)
@@ -38,7 +40,8 @@ struct pp_sched_req_flood {
 	uint8_t message_type;
 	uint8_t tag_sched_eui[EUI_LEN];
 #ifdef GLOSSY_ANCHOR_SYNC_TEST
-	uint32_t turnaround_time;
+	uint64_t turnaround_time;
+	uint8_t sync_depth;
 #endif
 	struct ieee154_footer footer;
 } __attribute__ ((__packed__));

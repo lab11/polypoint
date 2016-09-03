@@ -12,6 +12,7 @@ typedef struct {
 	NVIC_InitTypeDef        nvic_init;
 	TIM_TimeBaseInitTypeDef tim_init;
 	uint32_t                timer_clock;
+	uint32_t                divider;
 } stm_timer_t;
 
 typedef void (*timer_callback)();
