@@ -181,7 +181,7 @@ void glossy_sync_task(){
 					// Send out a schedule request during this contention slot
 					// Pick a random time offset to avoid colliding with others
 #ifdef GLOSSY_ANCHOR_SYNC_TEST
-					uint32_t sched_req_time = (uint32_t)(_sched_req_pkt.tag_sched_eui[0]) * GLOSSY_FLOOD_TIMESLOT_US;
+					uint32_t sched_req_time = (uint32_t)(_sched_req_pkt.tag_sched_eui[0] - 0x31) * GLOSSY_FLOOD_TIMESLOT_US;
 					uint32_t delay_time = (dwt_readsystimestamphi32() + DW_DELAY_FROM_PKT_LEN(sizeof(struct pp_sched_req_flood)) + DW_DELAY_FROM_US(sched_req_time)) & 0xFFFFFFFE;
 					double turnaround_time = (double)((((uint64_t)(delay_time) << 8) - _last_sync_timestamp) & 0xFFFFFFFFFFUL);// + DW_DELAY_FROM_US(GLOSSY_FLOOD_TIMESLOT_US)*_last_sync_depth;
 					turnaround_time /= _clock_offset;
