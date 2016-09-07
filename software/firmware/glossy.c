@@ -34,7 +34,7 @@ static uint32_t _lwb_timeslot;
 static void (*_lwb_schedule_callback)(void);
 
 static uint8_t _sched_euis[MAX_SCHED_TAGS][EUI_LEN];
-static int _cur_sched_tags;
+static uint8_t _tag_timeout[MAX_SCHED_TAGS];
 
 static ranctx _prng_state;
 
@@ -78,6 +78,7 @@ void glossy_init(glossy_role_e role){
 
 	_sched_req_pkt.header = _sync_pkt.header;
 	_sched_req_pkt.message_type = MSG_TYPE_PP_GLOSSY_SCHED_REQ;
+	_sched_req_pkt.deschedule_flag = 0;
 	dw1000_read_eui(_sched_req_pkt.tag_sched_eui);
 
 	// TODO: We're currently using the same EUI throughout...
@@ -92,7 +93,7 @@ void glossy_init(glossy_role_e role){
 	_role = role;
 	_sending_sync = FALSE;
 	_lwb_counter = 0;
-	_cur_sched_tags = 0;
+	memset(_tag_timeout, 0, sizeof(_tag_timeout));
 
 	_lwb_valid = FALSE;
 	_lwb_sched_en = FALSE;
@@ -121,6 +122,22 @@ void glossy_init(glossy_role_e role){
 	timer_start(_glossy_timer, LWB_SLOT_US, glossy_sync_task);
 }
 
+void increment_sched_timeout(){
+	for(int ii=0; ii < MAX_SCHED_TAGS; ii++){
+		if(_sync_pkt.tag_ranging_mask & ((uint64_t)(1) << ii)){
+			_tag_timeout[ii]++;
+			if(_tag_timeout[ii] == TAG_SCHED_TIMEOUT)
+				_sync_pkt.tag_ranging_mask &= ~((uint64_t)(1) << ii);
+		} else {
+			_tag_timeout[ii] = 0;
+		}
+	}
+}
+
+void glossy_deschedule(){
+	_sched_req_pkt.deschedule_flag = 1;
+}
+
 void glossy_sync_task(){
 	_lwb_counter++;
 
@@ -144,6 +161,8 @@ void glossy_sync_task(){
 		
 			dw1000_update_channel(1);
 			dw1000_choose_antenna(0);
+
+			increment_sched_timeout();
 		
 			_last_time_sent += GLOSSY_UPDATE_INTERVAL_DW;
 			send_sync(_last_time_sent);
@@ -165,7 +184,7 @@ void glossy_sync_task(){
 			if(_lwb_counter == 1){
 				dw1000_update_channel(1);
 				dw1000_choose_antenna(0);
-				if(!_lwb_scheduled && _lwb_sched_en){
+				if(!_lwb_scheduled && _lwb_sched_en || deschedule_request){
 					dwt_forcetrxoff();
 
 					uint16_t frame_len = sizeof(struct pp_sched_req_flood);
@@ -279,20 +298,23 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 		// If this is a schedule request, try to fit the requesting tag into the schedule
 		if(in_glossy_sync->message_type == MSG_TYPE_PP_GLOSSY_SCHED_REQ){
 			int ii;
-			for(ii = 0; ii < _cur_sched_tags; ii++){
+			for(ii = 0; ii < MAX_SCHED_TAGS; ii++){
 				if(memcmp(_sched_euis[ii], in_glossy_sched_req->tag_sched_eui, EUI_LEN) == 0){
 					_sync_pkt.tag_sched_idx = ii;
 					break;
 				}
 			}
 			// If we didn't find the EUI (not scheduled), schedule it!
-			if(ii == _cur_sched_tags){
+			if(ii == MAX_SCHED_TAGS){
 				memcpy(_sched_euis[ii], in_glossy_sched_req->tag_sched_eui, EUI_LEN);
-				_cur_sched_tags++;
 			}
 			memcpy(_sync_pkt.tag_sched_eui, _sched_euis[ii], EUI_LEN);
-			_sync_pkt.tag_ranging_mask |= (uint64_t)(1) << ii;
+			if(in_glossy_sched_req->deschedule_flag)
+				_sync_pkt.tag_ranging_mask &= ~((uint64_t)(1) << ii);
+			else
+				_sync_pkt.tag_ranging_mask |= (uint64_t)(1) << ii;
 			_sync_pkt.tag_sched_idx = ii;
+			_tag_timeout[ii] = 0;
 		}
 
 #ifdef GLOSSY_PER_TEST

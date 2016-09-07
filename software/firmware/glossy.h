@@ -9,6 +9,7 @@
 
 #define MAX_SCHED_TAGS            10
 #define GLOSSY_MAX_DEPTH          10
+#define TAG_SCHED_TIMEOUT         60
 
 #ifdef GLOSSY_PER_TEST
 #define GLOSSY_UPDATE_INTERVAL_US 1e4
@@ -36,11 +37,13 @@ struct pp_sched_flood {
 struct pp_sched_req_flood {
 	struct ieee154_header_broadcast header;
 	uint8_t message_type;
+	uint8_t deschedule_flag;
 	uint8_t tag_sched_eui[EUI_LEN];
 	struct ieee154_footer footer;
 } __attribute__ ((__packed__));
 
 void glossy_init(glossy_role_e role);
+void glossy_deschedule();
 void glossy_sync_task();
 void lwb_set_sched_request(bool sched_en);
 void lwb_set_sched_callback(void (*callback)(void));
