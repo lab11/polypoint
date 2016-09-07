@@ -61,7 +61,7 @@ void oneway_tag_init (void *app_scratchspace) {
 
 	// Setup parameters of how the radio should work
 	dwt_setautorxreenable(TRUE);
-	dwt_setdblrxbuffmode(TRUE);
+	dwt_setdblrxbuffmode(TRUE);//FALSE);
 	dwt_enableautoack(DW1000_ACK_RESPONSE_TIME);
 
 	// Put source EUI in the pp_tag_poll packet
@@ -77,6 +77,10 @@ void oneway_tag_init (void *app_scratchspace) {
 
 	// Reset our state because nothing should be in progress if we call init()
 	ot_scratch->state = TSTATE_IDLE;
+
+	// LPM now schedules all of our ranging events!
+	lwb_set_sched_request(TRUE);
+	lwb_set_sched_callback(oneway_tag_start_ranging_event);
 }
 
 // This starts a ranging event by causing the tag to send a series of
@@ -136,6 +140,7 @@ void oneway_tag_stop () {
 
 // Called after the TAG has transmitted a packet.
 static void tag_txcallback (const dwt_callback_data_t *data) {
+	glossy_process_txcallback();
 
 	if (data->event == DWT_SIG_TX_DONE) {
 		// Packet was sent successfully
@@ -180,8 +185,7 @@ static void tag_rxcallback (const dwt_callback_data_t* rxd) {
 		uint8_t  message_type;
 
 		// Get the received time of this packet first
-		dwt_readrxtimestamp(buf);
-		dw_rx_timestamp = DW_TIMESTAMP_TO_UINT64(buf);
+		dw_rx_timestamp = dw1000_readrxtimestamp();
 
 		// Get the actual packet bytes
 		dwt_readrxdata(buf, MIN(ONEWAY_TAG_MAX_RX_PKT_LEN, rxd->datalength), 0);
@@ -217,6 +221,10 @@ static void tag_rxcallback (const dwt_callback_data_t* rxd) {
 				memcpy(ot_scratch->anchor_responses[ot_scratch->anchor_response_count].anchor_addr, anc_final->ieee154_header_unicast.sourceAddr, EUI_LEN);
 
 				// Save the anchor's list of when it received the tag broadcasts
+				ot_scratch->anchor_responses[ot_scratch->anchor_response_count].tag_poll_first_TOA = anc_final->first_rxd_toa;
+				ot_scratch->anchor_responses[ot_scratch->anchor_response_count].tag_poll_first_idx = anc_final->first_rxd_idx;
+				ot_scratch->anchor_responses[ot_scratch->anchor_response_count].tag_poll_last_TOA = anc_final->last_rxd_toa;
+				ot_scratch->anchor_responses[ot_scratch->anchor_response_count].tag_poll_last_idx = anc_final->last_rxd_idx;
 				memcpy(ot_scratch->anchor_responses[ot_scratch->anchor_response_count].tag_poll_TOAs, anc_final->TOAs, sizeof(anc_final->TOAs));
 
 				// Save the antenna the anchor chose to use when responding to us
@@ -241,6 +249,9 @@ static void tag_rxcallback (const dwt_callback_data_t* rxd) {
 
 		} else {
 			// TAGs don't expect to receive any other types of packets.
+			message_type = buf[offsetof(struct pp_tag_poll, message_type)];
+			if(message_type == MSG_TYPE_PP_GLOSSY_SYNC || message_type == MSG_TYPE_PP_GLOSSY_SCHED_REQ)
+				glossy_sync_process(dw_rx_timestamp-oneway_get_rxdelay_from_subsequence(TAG, 0), buf);
 		}
 
 	} else {
@@ -283,12 +294,12 @@ static void send_poll () {
 	// Setup the time the packet will go out at, and save that timestamp
 	uint32_t delay_time = dwt_readsystimestamphi32() + DW_DELAY_FROM_PKT_LEN(tx_len);
 	delay_time &= 0xFFFFFFFE; //Make sure last bit is zero
-	dwt_setdelayedtrxtime(delay_time);
+	dw1000_setdelayedtrxtime(delay_time);
 
 	// Take the TX+RX delay into account here by adding it to the time stamp
 	// of each outgoing packet.
 	ot_scratch->ranging_broadcast_ss_send_times[ot_scratch->ranging_broadcast_ss_num] =
-		(((uint64_t) delay_time) << 8) + oneway_get_txdelay_from_subsequence(TAG, ot_scratch->ranging_broadcast_ss_num);
+		(((uint64_t) delay_time) << 8) + dw1000_gettimestampoverflow() + oneway_get_txdelay_from_subsequence(TAG, ot_scratch->ranging_broadcast_ss_num);
 
 	// Write the data
 	dwt_writetxdata(tx_len, (uint8_t*) &(ot_scratch->pp_tag_poll_pkt), 0);
@@ -353,6 +364,9 @@ static void ranging_listening_window_task () {
 		// Set the correct listening settings
 		oneway_set_ranging_listening_window_settings(TAG, ot_scratch->ranging_listening_window_num, 0);
 
+		// Make SURE we're in RX mode!
+		dwt_rxenable(0);
+
 		// Increment and wait
 		ot_scratch->ranging_listening_window_num++;
 
@@ -365,7 +379,7 @@ static void report_range () {
 	ot_scratch->state = TSTATE_CALCULATE_RANGE;
 
 	// Calculate ranges
-	calculate_ranges();
+	//calculate_ranges();
 
 	// Push data out over UART if configured to do so
 #ifdef UART_DATA_OFFLOAD
@@ -448,6 +462,34 @@ static void calculate_ranges () {
 	for (uint8_t anchor_index=0; anchor_index<ot_scratch->anchor_response_count; anchor_index++) {
 		anchor_responses_t* aresp = &(ot_scratch->anchor_responses[anchor_index]);
 
+		// Since the rxd TOAs are compressed to 16 bits, we first need to decompress them back to 64-bit quantities
+		uint64_t tag_poll_TOAs[NUM_RANGING_BROADCASTS];
+		memset(tag_poll_TOAs, 0, sizeof(tag_poll_TOAs));
+
+		// Get an estimate of clock offset
+		double approx_clock_offset = (double)(aresp->tag_poll_last_TOA - aresp->tag_poll_first_TOA) / (double)(ot_scratch->ranging_broadcast_ss_send_times[aresp->tag_poll_last_idx] - ot_scratch->ranging_broadcast_ss_send_times[aresp->tag_poll_first_idx]);
+
+		// First put in the TOA values that are known
+		tag_poll_TOAs[aresp->tag_poll_first_idx] = aresp->tag_poll_first_TOA;
+		tag_poll_TOAs[aresp->tag_poll_last_idx] = aresp->tag_poll_last_TOA;
+
+		// Then interpolate between the two to find the high 48 bits which fit best
+		uint8_t ii;
+		for(ii=aresp->tag_poll_first_idx+1; ii < aresp->tag_poll_last_idx; ii++){
+			uint64_t estimated_TOA = aresp->tag_poll_first_TOA + (approx_clock_offset*(ot_scratch->ranging_broadcast_ss_send_times[ii] - ot_scratch->ranging_broadcast_ss_send_times[aresp->tag_poll_first_idx]));
+
+			uint64_t actual_TOA = (estimated_TOA & 0xFFFFFFFFFFFF0000ULL) + aresp->tag_poll_TOAs[ii];
+
+			// Make corrections if we're off by more than 0x7FFF
+			if(actual_TOA < estimated_TOA - 0x7FFF)
+				actual_TOA += 0x10000;
+			else if(actual_TOA > estimated_TOA + 0x7FFF)
+				actual_TOA -= 0x10000;
+
+			// We're done -- store it...
+			tag_poll_TOAs[ii] = actual_TOA;
+		}
+
 		// First need to calculate the crystal offset between the anchor and tag.
 		// To do this, we need to get the timestamps at the anchor and tag
 		// for packets that are repeated. In the current scheme, the first
@@ -459,9 +501,9 @@ static void calculate_ranges () {
 			uint8_t first_broadcast_index = j;
 			uint8_t last_broadcast_index = NUM_RANGING_BROADCASTS - NUM_RANGING_CHANNELS + j;
 			uint64_t first_broadcast_send_time = ot_scratch->ranging_broadcast_ss_send_times[first_broadcast_index];
-			uint64_t first_broadcast_recv_time = aresp->tag_poll_TOAs[first_broadcast_index];
+			uint64_t first_broadcast_recv_time = tag_poll_TOAs[first_broadcast_index];
 			uint64_t last_broadcast_send_time  = ot_scratch->ranging_broadcast_ss_send_times[last_broadcast_index];
-			uint64_t last_broadcast_recv_time  = aresp->tag_poll_TOAs[last_broadcast_index];
+			uint64_t last_broadcast_recv_time  = tag_poll_TOAs[last_broadcast_index];
 
 			// Now lets check that the anchor actually received both of these
 			// packets. If it didn't then this isn't valid.
@@ -503,13 +545,13 @@ static void calculate_ranges () {
 		                                                              aresp->window_packet_recv);
 
 		// Exit early if the corresponding broadcast wasn't received
-		if(aresp->tag_poll_TOAs[ss_index_matching] == 0){
+		if(tag_poll_TOAs[ss_index_matching] == 0){
 			ot_scratch->ranges_millimeters[anchor_index] = ONEWAY_TAG_RANGE_ERROR_NO_OFFSET;
 			continue;
 		}
 
 		uint64_t matching_broadcast_send_time = ot_scratch->ranging_broadcast_ss_send_times[ss_index_matching];
-		uint64_t matching_broadcast_recv_time = aresp->tag_poll_TOAs[ss_index_matching];
+		uint64_t matching_broadcast_recv_time = tag_poll_TOAs[ss_index_matching];
 		uint64_t response_send_time  = aresp->anc_final_tx_timestamp;
 		uint64_t response_recv_time  = aresp->anc_final_rx_timestamp;
 
@@ -525,7 +567,7 @@ static void calculate_ranges () {
 		// Next we calculate the TOFs for each of the poll messages the tag sent.
 		for (uint8_t broadcast_index=0; broadcast_index<NUM_RANGING_BROADCASTS; broadcast_index++) {
 			uint64_t broadcast_send_time = ot_scratch->ranging_broadcast_ss_send_times[broadcast_index];
-			uint64_t broadcast_recv_time = aresp->tag_poll_TOAs[broadcast_index];
+			uint64_t broadcast_recv_time = tag_poll_TOAs[broadcast_index];
 
 			// Check that the anchor actually received the tag broadcast.
 			// We use 0 as a sentinel for the anchor not receiving the packet.

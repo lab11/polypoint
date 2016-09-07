@@ -63,6 +63,10 @@ ifndef LIBRARY_START_PATH
 $(error An LIBRARY_START_PATH must be defined. Edit Makefile to define a valid LIBRARY_PATH)
 endif
 
+ifneq ($(PID), )
+ID = c0:98:e5:50:50:44:50:$(PID)
+endif
+
 # Set an ID for programming the nodes EUI
 ifeq ($(ID), )
 ID = c0:98:e5:50:50:44:50:FF

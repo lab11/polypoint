@@ -93,6 +93,23 @@ void timer_start (stm_timer_t* t, uint32_t us_period, timer_callback cb) {
 	TIM_Cmd(t->tim_ptr, ENABLE);
 }
 
+void timer_disable_interrupt(stm_timer_t* t){
+	TIM_ITConfig(t->tim_ptr, TIM_IT_Update, DISABLE);
+}
+
+void timer_enable_interrupt(stm_timer_t* t){
+	TIM_ITConfig(t->tim_ptr, TIM_IT_Update, ENABLE);
+}
+
+void timer_reset (stm_timer_t* t, uint32_t val_us){
+
+	val_us /= t->tim_init.TIM_Prescaler;
+	TIM_SetCounter(t->tim_ptr, val_us);
+
+	// Clear the interrupt pending bit for good measure
+	TIM_ClearITPendingBit(t->tim_ptr, TIM_IT_Update);
+}
+
 // Disable everything that timer_start enabled
 void timer_stop (stm_timer_t* t) {
 	// Disable the timer

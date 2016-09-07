@@ -12,7 +12,6 @@
 #include "oneway_common.h"
 #include "oneway_tag.h"
 #include "oneway_anchor.h"
-#include "calibration.h"
 #include "timer.h"
 #include "delay.h"
 #include "firmware.h"
@@ -61,7 +60,6 @@ static void error () {
 union app_scratchspace {
 	oneway_tag_scratchspace_struct ot_scratch;
 	oneway_anchor_scratchspace_struct oa_scratch;
-	calibration_scratchspace_struct cal_scratch;
 } _app_scratchspace;
 
 /******************************************************************************/
@@ -90,11 +88,7 @@ void polypoint_configure_app (polypoint_application_e app, void* app_config) {
 	_current_app = app;
 	switch (_current_app) {
 		case APP_ONEWAY:
-			oneway_configure((oneway_config_t*) app_config, _app_timer, (void*)&_app_scratchspace);
-			break;
-
-		case APP_CALIBRATION:
-			calibration_configure((calibration_config_t*) app_config, _app_timer, (void*)&_app_scratchspace);
+			oneway_configure((oneway_config_t*) app_config, NULL, (void*)&_app_scratchspace);
 			break;
 
 		default:
@@ -123,10 +117,6 @@ void polypoint_start () {
 			oneway_start();
 			break;
 
-		case APP_CALIBRATION:
-			calibration_start();
-			break;
-
 		default:
 			break;
 	}
@@ -144,10 +134,6 @@ void polypoint_stop () {
 	switch (_current_app) {
 		case APP_ONEWAY:
 			oneway_stop();
-			break;
-
-		case APP_CALIBRATION:
-			calibration_stop();
 			break;
 
 		default:
@@ -169,7 +155,7 @@ void polypoint_reset () {
 	_state = APPSTATE_NOT_INITED;
 
 	// Stop the timer in case it was in use.
-	timer_stop(_app_timer);
+	//timer_stop(_app_timer);
 
 	// Init the dw1000, and loop until it works.
 	// start does a reset.
@@ -179,10 +165,6 @@ void polypoint_reset () {
 	switch (_current_app) {
 		case APP_ONEWAY:
 			oneway_reset();
-			break;
-
-		case APP_CALIBRATION:
-			calibration_reset();
 			break;
 
 		default:
@@ -326,8 +308,14 @@ int main () {
 
 	// In case we need a timer, get one. This is used for things like periodic
 	// ranging events.
-	_app_timer = timer_init();
+	//_app_timer = timer_init();
 
+	// Next up do some preliminary setup of the DW1000. This mostly configures
+	// pins and hardware peripherals, as well as straightening out some
+	// of the settings on the DW1000.
+	start_dw1000();
+
+#ifndef BYPASS_HOST_INTERFACE
 	// Initialize the I2C listener. This is the main interface
 	// the host controller (that is using TriPoint for ranging/localization)
 	// uses to configure how this module operates.
@@ -337,23 +325,21 @@ int main () {
 	// Need to wait for the host board to tell us what to do.
 	err = host_interface_wait();
 	if (err) error();
+#else
 
-	// Next up do some preliminary setup of the DW1000. This mostly configures
-	// pins and hardware peripherals, as well as straightening out some
-	// of the settings on the DW1000.
-	start_dw1000();
-
-
-	//// DEBUG:
-	//oneway_config_t config;
-	////config.my_role = TAG;
+	// DEBUG:
+	oneway_config_t config;
+	config.my_role = TAG;
 	//config.my_role = ANCHOR;
-	//config.report_mode = ONEWAY_REPORT_MODE_RANGES;
-	//config.update_mode = ONEWAY_UPDATE_MODE_PERIODIC;
-	//config.update_rate = 10;
-	//config.sleep_mode = FALSE;
-	//polypoint_configure_app(APP_ONEWAY, &config);
-	//polypoint_start();
+	//config.my_glossy_role = GLOSSY_MASTER;
+	config.my_glossy_role = GLOSSY_SLAVE;
+	config.report_mode = ONEWAY_REPORT_MODE_RANGES;
+	config.update_mode = ONEWAY_UPDATE_MODE_PERIODIC;
+	config.update_rate = 10;
+	config.sleep_mode = FALSE;
+	polypoint_configure_app(APP_ONEWAY, &config);
+	polypoint_start();
+#endif
 
 	// MAIN LOOP
 	while (1) {

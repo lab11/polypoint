@@ -53,10 +53,13 @@ void oneway_configure (oneway_config_t* config, stm_timer_t* app_timer, void *ap
 	memcpy(&_config, config, sizeof(oneway_config_t));
 
 	// Save the application timer for use by this application
-	_app_timer = app_timer;
+	//_app_timer = app_timer;
 
 	// Make sure the DW1000 is awake before trying to do anything.
 	dw1000_wakeup();
+
+	// Oneway ranging requires glossy synchronization, so let's enable that now
+	glossy_init(_config.my_glossy_role);
 
 	// Now init based on role
 	if (_config.my_role == TAG) {
@@ -91,7 +94,7 @@ void oneway_start () {
 			if (_config.sleep_mode && period > DW1000_WAKEUP_DELAY_US) {
 				period -= DW1000_WAKEUP_DELAY_US;
 			}
-			timer_start(_app_timer, period, tag_execute_range_callback);
+			//timer_start(_app_timer, period, tag_execute_range_callback);
 
 		} else if (_config.update_mode == ONEWAY_UPDATE_MODE_DEMAND) {
 			// Just wait for the host to request a ranging event
@@ -108,7 +111,7 @@ void oneway_start () {
 void oneway_stop () {
 	if (_config.my_role == TAG) {
 		if (_config.update_mode == ONEWAY_UPDATE_MODE_PERIODIC) {
-			timer_stop(_app_timer);
+			//timer_stop(_app_timer);
 		}
 		oneway_tag_stop();
 	} else if (_config.my_role == ANCHOR) {
