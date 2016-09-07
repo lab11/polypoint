@@ -41,7 +41,9 @@ struct pp_sched_req_flood {
 	uint8_t tag_sched_eui[EUI_LEN];
 #ifdef GLOSSY_ANCHOR_SYNC_TEST
 	uint64_t turnaround_time;
+	double clock_offset_ppm;
 	uint8_t sync_depth;
+	int8_t xtal_trim;
 #endif
 	struct ieee154_footer footer;
 } __attribute__ ((__packed__));

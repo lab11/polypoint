@@ -269,7 +269,7 @@ void send_sync(uint32_t delay_time){
 #define CW_CAL_22PF ((3.494078-3.493998)/3.4944*1e6/30)
 #define CW_CAL_33PF ((3.493941-3.493891)/3.4944*1e6/30)
 int8_t clock_offset_to_trim_diff(double ppm_offset){
-       return (int8_t) (ppm_offset/CW_CAL_12PF + 0.5);
+       return (int8_t) (floor(ppm_offset/CW_CAL_22PF + 0.5));
 }
 
 void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
@@ -295,7 +295,9 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 	
 			uart_write(1, &(in_glossy_sched_req->tag_sched_eui[0]));
 			uart_write(1, &(in_glossy_sched_req->sync_depth));
+			//uart_write(1, &(in_glossy_sched_req->xtal_trim));
 			uart_write(sizeof(uint32_t), &actual_turnaround);
+			uart_write(sizeof(double), &(in_glossy_sched_req->clock_offset_ppm));
 
 			dwt_forcetrxoff();
 			dw1000_update_channel(1);
@@ -367,6 +369,9 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 					double clock_offset_ppm = (((double)(dw_timestamp - 
 					                                     ((uint64_t)(DW_DELAY_FROM_US(GLOSSY_FLOOD_TIMESLOT_US) & 0xFFFFFFFE) << 8)*(in_glossy_sync->header.seqNum) - 
 					                                     _last_sync_timestamp) / ((uint64_t)(GLOSSY_UPDATE_INTERVAL_DW) << 8)) - 1.0) * 1e6;
+#ifdef GLOSSY_ANCHOR_SYNC_TEST
+					_sched_req_pkt.clock_offset_ppm = clock_offset_ppm;
+#endif
 					
 					_clock_offset = (clock_offset_ppm/1e6)+1.0;
 					_glossy_flood_timeslot_corrected_us = (uint64_t)((double)((uint64_t)(DW_DELAY_FROM_US(GLOSSY_FLOOD_TIMESLOT_US) & 0xFFFFFFFE) << 8)*_clock_offset);
@@ -383,14 +388,12 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 					// Update DW1000's crystal trim to account for observed PPM offset
 					_last_xtal_trim = _xtal_trim;
 					int8_t trim_diff = clock_offset_to_trim_diff(clock_offset_ppm);
-					if(trim_diff < -(int8_t)(_xtal_trim))
-						_xtal_trim = 0;
-					else if(trim_diff + _xtal_trim > 31)
-						_xtal_trim = 31;
-					else
-						_xtal_trim += trim_diff;
+					_xtal_trim += trim_diff;
+					if(_xtal_trim < 1) _xtal_trim = 1;
+					else if(_xtal_trim > 31) _xtal_trim = 31;
 					dwt_xtaltrim(_xtal_trim);
 #ifdef GLOSSY_ANCHOR_SYNC_TEST
+					_sched_req_pkt.xtal_trim = trim_diff;
 					// Sync is invalidated if the xtal trim has changed (this won't happen often)
 					if(_last_xtal_trim != _xtal_trim)
 						_sched_req_pkt.sync_depth = 0xFF;
