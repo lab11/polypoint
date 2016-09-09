@@ -135,7 +135,7 @@ void oneway_tag_stop () {
 	timer_stop(ot_scratch->tag_timer);
 
 	// Deschedule the tag's LWB slot since we're done
-	glossy_deschedule();
+	//glossy_deschedule();
 
 	// Use the DW1000 library to put the chip to sleep
 	//dw1000_sleep();

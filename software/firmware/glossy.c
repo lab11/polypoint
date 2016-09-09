@@ -31,6 +31,7 @@ static bool _lwb_sched_en;
 static bool _lwb_scheduled;
 static uint32_t _lwb_num_timeslots;
 static uint32_t _lwb_timeslot;
+static uint32_t _lwb_mod_timeslot;
 static void (*_lwb_schedule_callback)(void);
 
 static uint8_t _sched_euis[MAX_SCHED_TAGS][EUI_LEN];
@@ -184,7 +185,7 @@ void glossy_sync_task(){
 			if(_lwb_counter == 1){
 				dw1000_update_channel(1);
 				dw1000_choose_antenna(0);
-				if(!_lwb_scheduled && _lwb_sched_en || deschedule_request){
+				if((!_lwb_scheduled && _lwb_sched_en) || _sched_req_pkt.deschedule_flag){
 					dwt_forcetrxoff();
 
 					uint16_t frame_len = sizeof(struct pp_sched_req_flood);
@@ -199,6 +200,8 @@ void glossy_sync_task(){
 					dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED);
 					dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
 					dwt_writetxdata(sizeof(struct pp_sched_req_flood), (uint8_t*) &_sched_req_pkt, 0);
+
+					_sched_req_pkt.deschedule_flag = 0;
 				} else {
 					dwt_rxenable(0);
 				}
@@ -206,7 +209,7 @@ void glossy_sync_task(){
 			// LWB Slots 2-N-2: Ranging slots
 			} else if(_lwb_counter < (GLOSSY_UPDATE_INTERVAL_US/LWB_SLOT_US - LWB_SLOTS_PER_RANGE)) {
 				if(_lwb_schedule_callback && _lwb_scheduled && 
-				   (((_lwb_counter - 2)/LWB_SLOTS_PER_RANGE) % _lwb_num_timeslots == _lwb_timeslot) && 
+				   (((_lwb_counter - 2)/LWB_SLOTS_PER_RANGE) % _lwb_num_timeslots == _lwb_mod_timeslot) && 
 				   ((_lwb_counter - 2) % LWB_SLOTS_PER_RANGE == 0)){
 					// Our scheduled timeslot!  Call the timeslot callback which will likely kick off a ranging event
 					_lwb_schedule_callback();
@@ -297,24 +300,26 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 	if(_role == GLOSSY_MASTER){
 		// If this is a schedule request, try to fit the requesting tag into the schedule
 		if(in_glossy_sync->message_type == MSG_TYPE_PP_GLOSSY_SCHED_REQ){
-			int ii;
+			int ii, candidate_slot;
 			for(ii = 0; ii < MAX_SCHED_TAGS; ii++){
 				if(memcmp(_sched_euis[ii], in_glossy_sched_req->tag_sched_eui, EUI_LEN) == 0){
 					_sync_pkt.tag_sched_idx = ii;
+					candidate_slot = ii;
 					break;
+				} else if((_sync_pkt.tag_ranging_mask & ((uint64_t)(1) << ii)) == 0){
+					candidate_slot = ii;
 				}
 			}
-			// If we didn't find the EUI (not scheduled), schedule it!
-			if(ii == MAX_SCHED_TAGS){
-				memcpy(_sched_euis[ii], in_glossy_sched_req->tag_sched_eui, EUI_LEN);
-			}
-			memcpy(_sync_pkt.tag_sched_eui, _sched_euis[ii], EUI_LEN);
+			//candidate_slot = 0;
+
+			memcpy(_sched_euis[candidate_slot], in_glossy_sched_req->tag_sched_eui, EUI_LEN);
+			memcpy(_sync_pkt.tag_sched_eui, _sched_euis[candidate_slot], EUI_LEN);
 			if(in_glossy_sched_req->deschedule_flag)
-				_sync_pkt.tag_ranging_mask &= ~((uint64_t)(1) << ii);
+				_sync_pkt.tag_ranging_mask &= ~((uint64_t)(1) << candidate_slot);
 			else
-				_sync_pkt.tag_ranging_mask |= (uint64_t)(1) << ii;
-			_sync_pkt.tag_sched_idx = ii;
-			_tag_timeout[ii] = 0;
+				_sync_pkt.tag_ranging_mask |= (uint64_t)(1) << candidate_slot;
+			_sync_pkt.tag_sched_idx = candidate_slot;
+			_tag_timeout[candidate_slot] = 0;
 		}
 
 #ifdef GLOSSY_PER_TEST
@@ -348,7 +353,11 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 				_lwb_timeslot = in_glossy_sync->tag_sched_idx;
 				_lwb_scheduled = TRUE;
 			}
+			// Next, make sure the tag is still scheduled
+			if(_lwb_scheduled && ((in_glossy_sync->tag_ranging_mask & ((uint64_t)(1) << _lwb_timeslot)) == 0))
+				_lwb_scheduled = FALSE;
 			_lwb_num_timeslots = uint64_count_ones(in_glossy_sync->tag_ranging_mask);
+			_lwb_mod_timeslot = uint64_count_ones(in_glossy_sync->tag_ranging_mask & (((uint64_t)(1) << _lwb_timeslot) - 1));
 
 			if(_last_sync_timestamp + ((uint64_t)(DW_DELAY_FROM_US(GLOSSY_UPDATE_INTERVAL_US * 0.5)) << 8) < dw_timestamp){
 				if(_last_sync_timestamp + ((uint64_t)(DW_DELAY_FROM_US(GLOSSY_UPDATE_INTERVAL_US * 1.5)) << 8) > dw_timestamp){
