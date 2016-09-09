@@ -27,7 +27,7 @@
 #define EUI_LEN 8
 
 // Default from original PolyPoint code
-#define DW1000_DEFAULT_XTALTRIM 8
+#define DW1000_DEFAULT_XTALTRIM 15
 
 // Param for making sure the application doesn't deadlock.
 // This is the number of times we try to read the status/ID register on the

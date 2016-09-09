@@ -27,7 +27,8 @@ stm_timer_t timers[TIMER_NUMBER] = {
 			TIM_CKD_DIV1,       // ClockDivision
 			0                   // Repetition Counter
 		},
-		RCC_APB2Periph_TIM17
+		RCC_APB2Periph_TIM17,
+		1
 	},
 	{
 		1, // index
@@ -44,7 +45,8 @@ stm_timer_t timers[TIMER_NUMBER] = {
 			TIM_CKD_DIV1,       // ClockDivision
 			0                   // Repetition Counter
 		},
-		RCC_APB2Periph_TIM16
+		RCC_APB2Periph_TIM16,
+		1
 	}
 };
 
@@ -75,9 +77,11 @@ void timer_start (stm_timer_t* t, uint32_t us_period, timer_callback cb) {
 	NVIC_Init(&t->nvic_init);
 
 	// Need this to fit in 16 bits
+	t->divider = 1;
 	while (us_period > 65535) {
 		us_period = us_period >> 1;
 		prescalar = prescalar << 1;
+		t->divider = t->divider << 1;
 	}
 
 	// Setup the actual timer
@@ -103,7 +107,8 @@ void timer_enable_interrupt(stm_timer_t* t){
 
 void timer_reset (stm_timer_t* t, uint32_t val_us){
 
-	val_us /= t->tim_init.TIM_Prescaler;
+	val_us /= t->divider;
+	//val_us /= t->tim_init.TIM_Prescaler;
 	TIM_SetCounter(t->tim_ptr, val_us);
 
 	// Clear the interrupt pending bit for good measure
