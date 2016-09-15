@@ -13,9 +13,6 @@
 // All of the configuration passed to us by the host for how this application
 // should operate.
 static oneway_config_t _config;
-// Our local reference to the timer for all of the high-level application
-// code.
-static stm_timer_t* _app_timer;
 
 // Configure the RF channels to use. This is just a mapping from 0..2 to
 // the actual RF channel numbers the DW1000 uses.
@@ -34,15 +31,15 @@ static void *_scratchspace_ptr;
 static void tag_execute_range_callback () {
 	dw1000_err_e err;
 
-	err = oneway_tag_start_ranging_event();
-	if (err == DW1000_BUSY) {
-		// TODO: get return value from this function and slow the timer if
-		// we starting ranging events too quickly.
-	} else if (err == DW1000_WAKEUP_ERR) {
-		// DW1000 apparently was in sleep and didn't come back.
-		// Not sure why, but we need to reset at this point.
-		polypoint_reset();
-	}
+	//err = oneway_tag_start_ranging_event();
+	//if (err == DW1000_BUSY) {
+	//	// TODO: get return value from this function and slow the timer if
+	//	// we starting ranging events too quickly.
+	//} else if (err == DW1000_WAKEUP_ERR) {
+	//	// DW1000 apparently was in sleep and didn't come back.
+	//	// Not sure why, but we need to reset at this point.
+	//	polypoint_reset();
+	//}
 }
 
 // This sets the settings for this node and initializes the node.
@@ -63,7 +60,7 @@ void oneway_configure (oneway_config_t* config, stm_timer_t* app_timer, void *ap
 
 	// Now init based on role
 	if (_config.my_role == TAG) {
-		oneway_tag_init(_scratchspace_ptr);
+		//oneway_tag_init(_scratchspace_ptr);
 	} else if (_config.my_role == ANCHOR) {
 		oneway_anchor_init(_scratchspace_ptr);
 	}
@@ -110,10 +107,10 @@ void oneway_start () {
 // Stop the oneway application
 void oneway_stop () {
 	if (_config.my_role == TAG) {
-		if (_config.update_mode == ONEWAY_UPDATE_MODE_PERIODIC) {
-			//timer_stop(_app_timer);
-		}
-		oneway_tag_stop();
+		//if (_config.update_mode == ONEWAY_UPDATE_MODE_PERIODIC) {
+		//	//timer_stop(_app_timer);
+		//}
+		//oneway_tag_stop();
 	} else if (_config.my_role == ANCHOR) {
 		oneway_anchor_stop();
 	}
@@ -123,7 +120,7 @@ void oneway_stop () {
 void oneway_reset () {
 	// Start by initing based on role
 	if (_config.my_role == TAG) {
-		oneway_tag_init(_scratchspace_ptr);
+		//oneway_tag_init(_scratchspace_ptr);
 	} else if (_config.my_role == ANCHOR) {
 		oneway_anchor_init(_scratchspace_ptr);
 	}
@@ -140,11 +137,11 @@ void oneway_do_range () {
 		return;
 	}
 
-	// TODO: this does return an error if we are already ranging.
-	err = oneway_tag_start_ranging_event();
-	if (err == DW1000_WAKEUP_ERR) {
-		polypoint_reset();
-	}
+	//// TODO: this does return an error if we are already ranging.
+	//err = oneway_tag_start_ranging_event();
+	//if (err == DW1000_WAKEUP_ERR) {
+	//	polypoint_reset();
+	//}
 }
 
 // Return a pointer to the application configuration settings

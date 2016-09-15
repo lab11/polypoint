@@ -17,6 +17,14 @@ typedef enum {
 	ASTATE_RESPONDING
 } oneway_anchor_state_e;
 
+typedef enum {
+	RSTATE_IDLE,
+	RSTATE_BROADCASTS,
+	RSTATE_TRANSITION_TO_ANC_FINAL,
+	RSTATE_LISTENING,
+	RSTATE_CALCULATE_RANGE
+} ranging_state_e;
+
 // Configuration data for the ANCHOR provided by the TAG
 typedef struct {
 	uint8_t  reply_after_subsequence;
@@ -37,6 +45,7 @@ typedef struct {
 	/******************************************************************************/
 	// What the anchor is currently doing
 	oneway_anchor_state_e state;
+	ranging_state_e ranging_state;
 	// Which spot in the ranging broadcast sequence we are currently at
 	uint8_t ranging_broadcast_ss_num;
 	// What config parameters the tag sent us
@@ -50,6 +59,9 @@ typedef struct {
 	// receive on each antenna. This lets us pick the best antenna to use
 	// when responding to a tag.
 	uint8_t anchor_antenna_recv_num[NUM_ANTENNAS];
+	
+	// Array of when we sent each of the broadcast ranging packets
+	uint64_t ranging_broadcast_ss_send_times[NUM_RANGING_BROADCASTS];
 	
 	// How many anchor responses we have gotten
 	uint8_t anchor_response_count;

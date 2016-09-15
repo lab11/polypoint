@@ -87,7 +87,7 @@ void oneway_anchor_init (void *app_scratchspace) {
 	oa_scratch->state = ASTATE_IDLE;
 
 	// Reset our state because nothing should be in progress if we call init()
-	oa_scratch->ranging_state = TSTATE_IDLE;
+	oa_scratch->ranging_state = RSTATE_IDLE;
 }
 
 // Tell the anchor to start its job of being an anchor
@@ -143,29 +143,49 @@ void oneway_anchor_stop () {
 // broadcast ranging poll messages. This is responsible for setting the
 // antenna and channel properties for the anchor.
 static void ranging_broadcast_subsequence_task () {
-	// When this timer is called it is time to start a new subsequence
-	// slot, so we must increment our counter
-	oa_scratch->ranging_broadcast_ss_num++;
-
-	// Check if we are done listening for packets from the TAG. If we get
-	// a packet on the last subsequence we won't get here, but if we
-	// don't get that packet we need this check.
-	if (oa_scratch->ranging_broadcast_ss_num > oa_scratch->ranging_operation_config.reply_after_subsequence) {
-		ranging_listening_window_setup();
+	if(oa_scratch->ranging_state != RSTATE_IDLE){
+		if (oa_scratch->ranging_broadcast_ss_num == NUM_RANGING_BROADCASTS-1) {
+			// This is our last packet to send. Stop the timer so we don't generate
+			// more packets.
+			timer_stop(oa_scratch->anchor_timer);
+	
+			// Also update the state to say that we are moving to RX mode
+			// to listen for responses from the anchor
+			oa_scratch->ranging_state = RSTATE_TRANSITION_TO_ANC_FINAL;
+		}
+	
+		// Go ahead and setup and send a ranging broadcast
+		oneway_set_ranging_broadcast_subsequence_settings(TAG, oa_scratch->ranging_broadcast_ss_num);
+	
+		// Actually send the packet
+		send_poll();
+		oa_scratch->ranging_broadcast_ss_num += 1;
 
 	} else {
-		// Update the anchor listening settings
-		oneway_set_ranging_broadcast_subsequence_settings(ANCHOR, oa_scratch->ranging_broadcast_ss_num);
+		// When this timer is called it is time to start a new subsequence
+		// slot, so we must increment our counter
+		oa_scratch->ranging_broadcast_ss_num++;
 
-		// And re-enable RX. The set_broadcast_settings function disables tx and rx.
-		dwt_rxenable(0);
+		// Check if we are done listening for packets from the TAG. If we get
+		// a packet on the last subsequence we won't get here, but if we
+		// don't get that packet we need this check.
+		if (oa_scratch->ranging_broadcast_ss_num > oa_scratch->ranging_operation_config.reply_after_subsequence) {
+			ranging_listening_window_setup();
+
+		} else {
+			// Update the anchor listening settings
+			oneway_set_ranging_broadcast_subsequence_settings(ANCHOR, oa_scratch->ranging_broadcast_ss_num);
+
+			// And re-enable RX. The set_broadcast_settings function disables tx and rx.
+			dwt_rxenable(0);
+		}
 	}
 }
 
 // Called at the beginning of each listening window for transmitting to
 // the tag.
 static void ranging_listening_window_task () {
-	if (oa_scratch->ranging_state != TSTATE_IDLE){
+	if (oa_scratch->ranging_state != RSTATE_IDLE){
 		
 		// Stop after the last of the receive windows
 		if (oa_scratch->ranging_listening_window_num == NUM_RANGING_LISTENING_WINDOWS) {
@@ -297,17 +317,17 @@ static void ranging_listening_window_setup () {
 static void anchor_txcallback (const dwt_callback_data_t *txd) {
 	glossy_process_txcallback();
 
-	if (data->event == DWT_SIG_TX_DONE) {
+	if (txd->event == DWT_SIG_TX_DONE) {
 		// Packet was sent successfully
 
 		// Check which state we are in to decide what to do.
 		// We use TX_callback because it will get called after we have sent
 		// all of the broadcast packets. (Now of course we will get this
 		// callback multiple times, but that is ok.)
-		if (oa_scratch->ranging_state == TSTATE_TRANSITION_TO_ANC_FINAL) {
+		if (oa_scratch->ranging_state == RSTATE_TRANSITION_TO_ANC_FINAL) {
 			// At this point we have sent all of our ranging broadcasts.
 			// Now we move to listening for responses from anchors.
-			oa_scratch->ranging_state = TSTATE_LISTENING;
+			oa_scratch->ranging_state = RSTATE_LISTENING;
 
 			// Init some state
 			oa_scratch->ranging_listening_window_num = 0;
@@ -543,13 +563,13 @@ static void anchor_rxcallback (const dwt_callback_data_t *rxd) {
 dw1000_err_e oneway_anchor_start_ranging_event () {
 	dw1000_err_e err;
 
-	if (oa_scratch->ranging_state != TSTATE_IDLE) {
+	if (oa_scratch->ranging_state != RSTATE_IDLE) {
 		// Cannot start a ranging event if we are currently busy with one.
 		return DW1000_BUSY;
 	}
 
 	// Move to the broadcast state
-	oa_scratch->ranging_state = TSTATE_BROADCASTS;
+	oa_scratch->ranging_state = RSTATE_BROADCASTS;
 
 	// Clear state that we keep for each ranging event
 	memset(oa_scratch->pp_anc_final_pkt.TOAs, 0, sizeof(oa_scratch->pp_anc_final_pkt.TOAs));
@@ -615,32 +635,10 @@ static void send_poll () {
 	}
 }
 
-// This is called for each broadcast ranging subsequence interval where
-// the tag sends broadcast packets.
-static void ranging_broadcast_subsequence_task () {
-
-	if (oa_scratch->ranging_broadcast_ss_num == NUM_RANGING_BROADCASTS-1) {
-		// This is our last packet to send. Stop the timer so we don't generate
-		// more packets.
-		timer_stop(oa_scratch->anchor_timer);
-
-		// Also update the state to say that we are moving to RX mode
-		// to listen for responses from the anchor
-		oa_scratch->ranging_state = TSTATE_TRANSITION_TO_ANC_FINAL;
-	}
-
-	// Go ahead and setup and send a ranging broadcast
-	oneway_set_ranging_broadcast_subsequence_settings(TAG, oa_scratch->ranging_broadcast_ss_num);
-
-	// Actually send the packet
-	send_poll();
-	oa_scratch->ranging_broadcast_ss_num += 1;
-}
-
 // Once we have heard from all of the anchors, calculate range.
 static void report_range () {
 	// New state
-	oa_scratch->ranging_state = TSTATE_CALCULATE_RANGE;
+	oa_scratch->ranging_state = RSTATE_CALCULATE_RANGE;
 
 	// Calculate ranges
 	//calculate_ranges();
@@ -651,7 +649,7 @@ static void report_range () {
 	oneway_report_mode_e report_mode = oneway_get_config()->report_mode;
 	if (report_mode == ONEWAY_REPORT_MODE_RANGES) {
 		// We're done, so go to idle.
-		oa_scratch->ranging_state = TSTATE_IDLE;
+		oa_scratch->ranging_state = RSTATE_IDLE;
 
 		// Just need to send the ranges back to the host. Send the array
 		// of ranges to the main application and let it deal with it.
