@@ -51,6 +51,20 @@ typedef struct {
 	// when responding to a tag.
 	uint8_t anchor_antenna_recv_num[NUM_ANTENNAS];
 	
+	// How many anchor responses we have gotten
+	uint8_t anchor_response_count;
+	
+	// Array of when we received ANC_FINAL packets and from whom
+	anchor_responses_t anchor_responses[MAX_NUM_ANCHOR_RESPONSES];
+
+	// These are the ranges we have calculated to a series of anchors.
+	// They use the same index as the _anchor_responses array.
+	// Invalid ranges are marked with INT32_MAX.
+	int32_t ranges_millimeters[MAX_NUM_ANCHOR_RESPONSES];
+	
+	// Prepopulated struct of the outgoing broadcast poll packet.
+	struct pp_tag_poll pp_tag_poll_pkt;
+	
 	// Packet that the anchor unicasts to the tag
 	struct pp_anc_final pp_anc_final_pkt;
 
@@ -61,6 +75,7 @@ oneway_anchor_scratchspace_struct *oa_scratch;
 
 void oneway_anchor_init (void *app_scratchspace);
 dw1000_err_e oneway_anchor_start ();
+dw1000_err_e oneway_anchor_start_ranging_event ();
 void oneway_anchor_stop ();
 
 #endif
