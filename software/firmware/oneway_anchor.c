@@ -45,6 +45,35 @@ void oneway_anchor_init (void *app_scratchspace) {
 		.TOAs          = { 0 },
 	};
 
+	// Initialize important variables inside scratchspace
+	oa_scratch->pp_tag_poll_pkt = (struct pp_tag_poll) {
+		{ // 802.15.4 HEADER
+			{
+				0x41, // FCF[0]: data frame, panid compression
+				0xC8  // FCF[1]: ext source address, compressed destination
+			},
+			0,        // Sequence number
+			{
+				POLYPOINT_PANID & 0xFF, // PAN ID
+				POLYPOINT_PANID >> 8
+			},
+			{
+				0xFF, // Destination address: broadcast
+				0xFF
+			},
+			{ 0 }     // Source (blank for now)
+		},
+		// PACKET BODY
+		MSG_TYPE_PP_NOSLOTS_TAG_POLL,  // Message type
+		0,                             // Sub Sequence number
+		NUM_RANGING_BROADCASTS-1,
+		RANGING_LISTENING_WINDOW_US,
+		RANGING_LISTENING_SLOT_US
+	};
+
+	// Put source EUI in the pp_tag_poll packet
+	dw1000_read_eui(oa_scratch->pp_tag_poll_pkt.header.sourceAddr);
+
 	// Make sure the SPI speed is slow for this function
 	dw1000_spi_slow();
 
@@ -463,8 +492,8 @@ static void anchor_rxcallback (const dwt_callback_data_t *rxd) {
 						}
 
 						// Regardless, it's a good idea to immediately call the subsequence task and restart the timer
-						timer_reset(oa_scratch->anchor_timer, 120); // Magic number calculated from timing
-						ranging_broadcast_subsequence_task();
+						timer_reset(oa_scratch->anchor_timer, RANGING_BROADCASTS_PERIOD_US-120); // Magic number calculated from timing
+						//ranging_broadcast_subsequence_task();
 						//timer_reset(oa_scratch->anchor_timer, 0);
 
 						//// Check to see if we got the last of the ranging broadcasts
