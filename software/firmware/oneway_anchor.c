@@ -120,8 +120,10 @@ dw1000_err_e oneway_anchor_start () {
 	oa_scratch->final_ack_received = FALSE;
 
 	// LPM now schedules all of our ranging events!
-	lwb_set_sched_request(TRUE);
-	lwb_set_sched_callback(oneway_anchor_start_ranging_event);
+	if(glossy_get_role() != GLOSSY_MASTER){
+		lwb_set_sched_request(TRUE);
+		lwb_set_sched_callback(oneway_anchor_start_ranging_event);
+	}
 
 	return DW1000_NO_ERR;
 }

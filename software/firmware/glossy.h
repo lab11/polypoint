@@ -51,6 +51,7 @@ struct pp_sched_req_flood {
 } __attribute__ ((__packed__));
 
 
+glossy_role_e glossy_get_role();
 void glossy_init(glossy_role_e role);
 void glossy_deschedule();
 void glossy_sync_task();

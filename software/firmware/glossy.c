@@ -56,6 +56,10 @@ uint8_t uint64_count_ones(uint64_t number){
 	return ret;
 }
 
+glossy_role_e glossy_get_role(){
+	return _role;
+}
+
 void glossy_init(glossy_role_e role){
 	_sync_pkt = (struct pp_sched_flood) {
 		.header = {
