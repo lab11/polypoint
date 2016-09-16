@@ -374,8 +374,8 @@ static void anchor_rxcallback (const dwt_callback_data_t *rxd) {
 						}
 
 						// Regardless, it's a good idea to immediately call the subsequence task and restart the timer
-						timer_reset(oa_scratch->anchor_timer, 120); // Magic number calculated from timing
-						ranging_broadcast_subsequence_task();
+						timer_reset(oa_scratch->anchor_timer, RANGING_BROADCASTS_PERIOD_US-120); // Magic number calculated from timing
+						//ranging_broadcast_subsequence_task();
 						//timer_reset(oa_scratch->anchor_timer, 0);
 
 						//// Check to see if we got the last of the ranging broadcasts
