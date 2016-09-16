@@ -11,6 +11,18 @@
 // is.
 #define ONEWAY_ANCHOR_MAX_RX_PKT_LEN 64
 
+// The ANCHOR did not receive matching packets from the first three cycle.
+// This prevents us from calculating clock skew, and we have to skip this
+// anchor range.
+#define ONEWAY_TAG_RANGE_ERROR_NO_OFFSET 0x80000001
+// The anchor did not receive enough packets from the tag, so we don't have
+// enough observations (ranges) to actually calculate a range to this
+// anchor.
+#define ONEWAY_TAG_RANGE_ERROR_TOO_FEW_RANGES 0x80000002
+// Something else went wrong that we don't have pinned down.
+#define ONEWAY_TAG_RANGE_ERROR_MISC 0x8000000F
+
+
 typedef enum {
 	ASTATE_IDLE,
 	ASTATE_RANGING,
@@ -79,6 +91,8 @@ typedef struct {
 	
 	// Packet that the anchor unicasts to the tag
 	struct pp_anc_final pp_anc_final_pkt;
+
+	struct pp_range_flood pp_range_flood_pkt;
 
 	bool final_ack_received;
 } oneway_anchor_scratchspace_struct;

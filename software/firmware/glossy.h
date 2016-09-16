@@ -50,6 +50,7 @@ struct pp_sched_req_flood {
 	struct ieee154_footer footer;
 } __attribute__ ((__packed__));
 
+
 void glossy_init(glossy_role_e role);
 void glossy_deschedule();
 void glossy_sync_task();

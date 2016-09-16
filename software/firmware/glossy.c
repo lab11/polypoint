@@ -306,6 +306,7 @@ int8_t clock_offset_to_trim_diff(double ppm_offset){
 void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 	struct pp_sched_flood *in_glossy_sync = (struct pp_sched_flood *) buf;
 	struct pp_sched_req_flood *in_glossy_sched_req = (struct pp_sched_req_flood *) buf;
+	struct pp_range_flood *in_glossy_ranging_flood = (struct pp_range_flood *) buf;
 
 	// Due to frequent overflow in the decawave system time counter, we must keep a running total
 	// of the number of times it's overflown
@@ -384,6 +385,27 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 			dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
 			dwt_writetxdata(sizeof(struct pp_sched_req_flood), (uint8_t*) in_glossy_sched_req, 0);
 #endif
+		} else if(in_glossy_sync->message_type == MSG_TYPE_PP_RANGING_FLOOD){
+#ifndef GLOSSY_ANCHOR_SYNC_TEST
+			// Increment depth counter
+			_cur_glossy_depth = ++in_glossy_ranging_flood->header.seqNum;
+			_glossy_currently_flooding = TRUE;
+
+			uint16_t frame_len = sizeof(struct pp_range_flood);
+			dwt_writetxfctrl(frame_len, 0);
+
+			// Flood out as soon as possible
+			uint32_t delay_time = (dw_timestamp >> 8) + (DW_DELAY_FROM_US(GLOSSY_FLOOD_TIMESLOT_US) & 0xFFFFFFFE);
+			delay_time &= 0xFFFFFFFE;
+			_last_delay_time = delay_time;
+			dwt_forcetrxoff();
+			dwt_setrxaftertxdelay(LWB_SLOT_US);
+			dwt_setdelayedtrxtime(delay_time);
+			dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED);
+			dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
+			dwt_writetxdata(sizeof(struct pp_range_flood), (uint8_t*) in_glossy_ranging_flood, 0);
+#endif
+
 		} else {
 			// First check to see if this sync packet contains a schedule update for this node
 			if(memcmp(in_glossy_sync->tag_sched_eui, _sched_req_pkt.tag_sched_eui, EUI_LEN) == 0){

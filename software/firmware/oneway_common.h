@@ -69,6 +69,7 @@
 #define MSG_TYPE_PP_NOSLOTS_ANC_FINAL 0x81
 #define MSG_TYPE_PP_GLOSSY_SYNC       0x82
 #define MSG_TYPE_PP_GLOSSY_SCHED_REQ  0x83
+#define MSG_TYPE_PP_RANGING_FLOOD     0x84
 
 // Packet the tag broadcasts to all nearby anchors
 struct pp_tag_poll  {
@@ -135,6 +136,13 @@ typedef struct {
 	uint16_t tag_poll_TOAs[NUM_RANGING_BROADCASTS];
 } __attribute__ ((__packed__)) anchor_responses_t;
 
+struct pp_range_flood {
+	struct ieee154_header_broadcast header;
+	uint8_t message_type;
+	uint8_t anchor_eui[EUI_LEN];
+	int16_t ranges_millimeters[MAX_NUM_ANCHOR_RESPONSES];
+	struct ieee154_footer footer;
+} __attribute__ ((__packed__));
 
 void oneway_configure (oneway_config_t* config, stm_timer_t* app_timer, void *app_scratchspace);
 void oneway_start ();

@@ -14,6 +14,7 @@
 static void send_poll ();
 static void ranging_broadcast_subsequence_task ();
 static void report_range ();
+static void calculate_ranges ();
 static void ranging_listening_window_setup();
 static void anchor_txcallback (const dwt_callback_data_t *txd);
 static void anchor_rxcallback (const dwt_callback_data_t *rxd);
@@ -641,25 +642,221 @@ static void report_range () {
 	oa_scratch->ranging_state = RSTATE_CALCULATE_RANGE;
 
 	// Calculate ranges
-	//calculate_ranges();
+	calculate_ranges();
 
-	// Decide what we should do with these ranges. We can either report
-	// these right back to the host, or we can try to get the anchors
-	// to calculate location.
-	oneway_report_mode_e report_mode = oneway_get_config()->report_mode;
-	if (report_mode == ONEWAY_REPORT_MODE_RANGES) {
-		// We're done, so go to idle.
-		oa_scratch->ranging_state = RSTATE_IDLE;
-
-		// Just need to send the ranges back to the host. Send the array
-		// of ranges to the main application and let it deal with it.
-		// This also returns control to the main application and signals
-		// the end of the ranging event.
-		oneway_set_ranges(oa_scratch->ranges_millimeters, oa_scratch->anchor_responses);
-
-	} else if (report_mode == ONEWAY_REPORT_MODE_LOCATION) {
-		// TODO: implement this
+	// Start the ranging flood back to master
+	oa_scratch->ranging_state = RSTATE_IDLE;
+	oa_scratch->pp_range_flood_pkt.header = (struct ieee154_header_broadcast) {
+			.frameCtrl = {
+				0x41,
+				0xC8
+			},
+			.seqNum = 0,
+			.panID = {
+				POLYPOINT_PANID & 0xFF,
+				POLYPOINT_PANID >> 8
+			},
+			.destAddr = {
+				0xFF,
+				0xFF
+			},
+			.sourceAddr = { 0 },
+		};
+	oa_scratch->pp_range_flood_pkt.message_type = MSG_TYPE_PP_RANGING_FLOOD;
+	dw1000_read_eui(oa_scratch->pp_range_flood_pkt.anchor_eui);
+	for(uint8_t i=0; i < MAX_NUM_ANCHOR_RESPONSES; i++){
+		oa_scratch->pp_range_flood_pkt.ranges_millimeters[i] = (int16_t)oa_scratch->ranges_millimeters[i];
 	}
+
+	uint16_t frame_len = sizeof(struct pp_range_flood);
+	dwt_writetxfctrl(frame_len, 0);
+
+	uint32_t delay_time = dwt_readsystimestamphi32() + DW_DELAY_FROM_PKT_LEN(frame_len);
+	delay_time &= 0xFFFFFFFE; //Make sure last bit is zero
+	dw1000_setdelayedtrxtime(delay_time);
+
+	dwt_setdelayedtrxtime(delay_time);
+	dwt_setrxaftertxdelay(1);
+
+	dwt_starttx(DWT_START_TX_DELAYED);
+	dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
+	dwt_writetxdata(sizeof(struct pp_range_flood), (uint8_t*) &(oa_scratch->pp_range_flood_pkt), 0);
 }
 
+// After getting responses from anchors calculate the range to each anchor.
+// These values are stored in ot_scratch->ranges_millimeters.
+static void calculate_ranges () {
+	// Clear array, don't use memset
+	for (uint8_t i=0; i<MAX_NUM_ANCHOR_RESPONSES; i++) {
+		oa_scratch->ranges_millimeters[i] = INT32_MAX;
+	}
 
+	// Iterate through all anchors to calculate the range from the tag
+	// to each anchor
+	for (uint8_t anchor_index=0; anchor_index<oa_scratch->anchor_response_count; anchor_index++) {
+		anchor_responses_t* aresp = &(oa_scratch->anchor_responses[anchor_index]);
+
+		// Since the rxd TOAs are compressed to 16 bits, we first need to decompress them back to 64-bit quantities
+		uint64_t tag_poll_TOAs[NUM_RANGING_BROADCASTS];
+		memset(tag_poll_TOAs, 0, sizeof(tag_poll_TOAs));
+
+		// Get an estimate of clock offset
+		double approx_clock_offset = (double)(aresp->tag_poll_last_TOA - aresp->tag_poll_first_TOA) / (double)(oa_scratch->ranging_broadcast_ss_send_times[aresp->tag_poll_last_idx] - oa_scratch->ranging_broadcast_ss_send_times[aresp->tag_poll_first_idx]);
+
+		// First put in the TOA values that are known
+		tag_poll_TOAs[aresp->tag_poll_first_idx] = aresp->tag_poll_first_TOA;
+		tag_poll_TOAs[aresp->tag_poll_last_idx] = aresp->tag_poll_last_TOA;
+
+		// Then interpolate between the two to find the high 48 bits which fit best
+		uint8_t ii;
+		for(ii=aresp->tag_poll_first_idx+1; ii < aresp->tag_poll_last_idx; ii++){
+			uint64_t estimated_TOA = aresp->tag_poll_first_TOA + (approx_clock_offset*(oa_scratch->ranging_broadcast_ss_send_times[ii] - oa_scratch->ranging_broadcast_ss_send_times[aresp->tag_poll_first_idx]));
+
+			uint64_t actual_TOA = (estimated_TOA & 0xFFFFFFFFFFFF0000ULL) + aresp->tag_poll_TOAs[ii];
+
+			// Make corrections if we're off by more than 0x7FFF
+			if(actual_TOA < estimated_TOA - 0x7FFF)
+				actual_TOA += 0x10000;
+			else if(actual_TOA > estimated_TOA + 0x7FFF)
+				actual_TOA -= 0x10000;
+
+			// We're done -- store it...
+			tag_poll_TOAs[ii] = actual_TOA;
+		}
+
+		// First need to calculate the crystal offset between the anchor and tag.
+		// To do this, we need to get the timestamps at the anchor and tag
+		// for packets that are repeated. In the current scheme, the first
+		// three packets are repeated, where three is the number of channels.
+		// If we get multiple matches, we take the average of the clock offsets.
+		uint8_t valid_offset_calculations = 0;
+		double offset_ratios_sum = 0.0;
+		for (uint8_t j=0; j<NUM_RANGING_CHANNELS; j++) {
+			uint8_t first_broadcast_index = j;
+			uint8_t last_broadcast_index = NUM_RANGING_BROADCASTS - NUM_RANGING_CHANNELS + j;
+			uint64_t first_broadcast_send_time = oa_scratch->ranging_broadcast_ss_send_times[first_broadcast_index];
+			uint64_t first_broadcast_recv_time = tag_poll_TOAs[first_broadcast_index];
+			uint64_t last_broadcast_send_time  = oa_scratch->ranging_broadcast_ss_send_times[last_broadcast_index];
+			uint64_t last_broadcast_recv_time  = tag_poll_TOAs[last_broadcast_index];
+
+			// Now lets check that the anchor actually received both of these
+			// packets. If it didn't then this isn't valid.
+			if (first_broadcast_recv_time == 0 || last_broadcast_recv_time == 0) {
+				// A packet was dropped (or the anchor wasn't listening on the
+				// first channel). This isn't useful so we skip it.
+				continue;
+			}
+
+			// Calculate the "multiplier for the crystal offset between tag
+			// and anchor".
+			// (last_recv-first_recv) / (last_send-first_send)
+			double offset_anchor_over_tag_item = ((double) last_broadcast_recv_time - (double) first_broadcast_recv_time) /
+				((double) last_broadcast_send_time - (double) first_broadcast_send_time);
+
+			// Add this to the running sum for the average
+			offset_ratios_sum += offset_anchor_over_tag_item;
+			valid_offset_calculations++;
+		}
+
+		// If we didn't get any matching pairs in the first and last rounds
+		// then we have to skip this anchor.
+		if (valid_offset_calculations == 0) {
+			oa_scratch->ranges_millimeters[anchor_index] = ONEWAY_TAG_RANGE_ERROR_NO_OFFSET;
+			continue;
+		}
+
+		// Calculate the average clock offset multiplier
+		double offset_anchor_over_tag = offset_ratios_sum / (double) valid_offset_calculations;
+
+		// Now we need to use the one packet we have from the anchor
+		// to calculate a one-way time of flight measurement so that we can
+		// account for the time offset between the anchor and tag (i.e. the
+		// tag and anchors are not synchronized). We will use this TOF
+		// to calculate ranges from all of the other polls the tag sent.
+		// To do this, we need to match the anchor_antenna, tag_antenna, and
+		// channel between the anchor response and the correct tag poll.
+		uint8_t ss_index_matching = oneway_get_ss_index_from_settings(aresp->anchor_final_antenna_index,
+		                                                              aresp->window_packet_recv);
+
+		// Exit early if the corresponding broadcast wasn't received
+		if(tag_poll_TOAs[ss_index_matching] == 0){
+			oa_scratch->ranges_millimeters[anchor_index] = ONEWAY_TAG_RANGE_ERROR_NO_OFFSET;
+			continue;
+		}
+
+		uint64_t matching_broadcast_send_time = oa_scratch->ranging_broadcast_ss_send_times[ss_index_matching];
+		uint64_t matching_broadcast_recv_time = tag_poll_TOAs[ss_index_matching];
+		uint64_t response_send_time  = aresp->anc_final_tx_timestamp;
+		uint64_t response_recv_time  = aresp->anc_final_rx_timestamp;
+
+		double two_way_TOF = (((double) response_recv_time - (double) matching_broadcast_send_time)*offset_anchor_over_tag) -
+			((double) response_send_time - (double) matching_broadcast_recv_time);
+		double one_way_TOF = two_way_TOF / 2.0;
+
+
+		// Declare an array for sorting the ranges.
+		int distances_millimeters[NUM_RANGING_BROADCASTS] = {0};
+		uint8_t num_valid_distances = 0;
+
+		// Next we calculate the TOFs for each of the poll messages the tag sent.
+		for (uint8_t broadcast_index=0; broadcast_index<NUM_RANGING_BROADCASTS; broadcast_index++) {
+			uint64_t broadcast_send_time = oa_scratch->ranging_broadcast_ss_send_times[broadcast_index];
+			uint64_t broadcast_recv_time = tag_poll_TOAs[broadcast_index];
+
+			// Check that the anchor actually received the tag broadcast.
+			// We use 0 as a sentinel for the anchor not receiving the packet.
+			if (broadcast_recv_time == 0) {
+				continue;
+			}
+
+			// We use the reference packet (that we used to calculate one_way_TOF)
+			// to compensate for the unsynchronized clock.
+			int64_t broadcast_anchor_offset = (int64_t) broadcast_recv_time - (int64_t) matching_broadcast_recv_time;
+			int64_t broadcast_tag_offset = (int64_t) broadcast_send_time - (int64_t) matching_broadcast_send_time;
+			double TOF = (double) broadcast_anchor_offset - (((double) broadcast_tag_offset) * offset_anchor_over_tag) + one_way_TOF;
+
+			int distance_millimeters = dwtime_to_millimeters(TOF);
+
+			// Check that the distance we have at this point is at all reasonable
+			if (distance_millimeters >= MIN_VALID_RANGE_MM && distance_millimeters <= MAX_VALID_RANGE_MM) {
+				// Add this to our sorted array of distances
+				insert_sorted(distances_millimeters, distance_millimeters, num_valid_distances);
+				num_valid_distances++;
+			}
+		}
+
+		// Check to make sure that we got enough ranges from this anchor.
+		// If not, we just skip it.
+		if (num_valid_distances < MIN_VALID_RANGES_PER_ANCHOR) {
+			oa_scratch->ranges_millimeters[anchor_index] = ONEWAY_TAG_RANGE_ERROR_TOO_FEW_RANGES;
+			continue;
+		}
+
+
+		// Now that we have all of the calculated ranges from all of the tag
+		// broadcasts we can calculate some percentile range.
+		uint8_t bot = (num_valid_distances*RANGE_PERCENTILE_NUMERATOR)/RANGE_PERCENTILE_DENOMENATOR;
+		uint8_t top = bot+1;
+		// bot represents the whole index of the item at the percentile.
+		// Then we are going to use the remainder decimal portion to get
+		// a scaled value to add to that base. And we are going to do this
+		// without floating point, so buckle up.
+		// EXAMPLE: if the 90th percentile would be index 3.4, we do:
+		//                  distances[3] + 0.4*(distances[4]-distances[3])
+		int32_t result = distances_millimeters[bot] +
+			(((distances_millimeters[top]-distances_millimeters[bot]) * ((RANGE_PERCENTILE_NUMERATOR*num_valid_distances)
+			 - (bot*RANGE_PERCENTILE_DENOMENATOR))) / RANGE_PERCENTILE_DENOMENATOR);
+
+		// Save the result
+		oa_scratch->ranges_millimeters[anchor_index] = result;
+		// ot_scratch->ranges_millimeters[anchor_index] = (int32_t) one_way_TOF;
+		// ot_scratch->ranges_millimeters[anchor_index] = dm;
+		// ot_scratch->ranges_millimeters[anchor_index] = distances_millimeters[bot];
+		// ot_scratch->ranges_millimeters[anchor_index] = ot_scratch->ranging_broadcast_ss_send_times[0];
+		// ot_scratch->ranges_millimeters[anchor_index] = ss_index_matching;
+		// ot_scratch->ranges_millimeters[anchor_index] = num_valid_distances;
+		if (oa_scratch->ranges_millimeters[anchor_index] == INT32_MAX) {
+			oa_scratch->ranges_millimeters[anchor_index] = ONEWAY_TAG_RANGE_ERROR_MISC;
+		}
+	}
+}
