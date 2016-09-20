@@ -401,7 +401,7 @@ static void anchor_rxcallback (const dwt_callback_data_t *rxd) {
 			// Read in parameters of this packet reception
 			uint8_t  buf[ONEWAY_ANCHOR_MAX_RX_PKT_LEN];
 			uint64_t dw_rx_timestamp;
-			uint8_t  message_type;
+			uint8_t  broadcast_message_type, unicast_message_type;
 
 			// Get the received time of this packet first
 			dw_rx_timestamp = dw1000_readrxtimestamp();
@@ -411,9 +411,10 @@ static void anchor_rxcallback (const dwt_callback_data_t *rxd) {
 
 			// We process based on the first byte in the packet. How very active
 			// message like...
-			message_type = buf[offsetof(struct pp_tag_poll, message_type)];
+			broadcast_message_type = buf[offsetof(struct pp_tag_poll, message_type)];
+			unicast_message_type = buf[offsetof(struct pp_anc_final, message_type)];
 
-			if (message_type == MSG_TYPE_PP_NOSLOTS_TAG_POLL) {
+			if (broadcast_message_type == MSG_TYPE_PP_NOSLOTS_TAG_POLL) {
 				// This is one of the broadcast ranging packets from the tag
 				struct pp_tag_poll* rx_poll_pkt = (struct pp_tag_poll*) buf;
 
@@ -509,7 +510,7 @@ static void anchor_rxcallback (const dwt_callback_data_t *rxd) {
 				} else {
 					// We are in some other state, not sure what that means
 				}
-			} else if(message_type == MSG_TYPE_PP_NOSLOTS_ANC_FINAL) {
+			} else if(unicast_message_type == MSG_TYPE_PP_NOSLOTS_ANC_FINAL) {
 				// This is what we were looking for, an ANC_FINAL packet
 				struct pp_anc_final* anc_final;
 
@@ -569,7 +570,7 @@ static void anchor_rxcallback (const dwt_callback_data_t *rxd) {
 				// We do want to enter RX mode again, however
 				//dwt_rxenable(0);
 				// Other message types go here, if they get added
-				if(message_type == MSG_TYPE_PP_GLOSSY_SYNC || message_type == MSG_TYPE_PP_GLOSSY_SCHED_REQ)
+				if(broadcast_message_type == MSG_TYPE_PP_GLOSSY_SYNC || broadcast_message_type == MSG_TYPE_PP_GLOSSY_SCHED_REQ || broadcast_message_type == MSG_TYPE_PP_RANGING_FLOOD)
 					glossy_sync_process(dw_rx_timestamp-oneway_get_rxdelay_from_subsequence(ANCHOR, 0), buf);
 			}
 		}

@@ -9,7 +9,7 @@
 
 // Set at some arbitrary length for what the longest packet we will receive
 // is.
-#define ONEWAY_ANCHOR_MAX_RX_PKT_LEN 64
+#define ONEWAY_ANCHOR_MAX_RX_PKT_LEN 296
 
 // The ANCHOR did not receive matching packets from the first three cycle.
 // This prevents us from calculating clock skew, and we have to skip this
