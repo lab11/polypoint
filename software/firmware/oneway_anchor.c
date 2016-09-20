@@ -247,7 +247,7 @@ static void ranging_listening_window_task () {
 		// Check if we are done transmitting to the tag.
 		// Ideally we never get here, as an ack from the tag will cause us to stop
 		// cycling through listening windows and put us back into a ready state.
-		if (oa_scratch->ranging_listening_window_num == NUM_RANGING_CHANNELS) {
+		if (oa_scratch->ranging_listening_window_num == NUM_RANGING_CHANNELS+1) {
 			// Go back to IDLE
 			oa_scratch->state = ASTATE_IDLE;
 			// Stop the timer for the window
@@ -256,6 +256,14 @@ static void ranging_listening_window_task () {
 			// Restart being an anchor
 			oneway_anchor_start();
 
+		// Add in a slot to flood packet data back to master
+		} else if(oa_scratch->ranging_listening_window_num == NUM_RANGING_CHANNELS) {
+			// Set things back up to perpetuate floods on the same channel
+			oneway_set_ranging_listening_window_settings(ANCHOR, 0, 0);
+			dwt_rxenable(0);
+
+			// Next timestep we will reset
+			oa_scratch->ranging_listening_window_num++;
 		} else {
 
 			if(!oa_scratch->final_ack_received){
@@ -701,6 +709,10 @@ static void report_range () {
 		oa_scratch->pp_range_flood_pkt.ranges_millimeters[i] = (int16_t)oa_scratch->ranges_millimeters[i];
 	}
 
+	// Re-intialize radio settings to first channel
+	oneway_set_ranging_listening_window_settings(TAG, 0, 0);
+
+	// Initiate the flood
 	uint16_t frame_len = sizeof(struct pp_range_flood);
 	dwt_writetxfctrl(frame_len, 0);
 
