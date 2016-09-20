@@ -92,12 +92,13 @@ void oneway_anchor_init (void *app_scratchspace) {
 	// dwt_seteui(eui_array);
 	// dwt_setpanid(POLYPOINT_PANID);
 
-	// Automatically go back to receive
-	dwt_setautorxreenable(TRUE);
-
 	// Don't use these
-	dwt_setdblrxbuffmode(FALSE);
 	dwt_setrxtimeout(FALSE);
+
+	// Setup parameters of how the radio should work
+	dwt_setautorxreenable(TRUE);
+	dwt_setdblrxbuffmode(TRUE);//FALSE);
+	dwt_enableautoack(DW1000_ACK_RESPONSE_TIME);
 
 	// Load our EUI into the outgoing packet
 	dw1000_read_eui(oa_scratch->pp_anc_final_pkt.ieee154_header_unicast.sourceAddr);
