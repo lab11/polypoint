@@ -14,6 +14,7 @@ static struct pp_sched_req_flood _sched_req_pkt;
 static glossy_role_e _role;
 
 static uint8_t _last_sync_depth;
+static uint8_t _last_eui_byte;
 static uint64_t _last_sync_timestamp;
 static uint64_t _last_overall_timestamp;
 static uint64_t _time_overflow;
@@ -369,6 +370,15 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 			_sync_pkt.tag_sched_idx = candidate_slot;
 			_tag_timeout[candidate_slot] = 0;
 #endif
+		} else if(in_glossy_sync->message_type == MSG_TYPE_PP_RANGING_FLOOD){
+			uint8_t cur_eui = buf[offsetof(struct pp_range_flood, anchor_eui)];
+			if(cur_eui != _last_eui_byte){
+				const uint8_t header[] = {0x80, 0x01, 0x80, 0x01};
+				uart_write(4, header);
+				uart_write(EUI_LEN, &buf[offsetof(struct pp_range_flood, anchor_eui)]);
+				uart_write(sizeof(int16_t)*MAX_NUM_ANCHOR_RESPONSES, &buf[offsetof(struct pp_range_flood, ranges_millimeters)]);
+			}
+			_last_eui_byte = cur_eui;
 		}
 
 #ifdef GLOSSY_PER_TEST
