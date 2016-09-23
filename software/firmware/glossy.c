@@ -229,6 +229,15 @@ void glossy_sync_task(){
 
 			// LWB Slots 2-N-2: Ranging slots
 			} else if(_lwb_counter < (GLOSSY_UPDATE_INTERVAL_US/LWB_SLOT_US - LWB_SLOTS_PER_RANGE)) {
+
+				// Get ready to range with other anchors
+				if(((_lwb_counter - 2) % LWB_SLOTS_PER_RANGE) == 0){
+					dwt_forcetrxoff();
+					dw1000_update_channel(1);
+					dw1000_choose_antenna(0);
+					dwt_rxenable(0);
+				}
+
 				if(_lwb_schedule_callback && _lwb_scheduled && 
 				   (((_lwb_counter - 2)/LWB_SLOTS_PER_RANGE) % _lwb_num_timeslots == _lwb_mod_timeslot) && 
 				   ((_lwb_counter - 2) % LWB_SLOTS_PER_RANGE == 0)){
