@@ -377,6 +377,7 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 				uart_write(4, header);
 				uart_write(EUI_LEN, &buf[offsetof(struct pp_range_flood, anchor_eui)]);
 				uart_write(sizeof(int16_t)*MAX_NUM_ANCHOR_RESPONSES, &buf[offsetof(struct pp_range_flood, ranges_millimeters)]);
+				uart_write(sizeof(uint8_t)*MAX_NUM_ANCHOR_RESPONSES, &buf[offsetof(struct pp_range_flood, euis)]);
 			}
 			_last_eui_byte = cur_eui;
 		}

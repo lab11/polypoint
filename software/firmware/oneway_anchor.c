@@ -713,6 +713,7 @@ static void report_range () {
 	dw1000_read_eui(oa_scratch->pp_range_flood_pkt.anchor_eui);
 	for(uint8_t i=0; i < MAX_NUM_ANCHOR_RESPONSES; i++){
 		oa_scratch->pp_range_flood_pkt.ranges_millimeters[i] = (int16_t)oa_scratch->ranges_millimeters[i];
+		oa_scratch->pp_range_flood_pkt.euis[i] = oa_scratch->anchor_responses[i].anchor_addr[0];
 	}
 
 	// Re-intialize radio settings to first channel
