@@ -158,6 +158,13 @@ dw1000_err_e oneway_anchor_start () {
 	return DW1000_NO_ERR;
 }
 
+void oneway_reset_anchor_flags(){
+	oa_scratch->state = ASTATE_IDLE;
+
+	oa_scratch->final_ack_received = FALSE;
+
+}
+
 // Tell the anchor to stop ranging with TAGs.
 // This cancels whatever the anchor was doing.
 void oneway_anchor_stop () {
@@ -253,8 +260,7 @@ static void ranging_listening_window_task () {
 			// Stop the timer for the window
 			timer_stop(oa_scratch->anchor_timer);
 
-			// Restart being an anchor
-			oneway_anchor_start();
+			oneway_reset_anchor_flags();
 
 		// Add in a slot to flood packet data back to master
 		} else if(oa_scratch->ranging_listening_window_num == NUM_RANGING_CHANNELS) {
