@@ -436,9 +436,17 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 				_lwb_timeslot = in_glossy_sync->tag_sched_idx;
 				_lwb_scheduled = TRUE;
 			}
-			// Next, make sure the tag is still scheduled
-			if(_lwb_scheduled && ((in_glossy_sync->tag_ranging_mask & ((uint64_t)(1) << _lwb_timeslot)) == 0))
-				_lwb_scheduled = FALSE;
+			if(_lwb_scheduled){
+				// Next, make sure the tag is still scheduled
+				 if((in_glossy_sync->tag_ranging_mask & ((uint64_t)(1) << _lwb_timeslot)) == 0)
+					_lwb_scheduled = FALSE;
+				// Lastly, make sure someone else wasn't scheduled during our timeslot
+				else if(_lwb_timeslot == in_glossy_sync->tag_sched_idx){
+					// This is only valid if we get a repeat schedule assignment
+					if(memcmp(in_glossy_sync->tag_sched_eui, _sched_req_pkt.tag_sched_eui, EUI_LEN) != 0)
+						_lwb_scheduled = FALSE;
+				}
+			}
 			_lwb_num_timeslots = uint64_count_ones(in_glossy_sync->tag_ranging_mask);
 			_lwb_mod_timeslot = uint64_count_ones(in_glossy_sync->tag_ranging_mask & (((uint64_t)(1) << _lwb_timeslot) - 1));
 
