@@ -376,6 +376,7 @@ int main () {
 				dw1000_interrupt_fired();
 			}
 
+#ifndef BYPASS_HOST_INTERFACE
 			if (interrupts_triggered[INTERRUPT_I2C_RX] == TRUE) {
 				interrupts_triggered[INTERRUPT_I2C_RX] = FALSE;
 				interrupt_triggered = TRUE;
@@ -393,6 +394,7 @@ int main () {
 				interrupt_triggered = TRUE;
 				host_interface_timeout_fired();
 			}
+#endif
 		} while (interrupt_triggered == TRUE);
 	}
 
