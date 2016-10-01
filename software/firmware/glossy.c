@@ -240,7 +240,7 @@ void glossy_sync_task(){
 				}
 
 				if(_lwb_schedule_callback && _lwb_scheduled && 
-				   (((_lwb_counter - 2)/LWB_SLOTS_PER_RANGE) % _lwb_num_timeslots == _lwb_mod_timeslot) && 
+				   (((_lwb_counter - 2)/LWB_SLOTS_PER_RANGE) == _lwb_mod_timeslot) && 
 				   ((_lwb_counter - 2) % LWB_SLOTS_PER_RANGE == 0)){
 					// Our scheduled timeslot!  Call the timeslot callback which will likely kick off a ranging event
 					_lwb_schedule_callback();
@@ -315,6 +315,10 @@ void send_sync(uint32_t delay_time){
 #define CW_CAL_33PF ((3.493941-3.493891)/3.4944*1e6/30)
 int8_t clock_offset_to_trim_diff(double ppm_offset){
        return (int8_t) (floor(ppm_offset/CW_CAL_12PF + 0.5));
+}
+
+uint8_t glossy_xtaltrim(){
+	return _xtal_trim;
 }
 
 void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){

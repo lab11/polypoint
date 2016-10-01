@@ -254,7 +254,7 @@ static void ranging_listening_window_task () {
 		// Check if we are done transmitting to the tag.
 		// Ideally we never get here, as an ack from the tag will cause us to stop
 		// cycling through listening windows and put us back into a ready state.
-		if (oa_scratch->ranging_listening_window_num == NUM_RANGING_CHANNELS+1) {
+		if (oa_scratch->ranging_listening_window_num == NUM_RANGING_LISTENING_WINDOWS+1) {
 			// Go back to IDLE
 			oa_scratch->state = ASTATE_IDLE;
 			// Stop the timer for the window
@@ -263,7 +263,7 @@ static void ranging_listening_window_task () {
 			oneway_reset_anchor_flags();
 
 		// Add in a slot to flood packet data back to master
-		} else if(oa_scratch->ranging_listening_window_num == NUM_RANGING_CHANNELS) {
+		} else if(oa_scratch->ranging_listening_window_num == NUM_RANGING_LISTENING_WINDOWS) {
 			// Set things back up to perpetuate floods on the same channel
 			oneway_set_ranging_listening_window_settings(ANCHOR, 0, 0);
 			dwt_rxenable(0);
@@ -477,7 +477,7 @@ static void anchor_rxcallback (const dwt_callback_data_t *rxd) {
 						// to use this because we won't get enough range estimates.
 						// Just stay idle, but we do need to re-enable RX to
 						// keep receiving packets.
-						dwt_rxenable(0);
+						//dwt_rxenable(0);
 					}
 
 				} else if (oa_scratch->state == ASTATE_RANGING) {
@@ -710,6 +710,7 @@ static void report_range () {
 			.sourceAddr = { 0 },
 		};
 	oa_scratch->pp_range_flood_pkt.message_type = MSG_TYPE_PP_RANGING_FLOOD;
+	oa_scratch->pp_range_flood_pkt.xtal_trim = glossy_xtaltrim();
 	dw1000_read_eui(oa_scratch->pp_range_flood_pkt.anchor_eui);
 	for(uint8_t i=0; i < MAX_NUM_ANCHOR_RESPONSES; i++){
 		oa_scratch->pp_range_flood_pkt.ranges_millimeters[i] = (int16_t)oa_scratch->ranges_millimeters[i];

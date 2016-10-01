@@ -6,7 +6,7 @@
 
 #define LWB_SLOT_US               1e4
 
-#define LWB_SLOTS_PER_RANGE       8
+#define LWB_SLOTS_PER_RANGE       9
 
 #define MAX_SCHED_TAGS            10
 #define GLOSSY_MAX_DEPTH          10
@@ -55,6 +55,7 @@ glossy_role_e glossy_get_role();
 void glossy_init(glossy_role_e role);
 void glossy_deschedule();
 void glossy_sync_task();
+uint8_t glossy_xtaltrim();
 void lwb_set_sched_request(bool sched_en);
 void lwb_set_sched_callback(void (*callback)(void));
 void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf);
