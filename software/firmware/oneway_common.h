@@ -140,8 +140,8 @@ struct pp_range_flood {
 	struct ieee154_header_broadcast header;
 	uint8_t message_type;
 	uint8_t anchor_eui[EUI_LEN];
-	int16_t ranges_millimeters[MAX_NUM_ANCHOR_RESPONSES];
-	uint8_t euis[MAX_NUM_ANCHOR_RESPONSES];
+	uint8_t ranging_eui;
+	int16_t ranges_millimeters[NUM_RANGING_BROADCASTS];
 	uint8_t xtal_trim;
 	struct ieee154_footer footer;
 } __attribute__ ((__packed__));

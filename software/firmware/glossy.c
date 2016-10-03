@@ -375,15 +375,15 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 			_tag_timeout[candidate_slot] = 0;
 #endif
 		} else if(in_glossy_sync->message_type == MSG_TYPE_PP_RANGING_FLOOD){
-			uint8_t cur_eui = buf[offsetof(struct pp_range_flood, anchor_eui)];
-			if(cur_eui != _last_eui_byte){
+//			uint8_t cur_eui = buf[offsetof(struct pp_range_flood, anchor_eui)];
+//			if(cur_eui != _last_eui_byte){
 				const uint8_t header[] = {0x80, 0x01, 0x80, 0x01};
 				uart_write(4, header);
-				uart_write(EUI_LEN, &buf[offsetof(struct pp_range_flood, anchor_eui)]);
-				uart_write(sizeof(int16_t)*MAX_NUM_ANCHOR_RESPONSES, &buf[offsetof(struct pp_range_flood, ranges_millimeters)]);
-				uart_write(sizeof(uint8_t)*MAX_NUM_ANCHOR_RESPONSES, &buf[offsetof(struct pp_range_flood, euis)]);
-			}
-			_last_eui_byte = cur_eui;
+				uart_write(1, &buf[offsetof(struct pp_range_flood, anchor_eui)]);
+				uart_write(1, &buf[offsetof(struct pp_range_flood, ranging_eui)]);
+				uart_write(sizeof(int16_t)*NUM_RANGING_BROADCASTS, &buf[offsetof(struct pp_range_flood, ranges_millimeters)]);
+//			}
+//			_last_eui_byte = cur_eui;
 		}
 
 #ifdef GLOSSY_PER_TEST
@@ -414,25 +414,25 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 			dwt_writetxdata(sizeof(struct pp_sched_req_flood), (uint8_t*) in_glossy_sched_req, 0);
 #endif
 		} else if(in_glossy_sync->message_type == MSG_TYPE_PP_RANGING_FLOOD){
-#ifndef GLOSSY_ANCHOR_SYNC_TEST
-			// Increment depth counter
-			_cur_glossy_depth = ++in_glossy_ranging_flood->header.seqNum;
-			_glossy_currently_flooding = TRUE;
-
-			uint16_t frame_len = sizeof(struct pp_range_flood);
-			dwt_writetxfctrl(frame_len, 0);
-
-			// Flood out as soon as possible
-			uint32_t delay_time = (dw_timestamp >> 8) + (DW_DELAY_FROM_US(GLOSSY_FLOOD_TIMESLOT_US) & 0xFFFFFFFE);
-			delay_time &= 0xFFFFFFFE;
-			_last_delay_time = delay_time;
-			dwt_forcetrxoff();
-			dwt_setrxaftertxdelay(LWB_SLOT_US);
-			dwt_setdelayedtrxtime(delay_time);
-			dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED);
-			dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
-			dwt_writetxdata(sizeof(struct pp_range_flood), (uint8_t*) in_glossy_ranging_flood, 0);
-#endif
+//#ifndef GLOSSY_ANCHOR_SYNC_TEST
+//			// Increment depth counter
+//			_cur_glossy_depth = ++in_glossy_ranging_flood->header.seqNum;
+//			_glossy_currently_flooding = TRUE;
+//
+//			uint16_t frame_len = sizeof(struct pp_range_flood);
+//			dwt_writetxfctrl(frame_len, 0);
+//
+//			// Flood out as soon as possible
+//			uint32_t delay_time = (dw_timestamp >> 8) + (DW_DELAY_FROM_US(GLOSSY_FLOOD_TIMESLOT_US) & 0xFFFFFFFE);
+//			delay_time &= 0xFFFFFFFE;
+//			_last_delay_time = delay_time;
+//			dwt_forcetrxoff();
+//			dwt_setrxaftertxdelay(LWB_SLOT_US);
+//			dwt_setdelayedtrxtime(delay_time);
+//			dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED);
+//			dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
+//			dwt_writetxdata(sizeof(struct pp_range_flood), (uint8_t*) in_glossy_ranging_flood, 0);
+//#endif
 
 		} else {
 			// First check to see if this sync packet contains a schedule update for this node

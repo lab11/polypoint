@@ -688,9 +688,6 @@ static void report_range () {
 	// New state
 	oa_scratch->ranging_state = RSTATE_CALCULATE_RANGE;
 
-	// Calculate ranges
-	calculate_ranges();
-
 	// Start the ranging flood back to master
 	oa_scratch->ranging_state = RSTATE_IDLE;
 	oa_scratch->pp_range_flood_pkt.header = (struct ieee154_header_broadcast) {
@@ -712,28 +709,13 @@ static void report_range () {
 	oa_scratch->pp_range_flood_pkt.message_type = MSG_TYPE_PP_RANGING_FLOOD;
 	oa_scratch->pp_range_flood_pkt.xtal_trim = glossy_xtaltrim();
 	dw1000_read_eui(oa_scratch->pp_range_flood_pkt.anchor_eui);
-	for(uint8_t i=0; i < MAX_NUM_ANCHOR_RESPONSES; i++){
-		oa_scratch->pp_range_flood_pkt.ranges_millimeters[i] = (int16_t)oa_scratch->ranges_millimeters[i];
-		oa_scratch->pp_range_flood_pkt.euis[i] = oa_scratch->anchor_responses[i].anchor_addr[0];
-	}
 
 	// Re-intialize radio settings to first channel
 	oneway_set_ranging_listening_window_settings(TAG, 0, 0);
 
-	// Initiate the flood
-	uint16_t frame_len = sizeof(struct pp_range_flood);
-	dwt_writetxfctrl(frame_len, 0);
+	// Calculate ranges
+	calculate_ranges();
 
-	uint32_t delay_time = dwt_readsystimestamphi32() + DW_DELAY_FROM_PKT_LEN(frame_len);
-	delay_time &= 0xFFFFFFFE; //Make sure last bit is zero
-	dw1000_setdelayedtrxtime(delay_time);
-
-	dwt_setdelayedtrxtime(delay_time);
-	dwt_setrxaftertxdelay(1);
-
-	dwt_starttx(DWT_START_TX_DELAYED);
-	dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
-	dwt_writetxdata(sizeof(struct pp_range_flood), (uint8_t*) &(oa_scratch->pp_range_flood_pkt), 0);
 }
 
 // After getting responses from anchors calculate the range to each anchor.
@@ -748,6 +730,10 @@ static void calculate_ranges () {
 	// to each anchor
 	for (uint8_t anchor_index=0; anchor_index<oa_scratch->anchor_response_count; anchor_index++) {
 		anchor_responses_t* aresp = &(oa_scratch->anchor_responses[anchor_index]);
+
+		// Prepare the ranging flood for this anchor
+		oa_scratch->pp_range_flood_pkt.ranging_eui = aresp->anchor_addr[0];
+		memset(oa_scratch->pp_range_flood_pkt.ranges_millimeters, 0xFF, sizeof(oa_scratch->pp_range_flood_pkt.ranges_millimeters));
 
 		// Since the rxd TOAs are compressed to 16 bits, we first need to decompress them back to 64-bit quantities
 		uint64_t tag_poll_TOAs[NUM_RANGING_BROADCASTS];
@@ -872,6 +858,9 @@ static void calculate_ranges () {
 
 			// Check that the distance we have at this point is at all reasonable
 			if (distance_millimeters >= MIN_VALID_RANGE_MM && distance_millimeters <= MAX_VALID_RANGE_MM) {
+				// Add to the ranging flood 
+				oa_scratch->pp_range_flood_pkt.ranges_millimeters[broadcast_index] = distance_millimeters;
+
 				// Add this to our sorted array of distances
 				insert_sorted(distances_millimeters, distance_millimeters, num_valid_distances);
 				num_valid_distances++;
@@ -911,5 +900,15 @@ static void calculate_ranges () {
 		if (oa_scratch->ranges_millimeters[anchor_index] == INT32_MAX) {
 			oa_scratch->ranges_millimeters[anchor_index] = ONEWAY_TAG_RANGE_ERROR_MISC;
 		}
+
+		// Initiate the flood
+		uint16_t frame_len = sizeof(struct pp_range_flood);
+		dwt_writetxfctrl(frame_len, 0);
+		dwt_setrxaftertxdelay(1);
+		dwt_settxantennadelay(DW1000_ANTENNA_DELAY_TX);
+		dwt_writetxdata(sizeof(struct pp_range_flood), (uint8_t*) &(oa_scratch->pp_range_flood_pkt), 0);
+		dwt_starttx(DWT_START_TX_IMMEDIATE);
+		uDelay(415);
+
 	}
 }
