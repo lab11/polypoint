@@ -4,9 +4,9 @@
 #include "firmware.h"
 #include "deca_device_api.h"
 
-#define LWB_SLOT_US               1e4
+#define LWB_SLOT_US               2e4
 
-#define LWB_SLOTS_PER_RANGE       9
+#define LWB_SLOTS_PER_RANGE       5
 
 #define MAX_SCHED_TAGS            10
 #define GLOSSY_MAX_DEPTH          10

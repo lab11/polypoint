@@ -175,7 +175,7 @@ void glossy_sync_task(){
 			dw1000_update_channel(1);
 			dw1000_choose_antenna(0);
 
-			increment_sched_timeout();
+			//increment_sched_timeout();
 		
 			_last_time_sent += GLOSSY_UPDATE_INTERVAL_DW;
 			send_sync(_last_time_sent);
@@ -488,7 +488,8 @@ void glossy_sync_process(uint64_t dw_timestamp, uint8_t *buf){
 					_xtal_trim += trim_diff;
 					if(_xtal_trim < 1) _xtal_trim = 1;
 					else if(_xtal_trim > 31) _xtal_trim = 31;
-					dwt_xtaltrim(_xtal_trim);
+					if(trim_diff != 0)
+						dwt_xtaltrim(_xtal_trim);
 #ifdef GLOSSY_ANCHOR_SYNC_TEST
 					_sched_req_pkt.xtal_trim = trim_diff;
 					// Sync is invalidated if the xtal trim has changed (this won't happen often)
