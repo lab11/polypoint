@@ -8,5 +8,7 @@ To rebuild everything:
 
     ./init_cordova.sh
 
+---
 
+<img src="https://github.com/lab11/polypoint/raw/master/phone/tritag-summon/screenshot.png" width="300px" />
 
