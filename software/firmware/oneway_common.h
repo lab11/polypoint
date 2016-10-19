@@ -58,6 +58,7 @@
 #define RANGE_PERCENTILE_NUMERATOR 1
 #define RANGE_PERCENTILE_DENOMENATOR 10
 
+#define CAL_BIAS 140
 
 /******************************************************************************/
 // Data Structs for packet messages between tags and anchors

@@ -6,16 +6,16 @@
 
 #define LWB_SLOT_US               2e4
 
-#define LWB_SLOTS_PER_RANGE       5
+#define LWB_SLOTS_PER_RANGE       6
 
-#define MAX_SCHED_TAGS            10
+#define MAX_SCHED_TAGS            13
 #define GLOSSY_MAX_DEPTH          10
 #define TAG_SCHED_TIMEOUT         60
 
 #ifdef GLOSSY_PER_TEST
 #define GLOSSY_UPDATE_INTERVAL_US 1e4
 #else
-#define GLOSSY_UPDATE_INTERVAL_US 1e6
+#define GLOSSY_UPDATE_INTERVAL_US 2e6
 #endif
 
 #define GLOSSY_FLOOD_TIMESLOT_US  8e2

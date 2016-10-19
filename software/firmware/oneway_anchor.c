@@ -901,6 +901,9 @@ static void calculate_ranges () {
 			oa_scratch->ranges_millimeters[anchor_index] = ONEWAY_TAG_RANGE_ERROR_MISC;
 		}
 
+		//Cancel out calibration bias
+		oa_scratch->ranges_millimeters[anchor_index] -= CAL_BIAS;
+
 		// Initiate the flood
 		uint16_t frame_len = sizeof(struct pp_range_flood);
 		dwt_writetxfctrl(frame_len, 0);
