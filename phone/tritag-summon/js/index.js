@@ -36,6 +36,44 @@ var switch_visibility_steadyscan_check = "visible";
 var steadyscan_on = true;
 
 /******************************************************************************/
+// GDP INTEGRATION
+/******************************************************************************/
+
+var GDP_REST_ENDPOINT = "http://requestb.in/p0k5jup0"
+
+function get_meta (id) {
+    return {
+        received_time: new Date().toISOString(),
+        device_id: id,
+        device_type: "surepoint_tag",
+    }
+}
+
+function generate_surepoint_packet (id, x, y, z) {
+    return {
+        _meta: get_meta(id),
+        x: x,
+        y: y,
+        z: z,
+    };
+}
+
+function post_to_gdp (x, y, z) {
+    pkt = generate_surepoint_packet(device_id, x, y, z);
+    $.ajax(GDP_REST_ENDPOINT, {
+        data: JSON.stringify(pkt),
+        contentType: 'application/json',
+        type: 'POST',
+        success: function () {
+            //console.log("GDP POST success");
+        },
+        error: function (ajaxContext) {
+            //console.log("GDP POST fail: " + ajaxContext.responseText);
+        },
+    })
+}
+
+/******************************************************************************/
 // LOCATION CALCULATION FUNCTIONS
 /******************************************************************************/
 
@@ -181,6 +219,9 @@ function process_raw_buffer (buf) {
                     update += ' Z: ' + loc[2].toFixed(2);
                 app.update_location(update);
             }
+
+            // Post location update to GDP
+            post_to_gdp(loc[0], loc[1], loc[2]);
         }
     } else {
         app.log('Got different reason byte: ' + reason_byte);

@@ -27,17 +27,21 @@ var y = 5;
 function generate_surepoint_packet (id) {
 	x = x + get_value(-.5, .5);
 	y = y + get_value(-.5, .5);
+	z = z + get_value(-.2, .2);
 
 	// Reasonable bounds
 	if (x>20) x = 19.5;
 	if (y>20) y = 19.5;
 	if (x<0) x = .5;
 	if (y<0) y = .5;
+	if (z<0) z = .2;
+	if (z>3) z = 2.8;
 
 	return {
 		_meta: get_meta(id),
 		x: x,
 		y: y,
+		z: z,
 	};
 }
 
