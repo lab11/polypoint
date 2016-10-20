@@ -35,6 +35,7 @@ octave.addpath('../matlab/gmmds_mwe/MDS')
 octave.addpath('../matlab/gmmds_mwe/sim')
 octave.addpath('../matlab/gmmds_mwe/util')
 octave.eval('more off')
+octave.eval('pkg load statistics')
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-s', '--serial',   default='/dev/tty.usbserial-AL00EZAS')
@@ -97,6 +98,7 @@ try:
 			reporting_id = binascii.hexlify(useful_read(1)).decode('utf-8')
 			ranging_id = binascii.hexlify(useful_read(1)).decode('utf-8')
 
+			#Keep track of mapping from ID to index in array
 			if not reporting_id in D_hat_ids:
 				D_hat_ids[reporting_id] = len(D_hat_ids.keys())
 			if not ranging_id in D_hat_ids:
@@ -104,12 +106,21 @@ try:
 			reporting_idx = D_hat_ids[reporting_id]
 			ranging_idx = D_hat_ids[ranging_id]
 
+			#In an effort to keep the matrix symmetric and not lose any data, always make sure reporting_idx < ranging_idx
+			if ranging_idx < reporting_idx:
+				reporting_idx, ranging_idx = ranging_idx, reporting_idx
+
 			for x in range(27):
 				cur_range = float(struct.unpack("<h", useful_read(2))[0])/1000
-				max_len = int(max(D_hat_len.flatten(), default=0)) + 1
-				D_hat.resize([len(D_hat_ids), len(D_hat_ids), max_len])
-				D_hat_len.resize([len(D_hat_ids), len(D_hat_ids)])
+				max_len = int(max(D_hat_len.flatten(), default=0) + 1)
+				D_hat_new = np.zeros([len(D_hat_ids), len(D_hat_ids), max_len])
+				D_hat_len_new = np.zeros([len(D_hat_ids), len(D_hat_ids)])
+				D_hat_new[:D_hat.shape[0],:D_hat.shape[1],:D_hat.shape[2]] = D_hat
+				D_hat_len_new[:D_hat_len.shape[0],:D_hat_len.shape[1]] = D_hat_len
+				D_hat = D_hat_new
+				D_hat_len = D_hat_len_new
 				D_hat[reporting_idx,ranging_idx,int(D_hat_len[reporting_idx,ranging_idx])] = cur_range
+				D_hat[ranging_idx,reporting_idx,int(D_hat_len[reporting_idx,ranging_idx])] = cur_range
 				D_hat_len[reporting_idx,ranging_idx] = D_hat_len[reporting_idx,ranging_idx] + 1
 
 			good += 1
@@ -119,12 +130,15 @@ try:
 
 		#Re-perform network localization every second
 		if toc() > 5:
+	
 			#Construct array of intial guesses for XY location
 			xy = np.zeros([D_hat.shape[0], 3])
 			for anchor_id in D_hat_ids:
 				xy[D_hat_ids[anchor_id],:] = np.asarray(anchor_coords[anchor_id])
 			print(xy)
+			print(D_hat)
 
+			sio.savemat('passed_data.mat', {'D_hat': D_hat, 'xy': xy})
 			xhat_MDS, LOS_Matrix = octave.test_EM_GMMDS(D_hat, xy)
 			D_hat = np.empty([0, 0])
 			D_hat_len = np.empty([0])

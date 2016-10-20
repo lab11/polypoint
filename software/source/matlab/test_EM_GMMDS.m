@@ -1,4 +1,4 @@
-function [xhat_MDS, LOS_Matrix] = test_EM_GMMDS(D_hat, xy)
+function [xy_hat_MDS_proc, LOS_Matrix] = test_EM_GMMDS(D_hat, xy)
 
 prm.n = size(D_hat,1);     % number of nodes
 prm.d = 3;      % dimension
@@ -24,9 +24,9 @@ prm.conn = sum(A(:));
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Make the measurement matrix symmetric (IMPORTANT!)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-for i = 1 : size(D_hat,3)
-    D_hat(:,:,i) = nx_adjustDMatrix(D_hat(:,:,i));
-end
+%for i = 1 : size(D_hat,3)
+%    D_hat(:,:,i) = nx_adjustDMatrix(D_hat(:,:,i));
+%end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -91,39 +91,39 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Display
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%[~,xy_hat_proc] = procrustes(xy,xhat(:,:,end), 'Scaling',false);
-%[~,xy_hat_MDS_proc] = procrustes(xy,xhat_MDS(:,:,end), 'Scaling',false);
-%figure('position',[100 100 600 400],'color',[1 1 1]);
-%plot3(xy(:,1),xy(:,2),xy(:,3),'b+','MarkerSize',8,'LineWidth',3,'MarkerEdgeColor',[0 0.5 0.5]);
-%hold on;
-%plot3(xy_hat_proc(:,1),xy_hat_proc(:,2),xy_hat_proc(:,3),'ro','MarkerSize',6,'LineWidth',2);
-%plot3(xy_hat_MDS_proc(:,1),xy_hat_MDS_proc(:,2),xy_hat_MDS_proc(:,3),'mx','MarkerSize',6,'LineWidth',2);
-%%lines
-%for i= 1:prm.n
-%    for j = (i+1) : prm.n
-%        if A(i,j) == 1
-%            if( LOS_Matrix(i,j) == 1)
-%                plot3( [ xy(i,1), xy(j,1)],[ xy(i,2), xy(j,2)],[ xy(i,3), xy(j,3)],'k-');
-%            else
-%                plot3( [ xy(i,1), xy(j,1)],[ xy(i,2), xy(j,2)],[ xy(i,3), xy(j,3)],'k--');
-%            end
-%        end
-%    end
-%end
-%hold off
-%zlabel('meters');
-%grid on
-%legend('Ground Truth','GMMDS','MDS')
-%axis equal
-%
-%
-%figure('position',[700 100 600 400],'color',[1 1 1])
-%plot(RMSE,'r','linewidth',2)
-%xlabel('GMMDS Iterations')
-%ylabel('RMSE [m]')
-%hold on
-%plot(RMSE_MDS,'b','linewidth',2)
-%legend('GM-MDS','MDS');
+[~,xy_hat_proc] = procrustes(xy,xhat(:,:,end), 'Scaling',false);
+[~,xy_hat_MDS_proc] = procrustes(xy,xhat_MDS(:,:,end), 'Scaling',false);
+figure('position',[100 100 600 400],'color',[1 1 1]);
+plot3(xy(:,1),xy(:,2),xy(:,3),'b+','MarkerSize',8,'LineWidth',3,'MarkerEdgeColor',[0 0.5 0.5]);
+hold on;
+plot3(xy_hat_proc(:,1),xy_hat_proc(:,2),xy_hat_proc(:,3),'ro','MarkerSize',6,'LineWidth',2);
+plot3(xy_hat_MDS_proc(:,1),xy_hat_MDS_proc(:,2),xy_hat_MDS_proc(:,3),'mx','MarkerSize',6,'LineWidth',2);
+%lines
+for i= 1:prm.n
+    for j = (i+1) : prm.n
+        if A(i,j) == 1
+            if( LOS_Matrix(i,j) == 1)
+                plot3( [ xy(i,1), xy(j,1)],[ xy(i,2), xy(j,2)],[ xy(i,3), xy(j,3)],'k-');
+            else
+                plot3( [ xy(i,1), xy(j,1)],[ xy(i,2), xy(j,2)],[ xy(i,3), xy(j,3)],'k--');
+            end
+        end
+    end
+end
+hold off
+zlabel('meters');
+grid on
+legend('Ground Truth','GMMDS','MDS')
+axis equal
+
+
+figure('position',[700 100 600 400],'color',[1 1 1])
+plot(RMSE,'r','linewidth',2)
+xlabel('GMMDS Iterations')
+ylabel('RMSE [m]')
+hold on
+plot(RMSE_MDS,'b','linewidth',2)
+legend('GM-MDS','MDS');
 
  
 % figure('color',[1 1 1])
