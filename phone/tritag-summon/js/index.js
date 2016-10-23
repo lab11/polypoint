@@ -103,7 +103,7 @@ function update_anchor_locations () {
 
 // Only do dynamic anchors if asked to
 if (UPDATE_ANCHOR_URL != null) {
-    setTimeout(update_anchor_locations, ANCHOR_LOCATION_UPDATE_RATE_MS);
+    setTimeout(update_anchor_locations, 1000);
 }
 
 
