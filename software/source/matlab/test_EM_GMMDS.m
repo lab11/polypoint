@@ -1,4 +1,4 @@
-function [xy_hat_MDS_proc, LOS_Matrix] = test_EM_GMMDS(D_hat, xy)
+function [xy_hat_MDS_proc] = test_EM_GMMDS(D_hat, xy)
 
 prm.n = size(D_hat,1);     % number of nodes
 prm.d = 3;      % dimension

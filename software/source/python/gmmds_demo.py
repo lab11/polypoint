@@ -129,7 +129,7 @@ try:
 			bad += 1
 
 		#Re-perform network localization every second
-		if toc() > 5:
+		if toc() > 10:
 	
 			#Construct array of intial guesses for XY location
 			xy = np.zeros([D_hat.shape[0], 3])
@@ -139,9 +139,9 @@ try:
 			print(D_hat)
 
 			sio.savemat('passed_data.mat', {'D_hat': D_hat, 'xy': xy})
-			xhat_MDS, LOS_Matrix = octave.test_EM_GMMDS(D_hat, xy)
-			D_hat = np.empty([0, 0])
-			D_hat_len = np.empty([0])
+			octave.TerraSwarmDemo(D_hat, xy, 3, xy)
+			D_hat = np.empty([0, 0, 0])
+			D_hat_len = np.empty([0, 0])
 			D_hat_ids = {}
 			tic()
 
