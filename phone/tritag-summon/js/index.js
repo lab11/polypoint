@@ -13,6 +13,7 @@ var TRIPOINT_READ_INT_RANGES = 1
 var TRIPOINT_READ_INT_CALIBRATION = 2
 
 // Application state
+/*
 var _anchor_locations = {
     'c0:98:e5:50:50:44:50:1d': [0, 2.752, 2.874],
     'c0:98:e5:50:50:44:50:0f': [0.952, 0, 2.621],
@@ -30,6 +31,10 @@ var _anchor_locations = {
     'c0:98:e5:50:50:44:50:09': [0, 8.970, 2.779],
     'c0:98:e5:50:50:44:50:14': [0, 5.424, 2.703]
 };
+const UPDATE_ANCHOR_URL = null;
+*/
+const UPDATE_ANCHOR_URL = "http://localhost:8000/configuration.json";
+var _anchor_locations = null;
 
 var switch_visibility_console_check = "visible";
 var switch_visibility_steadyscan_check = "visible";
@@ -72,6 +77,35 @@ function post_to_gdp (x, y, z) {
         },
     })
 }
+
+
+/******************************************************************************/
+// DYNAMIC ANCHOR UPDATE
+/******************************************************************************/
+
+const ANCHOR_LOCATION_UPDATE_RATE_MS = 1000 * 15;
+
+function on_update_anchor_locations (data, status) {
+    //console.log(data);
+    //console.log(status);
+    _anchor_locations = data;
+}
+
+function update_anchor_locations () {
+    $.ajax({
+        dataType: "json",
+        url: UPDATE_ANCHOR_URL,
+        success: on_update_anchor_locations ()
+    });
+
+    setTimeout(update_anchor_locations, ANCHOR_LOCATION_UPDATE_RATE_MS);
+}
+
+// Only do dynamic anchors if asked to
+if (UPDATE_ANCHOR_URL != null) {
+    setTimeout(update_anchor_locations, ANCHOR_LOCATION_UPDATE_RATE_MS);
+}
+
 
 /******************************************************************************/
 // LOCATION CALCULATION FUNCTIONS
@@ -210,6 +244,12 @@ function process_raw_buffer (buf) {
 
             // Got ranges
             // app.log(JSON.stringify(ranges));
+
+            if (_anchor_locations === null) {
+                app.log('No anchor locations');
+                app.update_location('Waiting for anchor locations');
+                return;
+            }
 
             // Calculate a location
             if (num_valid_ranges >= 3) {
