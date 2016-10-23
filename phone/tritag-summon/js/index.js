@@ -33,7 +33,7 @@ var _anchor_locations = {
 };
 const UPDATE_ANCHOR_URL = null;
 */
-const UPDATE_ANCHOR_URL = "http://localhost:8000/configuration.json";
+const UPDATE_ANCHOR_URL = "http://j2x.us/ppts16";
 var _anchor_locations = null;
 
 var switch_visibility_console_check = "visible";
