@@ -82,6 +82,8 @@ anchor_coords = {
 	'3e': (  0.410,  0.206, 2.283),
 }
 
+NUM_HISTORY = 150
+
 good = 0
 bad = 0
 D_hat = np.empty([0, 0, 0])
@@ -110,18 +112,35 @@ try:
 			if ranging_idx < reporting_idx:
 				reporting_idx, ranging_idx = ranging_idx, reporting_idx
 
+			#Filter out those ranges which are invalid
+			ranges = []
 			for x in range(27):
 				cur_range = float(struct.unpack("<h", useful_read(2))[0])/1000
-				max_len = int(max(D_hat_len.flatten(), default=0) + 1)
-				D_hat_new = np.zeros([len(D_hat_ids), len(D_hat_ids), max_len])
-				D_hat_len_new = np.zeros([len(D_hat_ids), len(D_hat_ids)])
-				D_hat_new[:D_hat.shape[0],:D_hat.shape[1],:D_hat.shape[2]] = D_hat
-				D_hat_len_new[:D_hat_len.shape[0],:D_hat_len.shape[1]] = D_hat_len
-				D_hat = D_hat_new
-				D_hat_len = D_hat_len_new
-				D_hat[reporting_idx,ranging_idx,int(D_hat_len[reporting_idx,ranging_idx])] = cur_range
-				D_hat[ranging_idx,reporting_idx,int(D_hat_len[reporting_idx,ranging_idx])] = cur_range
-				D_hat_len[reporting_idx,ranging_idx] = D_hat_len[reporting_idx,ranging_idx] + 1
+				if cur_range > 0:
+					ranges.append(cur_range)
+
+			#Take percentile
+			if len(ranges) > 0:
+				cur_range = np.percentile(np.array(ranges), 12)
+			else:
+				continue
+			
+			#Add cur_range to the list
+			max_len = int(max(D_hat_len.flatten(), default=0) + 1)
+			D_hat_new = np.zeros([len(D_hat_ids), len(D_hat_ids), max_len])
+			D_hat_len_new = np.zeros([len(D_hat_ids), len(D_hat_ids)])
+			D_hat_new[:D_hat.shape[0],:D_hat.shape[1],:D_hat.shape[2]] = D_hat
+			D_hat_len_new[:D_hat_len.shape[0],:D_hat_len.shape[1]] = D_hat_len
+			D_hat = D_hat_new
+			D_hat_len = D_hat_len_new
+			if D_hat_len[reporting_idx,ranging_idx] == NUM_HISTORY-1:
+				D_hat[reporting_idx,ranging_idx,0:D_hat.shape[2]-1] = D_hat[reporting_idx,ranging_idx,1:D_hat.shape[2]]
+				D_hat[ranging_idx,reporting_idx,0:D_hat.shape[2]-1] = D_hat[ranging_idx,reporting_idx,1:D_hat.shape[2]]
+			D_hat[reporting_idx,ranging_idx,int(D_hat_len[reporting_idx,ranging_idx])] = cur_range
+			D_hat[ranging_idx,reporting_idx,int(D_hat_len[reporting_idx,ranging_idx])] = cur_range
+			D_hat_len[reporting_idx,ranging_idx] = D_hat_len[reporting_idx,ranging_idx] + 1
+			if D_hat_len[reporting_idx,ranging_idx] > NUM_HISTORY-1:
+				D_hat_len[reporting_idx,ranging_idx] = NUM_HISTORY-1
 
 			good += 1
 
@@ -135,14 +154,13 @@ try:
 			xy = np.zeros([D_hat.shape[0], 3])
 			for anchor_id in D_hat_ids:
 				xy[D_hat_ids[anchor_id],:] = np.asarray(anchor_coords[anchor_id])
-			print(xy)
-			print(D_hat)
+			print("Calculating MDS, GMMDS...")
 
 			sio.savemat('passed_data.mat', {'D_hat': D_hat, 'xy': xy})
 			octave.TerraSwarmDemo(D_hat, xy, 3, xy)
-			D_hat = np.empty([0, 0, 0])
-			D_hat_len = np.empty([0, 0])
-			D_hat_ids = {}
+			#D_hat = np.empty([0, 0, 0])
+			#D_hat_len = np.empty([0, 0])
+			#D_hat_ids = {}
 			tic()
 
 except KeyboardInterrupt:
