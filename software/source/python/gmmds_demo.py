@@ -157,10 +157,17 @@ try:
 			print("Calculating MDS, GMMDS...")
 
 			sio.savemat('passed_data.mat', {'D_hat': D_hat, 'xy': xy})
-			octave.TerraSwarmDemo(D_hat, xy, 3, xy)
-			#D_hat = np.empty([0, 0, 0])
-			#D_hat_len = np.empty([0, 0])
-			#D_hat_ids = {}
+			xy_proc = octave.TerraSwarmDemo(D_hat, xy, 3, xy)
+		
+			#Create dictionary in the same format that will be read by the demo script
+			anchor_dict = {}
+			for anchor_id in D_hat_ids:
+				anchor_dict["c0:98:e5:50:50:44:50:{}".format(anchor_id)] = xy_proc[D_hat_ids[anchor_id],:].tolist()
+
+			#Write these expected coordinates to a file (on Dropbox for now...)
+			with open('anchor_configuration.json', 'w') as outfile:
+				json.dump(anchor_dict, outfile)
+			
 			tic()
 
 except KeyboardInterrupt:
