@@ -25,8 +25,10 @@ except ImportError:
 
 import argparse
 import binascii
+import datetime
 import pprint
 import random
+import requests
 import struct
 import sys
 import time
@@ -53,6 +55,12 @@ parser.add_argument('-n', '--no-iter', action='store_true')
 parser.add_argument('-e', '--exact', default=None, type=int)
 parser.add_argument('-d', '--dump-full', action='store_true')
 parser.add_argument('-v', '--diversity', default=None)
+parser.add_argument('--gdp', action='store_true')
+parser.add_argument('--gdp-rest', action='store_true')
+parser.add_argument('--gdp-rest-url', default='http://localhost:8080')
+parser.add_argument('--gdp-log', default='edu.umich.eecs.lab11.polypoint-test')
+parser.add_argument('-j', '--anchors_from_json', action="store_true")
+parser.add_argument('--anchor-url', default="http://j2x.us/ppts16")
 #parser.add_argument('-t', '--textfiles',action='store_true',
 #		help="Generate ASCII text files with the data")
 #parser.add_argument('-m', '--matfile',  action='store_true',
@@ -81,6 +89,52 @@ else:
 	else:
 		raise NotImplementedError("Failed to connect to serial device " + args.serial)
 
+##########################################################################
+## GDP INTEGRATION
+
+if args.gdp:
+	import gdp
+	gcl_name = gdp.GDP_NAME(args.gdp_log)
+	gcl_handle = gdp.GDP_GCL(gcl_name, gdp.GDP_MODE_RA)
+
+def post_to_gdp(x, y, z):
+	print("POSTING TO GDP")
+	payload = {
+			"_meta": {
+				"received_time": datetime.datetime.now().isoformat(),
+				"device_id": "c0:98:e5:45:00:37", # TODO Make automatic
+				"device_type": "surepoint_tag",
+				},
+			"x": x,
+			"y": y,
+			"z": z,
+			}
+
+	just_loc = {
+			"x": x,
+			"y": y,
+			"z": z,
+			}
+
+
+	if args.gdp:
+		gdp_datum = {"data": payload}
+		gcl_handle.append(gdp_datum)
+	if args.gdp_rest:
+		#r = requests.post(args.gdp_rest_url, json=payload)
+		r = requests.put(args.gdp_rest_url, params=just_loc)
+		print("POSTED TO GDP")
+
+
+##########################################################################
+## DYNAMIC ANCHOR SUPPORT
+
+if args.anchors_from_json:
+	r = requests.get(args.anchor_url)
+	_ANCHORS = r.json()
+	ANCHORS = {}
+	for anc in _ANCHORS:
+		ANCHORS[anc.split(':')[-1]] = _ANCHORS[anc]
 
 ##########################################################################
 
@@ -92,7 +146,7 @@ else:
 # 	8.822
 # ; 3.193-2.64+.164
 # 	0.717
-ANCHORS = {
+_ANCHORS = {
 		'22': (  .212,  8.661, 4.047),
 		'3f': ( 7.050,  0.064, 3.295),
 		'28': (12.704,  9.745, 3.695),
@@ -105,6 +159,9 @@ ANCHORS = {
 		'30': (12.610,  9.768, 0.064),
 		'27': ( 0.719,  3.864, 0.068),
 		}
+
+if not args.anchors_from_json:
+	ANCHORS = _ANCHORS
 
 if args.ground_truth:
 	GT = np.array(list(map(float, args.ground_truth.split(','))))
@@ -598,6 +655,9 @@ try:
 						aa.append(0)
 
 				data_array.append([ts, *position, *aa])
+
+				if args.gdp or args.gdp_rest:
+					post_to_gdp(*position)
 
 			good += 1
 
