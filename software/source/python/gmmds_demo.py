@@ -67,19 +67,29 @@ def find_header():
 		b = b[1:len(HEADER)] + useful_read(1)
 
 anchor_coords = {
-	'31': (  2.421, -1.032, 1.224),
-	'2e': (  4.598, -2.309, 0.740),
-	'26': (  4.598, -4.285, 1.983),
-	'22': (  2.476, -7.179, 1.882),
-	'27': (  0.055, -4.903, 1.482),
-	'3f': (  0.055, -3.904, 1.779),
-	'23': (  0.055, -2.657, 2.202),
-	'2b': (  0.055, -0.871, 2.263),
-	'2c': ( -0.188, -4.124, 2.433),
-	'37': ( -2.099, -4.557, 2.241),
-	'1f': ( -2.099, -2.594, 0.483),
-	'38': ( -0.133, -0.631, 1.549),
-	'3e': (  0.410,  0.206, 2.283),
+#	'31': (  2.421, -1.032, 1.224),
+#	'2e': (  4.598, -2.309, 0.740),
+#	'26': (  4.598, -4.285, 1.983),
+#	'22': (  2.476, -7.179, 1.882),
+#	'27': (  0.055, -4.903, 1.482),
+#	'3f': (  0.055, -3.904, 1.779),
+#	'23': (  0.055, -2.657, 2.202),
+#	'2b': (  0.055, -0.871, 2.263),
+#	'2c': ( -0.188, -4.124, 2.433),
+#	'37': ( -2.099, -4.557, 2.241),
+#	'1f': ( -2.099, -2.594, 0.483),
+#	'38': ( -0.133, -0.631, 1.549),
+#	'3e': (  0.410,  0.206, 2.283),
+	'3f': (  2.378,  0.058, 2.184),
+	'2e': (  0.058,  2.933, 2.184),
+	'2c': (  0.058,  4.893, 2.184),
+	'27': (  0.058,  8.843, 2.184),
+	'23': (  0.359, 13.531, 2.184),
+	'3e': (  4.566, 13.531, 2.184),
+	'26': (  5.713, 11.876, 2.184),
+	'22': (  5.713,  6.895, 2.184),
+	'2b': (  5.713,  3.678, 2.184),
+	'31': (  0.000, 10.760, 1.858),
 }
 
 NUM_HISTORY = 150
@@ -99,6 +109,11 @@ try:
 
 			reporting_id = binascii.hexlify(useful_read(1)).decode('utf-8')
 			ranging_id = binascii.hexlify(useful_read(1)).decode('utf-8')
+
+			if reporting_id == '37':
+				continue
+			if ranging_id == '37':
+				continue
 
 			#Keep track of mapping from ID to index in array
 			if not reporting_id in D_hat_ids:
@@ -153,19 +168,25 @@ try:
 			#Construct array of intial guesses for XY location
 			xy = np.zeros([D_hat.shape[0], 3])
 			for anchor_id in D_hat_ids:
-				xy[D_hat_ids[anchor_id],:] = np.asarray(anchor_coords[anchor_id])
+				print(anchor_id)
+				try:
+					xy[D_hat_ids[anchor_id],:] = np.asarray(anchor_coords[anchor_id])
+				except:
+					pass
 			print("Calculating MDS, GMMDS...")
 
 			sio.savemat('passed_data.mat', {'D_hat': D_hat, 'xy': xy})
-			xy_proc = octave.TerraSwarmDemo(D_hat, xy, 3, xy)
+			xy_proc = octave.TerraSwarmDemo(D_hat, xy[:,0:2], 3, xy[:,0:2])
 		
 			#Create dictionary in the same format that will be read by the demo script
 			anchor_dict = {}
 			for anchor_id in D_hat_ids:
-				anchor_dict["c0:98:e5:50:50:44:50:{}".format(anchor_id)] = xy_proc[D_hat_ids[anchor_id],:].tolist()
+				xyz_list = xy_proc[D_hat_ids[anchor_id],:].tolist()
+				xyz_list.append(2.184)
+				anchor_dict["c0:98:e5:50:50:44:50:{}".format(anchor_id)] = xyz_list
 
 			#Write these expected coordinates to a file (on Dropbox for now...)
-			with open('anchor_configuration.json', 'w') as outfile:
+			with open('/home/bpkempke/Dropbox/benpat/polypoint-anc2anc/data/anchor_configuration.json', 'w') as outfile:
 				json.dump(anchor_dict, outfile)
 			
 			tic()
