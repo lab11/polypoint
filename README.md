@@ -92,7 +92,7 @@ be selected at runtime.
 #### TriTag
 
 The TriTag code implements a BLE application
-that uses the TriPoint module as an I2C device and provides
+that uses the TriPoint module as an I2C device and prov
 a BLE service. It puts the TriTag hardware into TAG mode
 and provides ranges over a BLE characteristic. 
 
@@ -101,5 +101,27 @@ and provides ranges over a BLE characteristic.
 The tools in the `/phone` directory interact with TriTag and read data
 across the BLE interface.
 
+----
 
+## Academic Publications
 
+The PolyPoint project has led to two academic publications, and an invited talk at HotWireless'16.
+If you are interested in the theory behind the ranging protocol, please check out our publications:
+
+ - **[SurePoint: Exploiting Ultra Wideband Flooding and Diversity to Provide Robust, Scalable, High-Fidelity Indoor Localization.](http://lab11.eecs.berkeley.edu/content/pubs/kempke16surepoint.pdf)** Benjamin Kempke, Pat Pannuto, Bradford Campbell, and Prabal Dutta. Proceedings of the 14th ACM Conference on Embedded Networked Sensor Systems (SenSys’16).
+ - **[PolyPoint: Guiding Indoor Quadrotors with Ultra-Wideband Localization.](http://lab11.eecs.berkeley.edu/content/pubs/kempke15polypoint.pdf)** Benjamin Kempke, Pat Pannuto, and Prabal Dutta. 2015 ACM Workshop on Hot Topics in Wireless (HotWireless’15).
+ 
+If you use PolyPoint or its derivatives, please use the following citation:
+
+```bibtex
+@inproceedings{kempke16surepoint-demo,
+	year = {2016},
+	title = {{SurePoint}: Exploiting Ultra Wideband Flooding and Diversity to Provide Robust, Scalable, High-Fidelity Indoor Localization},
+	series = {SenSys'16},
+	month = {November},
+	conference-url = {http://sensys.acm.org/2016/},
+	booktitle = {Proceedings of the 14th ACM Conference on Embedded Networked Sensor Systems},
+	author = {Kempke, Benjamin and Pannuto, Pat and Campbell, Bradford and Dutta, Prabal},
+	location = {Stanford, CA, USA},
+}
+```
