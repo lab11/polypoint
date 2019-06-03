@@ -114,14 +114,14 @@ If you are interested in the theory behind the ranging protocol, please check ou
 If you use PolyPoint or its derivatives, please use the following citation:
 
 ```bibtex
-@inproceedings{kempke16surepoint-demo,
-	year = {2016},
+@inproceedings{kempke16surepoint,
 	title = {{SurePoint}: Exploiting Ultra Wideband Flooding and Diversity to Provide Robust, Scalable, High-Fidelity Indoor Localization},
-	series = {SenSys'16},
-	month = {November},
-	conference-url = {http://sensys.acm.org/2016/},
 	booktitle = {Proceedings of the 14th ACM Conference on Embedded Networked Sensor Systems},
-	author = {Kempke, Benjamin and Pannuto, Pat and Campbell, Bradford and Dutta, Prabal},
+	series = {SenSys'16},
+	year = {2016},
+	month = {11},
 	location = {Stanford, CA, USA},
+	conference-url = {http://sensys.acm.org/2016/},
+	author = {Kempke, Benjamin and Pannuto, Pat and Campbell, Bradford and Dutta, Prabal},
 }
 ```
